@@ -1,6 +1,6 @@
-package com.example.tomatomall.service.serviceImpl;
+package com.seecoder.TomatoMall.service.serviceImpl;
 
-import com.example.tomatomall.service.AccountService;
+import com.seecoder.TomatoMall.service.AccountService;
 import org.springframework.stereotype.Service;
 
 @Service

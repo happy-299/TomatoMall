@@ -1,7 +1,7 @@
-package com.example.tomatomall.controller;
+package com.seecoder.TomatoMall.controller;
 
-import com.example.tomatomall.service.AccountService;
-import com.example.tomatomall.vo.Response;
+import com.seecoder.TomatoMall.service.AccountService;
+import com.seecoder.TomatoMall.vo.Response;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;

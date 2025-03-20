@@ -1,4 +1,4 @@
-package com.example.tomatomall.vo;
+package com.seecoder.TomatoMall.vo;
 
 import lombok.*;
 

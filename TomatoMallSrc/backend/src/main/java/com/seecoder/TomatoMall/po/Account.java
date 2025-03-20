@@ -1,4 +1,4 @@
-package com.example.tomatomall.po;
+package com.seecoder.TomatoMall.po;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
