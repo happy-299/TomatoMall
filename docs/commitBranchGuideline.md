@@ -1,5 +1,8 @@
 
-# Table of Contents
+# Commit and Branch Guideline
+
+#### 该规范摘自HHLife项目，致谢happytech-web
+原规范链接 => https://github.com/happytech-web/HHLife/blob/master/docs/meeting/meetingLog0.md
 
 1.  [Git](#orge920318)
     1.  [commit 规范](#org1011bb1)
