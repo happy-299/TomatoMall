@@ -1,4 +1,4 @@
-# TomataMall
+# TomatoMall
 
 ## Introduction
 
