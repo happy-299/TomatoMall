@@ -1,6 +1,6 @@
 *
 !.gitignore
-!/src
+!/src/**
 !*.java
 !*.xml
 !*.iml
