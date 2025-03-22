@@ -1,103 +1,106 @@
+<!-- Header.vue -->
 <script setup lang="ts">
-import {router} from '../router'
-import {parseRole} from "../utils"
-import {User, SwitchButton} from "@element-plus/icons-vue"   //图标
-import {Shop} from "@element-plus/icons-vue" //商场图标
+import { router } from '../router'
+import { User, ShoppingCart, SwitchButton } from '@element-plus/icons-vue'
 
-const role = sessionStorage.getItem('role')    //登录的时候插入的
+const role = sessionStorage.getItem('role')
+const username = sessionStorage.getItem('username')
 
-//退出登录
 function logout() {
-  ElMessageBox.confirm(
-      '是否要退出登录？',
-      '提示',
-      {
-        customClass: "customDialog",
-        confirmButtonText: '是',
-        cancelButtonText: '否',
-        type: "warning",
-        showClose: false,
-        roundButton: true,
-        center: true
-      }
-  ).then(() => {
-    sessionStorage.setItem('token', '')
+  ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    customClass: 'custom-dialog',
+    type: 'warning',
+    center: true
+  }).then(() => {
+    console.log("login")
+    sessionStorage.clear()
     router.push({path: "/login"})
   })
 }
 </script>
 
-
 <template>
-  <el-header class="custom-header" height="20">
-    <el-row :gutter="10">
-      <el-col :span="3" class="header-icon">
-        <router-link to="/dashboard" v-slot="{navigate}" class="no-link">
-          <h1 @click="navigate" class="header-text"> 蓝鲸在线购物</h1>
-        </router-link>
-      </el-col>
+  <el-header class="header-container">
+    <div class="header-content">
+      <div class="left-section">
+        <h1 class="logo-text">番茄书城</h1>
+        <el-tag class="role-tag" effect="dark">{{ role === 'ADMIN' ? '管理' : '用户' }}中心</el-tag>
+      </div>
 
-      <el-col :span="2">
-        <el-tag class="role-tag" size="large">{{ parseRole(role) }}版</el-tag>
-      </el-col>
-
-      <el-col :span="16">
-      </el-col>
-
-      <!-- 新增商场图标 -->
-      <el-col :span="1" class="header-icon">
-        <router-link to="/shopping-mail" v-slot="{navigate}">
-          <el-icon @click="navigate" :size="35" color="white" ><Shop /></el-icon>
-        </router-link>
-      </el-col>
-
-      <el-col :span="1" class="header-icon">
-        <router-link to="/dashboard" v-slot="{navigate}">
-          <el-icon @click="navigate" :size="35" color="white" ><User /></el-icon>
-        </router-link>
-      </el-col>
-
-      <el-col :span="1" class="header-icon">
-        <a @click="logout">
-          <el-icon :size="35" color="white" ><SwitchButton /></el-icon>
-        </a>
-      </el-col>
-    </el-row>
+      <div class="right-section">
+        <el-tooltip content="购物车" placement="bottom">
+          <el-icon :size="24" class="header-icon" @click="router.push('/cart')">
+            <ShoppingCart />
+          </el-icon>
+        </el-tooltip>
+        <el-tooltip content="个人中心" placement="bottom">
+          <el-icon :size="24" class="header-icon" @click="router.push('/dashboard')">
+            <User />
+          </el-icon>
+        </el-tooltip>
+        <el-icon :size="24" class="header-icon" @click="logout">
+          <SwitchButton />
+        </el-icon>
+      </div>
+    </div>
   </el-header>
 </template>
 
-
 <style scoped>
-.custom-header {
-  background-color: #409eff;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
-
+.header-container {
+  background-color: #2c698d;
+  height: 60px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
 
-.no-link {
-  text-decoration: none;
+.header-content {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+}
+
+.logo-text {
+  color: #ffffff;
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 2px;
 }
 
 .role-tag {
-  margin-top: 20px;
-  font-size: 20px;
+  margin-left: 15px;
+  background-color: #bae8e8;
+  color: #2c698d;
+  border: none;
 }
 
-.header-text {
-  color:white;
-  font-size: x-large;
-  min-width: max-content;
-  margin-top: 15px;
-  margin-bottom: 15px;
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  color: #ffffff;
+  cursor: pointer;
+  .username {
+    margin-left: 8px;
+    font-size: 14px;
+  }
 }
 
 .header-icon {
-  display: flex;
-  flex-direction: column;
-  align-items:center;
-  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: color 0.3s;
+  &:hover {
+    color: #e3f6f5;
+  }
 }
 </style>
