@@ -25,4 +25,3 @@
 - style: {your commit here}
 - util: {your commit here}
 - docs: {your commit here}
-
