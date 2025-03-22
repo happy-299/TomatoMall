@@ -44,6 +44,12 @@ router.beforeEach(async (to, _from, next) => {//from有意忽略，若需要使�
         document.title = `${to.meta.title} | 用户系统`
     }
 
+    /* 临时禁用验证逻辑 */
+    const isPreviewMode = true // 设置为 false 可恢复验证
+    if (isPreviewMode) {
+        return next() // 直接放行所有路由
+    }
+
     try {
         // 验证用户登录状态
         await getUserInfo('dummy') // 实际username应由后端从cookie获取
