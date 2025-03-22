@@ -1,4 +1,4 @@
-# Commit and Branch Guideline
+# dev spec
 
 ## branch related
 
