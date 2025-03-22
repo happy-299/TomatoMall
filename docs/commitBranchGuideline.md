@@ -1,76 +1,28 @@
-
 # Commit and Branch Guideline
 
-#### 该规范摘自HHLife项目，致谢happytech-web
-原规范链接 => https://github.com/happytech-web/HHLife/blob/master/docs/meeting/meetingLog0.md
+## branch related
 
-1.  [Git](#orge920318)
-    1.  [commit 规范](#org1011bb1)
-    2.  [branch](#orga7da68b)
-    3.  [workflow](#orgb218367)
-        1.  [提交自己的分支](#orgf9d710e)
-        2.  [合并](#orge8b426a)
+本次branch规范如下,其他分支可以商讨决定:
 
+- master: 每次lab/组会任务完全结束后再合并到master
+- dev: 前后端合作分支，此分支可以看作是master分支的开发版本，该分支上是较为稳定的分支
+- dev-backend: 后端协作分支
+- dev-frontend: 前端协作分支
 
 
-<a id="orge920318"></a>
+> workflow: 前后端分别在自己分支上解决任务后在dev分支上维护稳定版本,其他分支从dev分支上拉取最新内容进行开发
 
-# Git
+## 项目结构
 
+参考.gitignore, 如果要更改.gitignore请单独一个commit说明
 
-<a id="org1011bb1"></a>
+请写好gitignore不要upload奇怪的文件
 
-## commit 规范
+## commit related
 
-请在以下几个 `type` 之间选择一个
-
-    [type]: [description]
-    type表示本次提交的类型：
-    - feature
-    - fix
-    - docs
-    - style
-
-
-<a id="orga7da68b"></a>
-
-## branch
-
-请在以下几个 `type` 之间选择一个
-
--   master:始终是稳定状态，经过充分测试并且保持可部署状态
--   feature: 特性或开发分支
--   iss: 解决突发问题
-
-&#x2026;
-
-
-<a id="orgb218367"></a>
-
-## workflow
-
-
-<a id="orgf9d710e"></a>
-
-### 提交自己的分支
-
-git push -u origin `your-branch`
-不要交到主分支了
-
-
-<a id="orge8b426a"></a>
-
-### 合并
-
-每次开发任务只在一个branch下工作, 并自行在自己分支下commit，完成任务并且经过测试之后
-
--   首先在你自己的分支： `git checkout [yourbranch]`
--   拉取远程仓库的最新状态： `git fetch origin`
--   将最新的main分支合并到你的分支： `git merge orgin/master`
--   解决所有冲突，然后commit掉
--   确保你的代码可以正确运行，不影响主分支的稳定性后
--   切换到主分支： `git checkout master`
--   将你的分支合并到master:  `git merge --no-ff [branch] -m "commit message"`
--   如果还冲突，自行解决冲突
--   最终推送到远程仓库
+- feat/feture: {your commit here}
+- fix: {your commit here}
+- style: {your commit here}
+- util: {your commit here}
+- docs: {your commit here}
 
