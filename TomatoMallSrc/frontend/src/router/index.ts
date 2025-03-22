@@ -12,12 +12,12 @@ const router = createRouter({
         {
             path: '/login',
             component: () => import('../views/user/Login.vue'),
-            meta: { title: '用户登录', guest: true }
+            meta: {title: '用户登录'}
         },
         {
             path: '/register',
             component: () => import('../views/user/Register.vue'),
-            meta: { title: '用户注册', guest: true }
+            meta: { title: '用户注册' }
         },
         {
             path: '/dashboard',
