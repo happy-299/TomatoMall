@@ -6,16 +6,28 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class MyWebMvcConfig implements WebMvcConfigurer {
+public class MyWebMvcConfig implements WebMvcConfigurer
+{
     @Autowired
     LoginInterceptor loginInterceptor;
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
+    public void addInterceptors(InterceptorRegistry registry)
+    {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/api/accounts/")
-                .excludePathPatterns("/swagger-ui.html")
+                .excludePathPatterns(
+                        //允许后端所有 /api/ 形式的路径
+                        "/api/**"
+                )
+                .excludePathPatterns(
+                        // Swagger 相关路径
+                        "/swagger-ui.html",
+                        "/swagger-resources/**",
+                        "/v2/api-docs",
+                        "/webjars/**",
+                        "/swagger-ui/**"
+                )
                 .order(1);
     }
 
