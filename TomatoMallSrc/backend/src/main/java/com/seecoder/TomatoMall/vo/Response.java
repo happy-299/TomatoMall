@@ -25,7 +25,7 @@ public class Response<T> implements Serializable {
         return new Response<T>("200", msg, result);
     }
 
-    public static <T> Response<T> buildFailure(String msg) {
-        return new Response<T>("400", msg, null);
+    public static <T> Response<T> buildFailure(String msg, String code) {
+        return new Response<T>(code, msg, null);
     }
 }
