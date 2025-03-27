@@ -1,6 +1,5 @@
 package com.seecoder.TomatoMall.controller;
 
-import com.seecoder.TomatoMall.po.Account;
 import com.seecoder.TomatoMall.service.AccountService;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import com.seecoder.TomatoMall.vo.Response;
@@ -18,8 +17,10 @@ public class AccountController {
     /**
      * 获取用户详情
      */
-    @GetMapping()
-    public Response<AccountVO> getAccount() {
+    @GetMapping("/{username}")
+    public Response<AccountVO> getAccount(
+            @PathVariable Integer username
+    ) {
         return Response.buildSuccess(accountService.getInformation());
     }
 
