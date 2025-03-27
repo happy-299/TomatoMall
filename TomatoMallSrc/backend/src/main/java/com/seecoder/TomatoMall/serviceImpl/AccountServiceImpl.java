@@ -64,6 +64,18 @@ public class AccountServiceImpl implements AccountService {
         if (accountVO.getAddress()!=null){
             account.setAddress(accountVO.getAddress());
         }
+        if (accountVO.getAvatar() != null) {
+            account.setAvatar(accountVO.getAvatar());
+        }
+        if (accountVO.getEmail() != null) {
+            account.setEmail(accountVO.getEmail());
+        }
+        if (accountVO.getPhone() != null) {
+            account.setPhone(accountVO.getPhone());
+        }
+        if (accountVO.getRole() != null) {
+            account.setRole(accountVO.getRole());
+        }
         accountRepository.save(account);
         return true;
     }
