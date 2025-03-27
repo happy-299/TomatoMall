@@ -1,5 +1,6 @@
-node_modules/
-.idea/
-*.log
-.vite/
-components.d.ts
+/*
+!/*.ts
+!/*.json
+!/*.html
+!/public
+!/src
