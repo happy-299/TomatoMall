@@ -16,18 +16,8 @@ public class MyWebMvcConfig implements WebMvcConfigurer
     {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns(
-                        //允许后端所有 /api/ 形式的路径
-                        "/api/**"
-                )
-                .excludePathPatterns(
-                        // Swagger 相关路径
-                        "/swagger-ui.html",
-                        "/swagger-resources/**",
-                        "/v2/api-docs",
-                        "/webjars/**",
-                        "/swagger-ui/**"
-                )
+                .excludePathPatterns("/api/accounts")
+                .excludePathPatterns("/api/accounts/login")
                 .order(1);
     }
 

@@ -3,6 +3,7 @@ package com.seecoder.TomatoMall.controller;
 import com.seecoder.TomatoMall.service.AccountService;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import com.seecoder.TomatoMall.vo.Response;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -11,7 +12,7 @@ import javax.annotation.Resource;
 @RequestMapping("/api/accounts")
 public class AccountController {
 
-    @Resource
+    @Autowired
     AccountService accountService;
 
     /**
@@ -19,7 +20,7 @@ public class AccountController {
      */
     @GetMapping("/{username}")
     public Response<AccountVO> getAccount(
-            @PathVariable Integer username
+            @PathVariable String username
     ) {
         return Response.buildSuccess(accountService.getInformation());
     }

@@ -26,7 +26,7 @@ public class Account {
     private String username;
 
     @Basic
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
 
     // 用户真实姓名
@@ -41,7 +41,7 @@ public class Account {
 
     // 这里后端不作校验，由前端来校验
     @Basic
-    @Column(name = "phone", length = 11, nullable = false)
+    @Column(name = "phone", length = 11)
     private String phone;
 
     @Basic
