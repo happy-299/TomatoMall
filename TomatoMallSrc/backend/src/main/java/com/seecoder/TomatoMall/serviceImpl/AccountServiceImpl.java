@@ -12,12 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
-/**
- * @Author: GaoZhaolong
- * @Date: 14:46 2023/11/26
- *
- * 注册登录功能实现
- */
 @Service
 public class AccountServiceImpl implements AccountService {
 
