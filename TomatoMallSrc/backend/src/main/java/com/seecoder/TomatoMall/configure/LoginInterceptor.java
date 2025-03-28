@@ -33,7 +33,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
 
         if (token != null && tokenUtil.verifyToken(token)) {
-            System.out.println("!!!Login token check!!!");
+            System.out.println("get account by token: "+tokenUtil.getAccount(token));
             request.getSession().setAttribute("currentAccount", tokenUtil.getAccount(token));
             return true;
         } else {

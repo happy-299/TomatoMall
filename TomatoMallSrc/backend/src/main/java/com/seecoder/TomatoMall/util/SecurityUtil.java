@@ -13,7 +13,8 @@ public class SecurityUtil {
     HttpServletRequest httpServletRequest;
 
     public Account getCurrentAccount() {
-        return (Account) httpServletRequest.getSession().getAttribute("currentAccount");
+        Account res = (Account) httpServletRequest.getSession().getAttribute("currentAccount");
+        return res;
     }
 
 }

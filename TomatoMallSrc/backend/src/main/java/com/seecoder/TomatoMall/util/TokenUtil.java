@@ -39,6 +39,7 @@ public class TokenUtil {
     }
 
     public Account getAccount(String token){
+        assert (token != null);
         Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
         return accountRepository.findById(accountId).get();
     }
