@@ -14,6 +14,7 @@ const formData = ref({
   password: '',
   confirmPassword: '',
   name: '',
+  role:'',
   avatar: '',
   phone: '',
   email: '',
@@ -34,11 +35,14 @@ const rules = {
     { required: true, message: '请输入真实姓名', trigger: 'blur' },
     { min: 2, max: 10, message: '长度在2-10个字符', trigger: 'blur' }
   ],
-  telephone: [
+  phone: [
     { pattern: /^1[3-9]\d{9}$/, // 改为非必填但保留格式校验
       message: '请输入有效的手机号码',
       trigger: 'blur'
     }
+  ],
+  role: [
+    { required: true, message: '请选择用户身份', trigger: 'change' }
   ],
   email: [
     {
@@ -55,7 +59,7 @@ const rules = {
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
     {
-      validator: (rule: any, value: string, callback: any) => {
+      validator: (_rule: any, value: string, callback: any) => {
         if (value !== formData.value.password) {
           callback(new Error('两次输入密码不一致'))
         } else {
@@ -119,16 +123,35 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
 
         <!-- 真实姓名 -->
         <el-form-item prop="name">
-          <label>真实姓名</label>
+          <label>姓名</label>
           <el-input
               v-model="formData.name"
-              placeholder="请输入真实姓名"
+              placeholder="请输入姓名"
           />
         </el-form-item>
 
+        <!-- 修改后的身份选择部分 -->
+        <el-form-item prop="role">
+          <label>身份</label>
+          <el-select
+              v-model="formData.role"
+              placeholder="请选择身份"
+              style="width: 100%"
+          >
+            <el-option
+                label="顾客"
+                value="user"
+            />
+            <el-option
+                label="管理员"
+                value="admin"
+            />
+          </el-select>
+        </el-form-item>
+
         <!-- 手机号 -->
-        <el-form-item prop="telephone">
-          <label>手机号（可选）</label>
+        <el-form-item prop="phone">
+          <label>手机号</label>
           <el-input
               v-model="formData.phone"
               placeholder="1xxxxxxxxxx"
@@ -137,7 +160,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
 
         <!-- 邮箱 -->
         <el-form-item prop="email">
-          <label>邮箱（可选）</label>
+          <label>邮箱</label>
           <el-input
               v-model="formData.email"
               placeholder="example@domain.com"
@@ -146,7 +169,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
 
         <!-- 地址 -->
         <el-form-item prop="location">
-          <label>地址（可选）</label>
+          <label>地址</label>
           <el-input
               v-model="formData.address"
               placeholder="请输入地址"
@@ -154,13 +177,13 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         </el-form-item>
 
         <!-- 头像 -->
-        <el-form-item prop="avatar">
-          <label>头像URL（可选）</label>
-          <el-input
-              v-model="formData.avatar"
-              placeholder="输入图片链接地址"
-          />
-        </el-form-item>
+<!--        <el-form-item prop="avatar">-->
+<!--          <label>URL</label>-->
+<!--          <el-input-->
+<!--              v-model="formData.avatar"-->
+<!--              placeholder="输入图片链接地址"-->
+<!--          />-->
+<!--        </el-form-item>-->
 
         <!-- 密码 -->
         <el-form-item prop="password">
