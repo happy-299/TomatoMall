@@ -13,7 +13,8 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 
 @Service
-public class AccountServiceImpl implements AccountService {
+public class AccountServiceImpl implements AccountService
+{
 
     @Autowired
     AccountRepository accountRepository;
@@ -26,9 +27,11 @@ public class AccountServiceImpl implements AccountService {
 
 
     @Override
-    public Boolean register(AccountVO accountVO) {
+    public Boolean register(AccountVO accountVO)
+    {
         Account account = accountRepository.findByUsername(accountVO.getUsername());
-        if (account != null) {
+        if (account != null)
+        {
             throw TomatoMallException.usernameAlreadyExists();
         }
         Account newAccount = accountVO.toPO();
@@ -38,42 +41,53 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public String login(String phone, String password) {
+    public String login(String phone, String password)
+    {
         Account account = accountRepository.findByUsernameAndPassword(phone, password);
-        if (account == null) {
+        if (account == null)
+        {
             throw TomatoMallException.loginFail();
         }
         return tokenUtil.getToken(account);
     }
 
     @Override
-    public AccountVO getInformation() {
-        Account account=securityUtil.getCurrentAccount();
+    public AccountVO getInformation()
+    {
+        Account account = securityUtil.getCurrentAccount();
         return account.toVO();
     }
 
     @Override
-    public Boolean updateInformation(AccountVO accountVO) {
-        Account account=securityUtil.getCurrentAccount();
-        if (accountVO.getPassword()!=null){
+    public Boolean updateInformation(AccountVO accountVO)
+    {
+        Account account = securityUtil.getCurrentAccount();
+        if (accountVO.getPassword() != null)
+        {
             account.setPassword(accountVO.getPassword());
         }
-        if (accountVO.getName()!=null){
+        if (accountVO.getName() != null)
+        {
             account.setName(accountVO.getName());
         }
-        if (accountVO.getAddress()!=null){
-            account.setAddress(accountVO.getAddress());
+        if (accountVO.getLocation() != null)
+        {
+            account.setLocation(accountVO.getLocation());
         }
-        if (accountVO.getAvatar() != null) {
+        if (accountVO.getAvatar() != null)
+        {
             account.setAvatar(accountVO.getAvatar());
         }
-        if (accountVO.getEmail() != null) {
+        if (accountVO.getEmail() != null)
+        {
             account.setEmail(accountVO.getEmail());
         }
-        if (accountVO.getPhone() != null) {
-            account.setPhone(accountVO.getPhone());
+        if (accountVO.getTelephone() != null)
+        {
+            account.setTelephone(accountVO.getTelephone());
         }
-        if (accountVO.getRole() != null) {
+        if (accountVO.getRole() != null)
+        {
             account.setRole(accountVO.getRole());
         }
         accountRepository.save(account);

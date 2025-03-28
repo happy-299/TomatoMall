@@ -13,7 +13,8 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Account {
+public class Account
+{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "id")
@@ -38,19 +39,23 @@ public class Account {
     @Column(name = "avatar")
     private String avatar;
 
+    @Basic
+    @Column(name = "role")
+    private String role;
+
 
     // 这里后端不作校验，由前端来校验
     @Basic
-    @Column(name = "phone", length = 11)
-    private String phone;
+    @Column(name = "telephone", length = 11)
+    private String telephone;
 
     @Basic
     @Column(name = "email", length = 100)
     private String email;
 
     @Basic
-    @Column(name = "address")
-    private String address;
+    @Column(name = "location")
+    private String location;
 
     // 以下为作业需求中不存在的字段
 
@@ -58,21 +63,22 @@ public class Account {
     @Column(name = "create_time")
     private Date createTime;
 
-    @Basic
-    @Column(name = "role")
-    @Enumerated(EnumType.STRING)
-    private RoleEnum role;
+//    @Basic
+//    @Column(name = "role")
+//    @Enumerated(EnumType.STRING)
+//    private RoleEnum role;
 
-    public AccountVO toVO() {
+    public AccountVO toVO()
+    {
         AccountVO accountVO = new AccountVO();
         accountVO.setId(this.id);
         accountVO.setUsername(this.username);
         accountVO.setPassword(this.password);
         accountVO.setName(this.name);
         accountVO.setAvatar(this.avatar);
-        accountVO.setPhone(this.phone);
+        accountVO.setTelephone(this.telephone);
         accountVO.setEmail(this.email);
-        accountVO.setAddress(this.address);
+        accountVO.setLocation(this.location);
         accountVO.setCreateTime(this.createTime);
         accountVO.setRole(this.role);
         return accountVO;
