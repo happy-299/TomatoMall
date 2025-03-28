@@ -1,32 +1,43 @@
-// utils/request.ts
 import axios from 'axios'
 
-const service = axios.create({
-    withCredentials: true, // 允许跨域携带cookie
-    timeout: 10000
-})
+//创建一个axios的实例service
+const service = axios.create()
 
-// 响应拦截器
-service.interceptors.response.use(
-    response => {
-        if (response.status === 200) {
-            return response.data
+//判断是否登录
+function hasToken() {
+    return !(sessionStorage.getItem('token') == '')
+}
+
+//当前实例的拦截器，对所有要发送给后端的请求进行处理，在其中加入token
+service.interceptors.request.use(
+    config => {
+        if(hasToken()) {
+            config.headers['token'] = sessionStorage.getItem('token')
         }
-        return Promise.reject(response)
+        return config
     },
     error => {
-        if (error.response) {
-            switch (error.response.status) {
-                case 401:
-                    window.location.href = '/login'
-                    break
-                case 403:
-                    alert('无访问权限')
-                    break
-            }
-        }
-        return Promise.reject(error)
+        console.log(error);
+        return Promise.reject();
     }
 )
 
-export { service as axios }
+//当前实例的拦截器，对所有从后端收到的请求进行处理，检验http的状态码
+service.interceptors.response.use(
+    response => {
+        if (response.status === 200) {
+            return response;
+        } else {
+            return Promise.reject();
+        }
+    },
+    error => {
+        console.log(error);
+        return Promise.reject();
+    }
+)
+
+//设置为全局变量
+export {
+    service as axios
+}

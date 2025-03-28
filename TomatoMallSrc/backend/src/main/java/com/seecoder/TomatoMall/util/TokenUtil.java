@@ -42,4 +42,5 @@ public class TokenUtil {
         Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
         return accountRepository.findById(accountId).get();
     }
+
 }

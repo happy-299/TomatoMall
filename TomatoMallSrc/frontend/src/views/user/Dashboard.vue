@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getUserInfo, updateUserInfo } from '../../api/user'
-import Header from '../../components/Header.vue'
 import { ElMessage, ElLoading } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
 
@@ -19,12 +18,11 @@ const editMode = ref(false)
 const avatarFile = ref<File | null>(null)
 const tempAvatar = ref('')
 
-// 模拟头像上传
 const mockUpload = (file: File) => {
   return new Promise((resolve) => {
     const reader = new FileReader()
     reader.onload = () => {
-      setTimeout(() => resolve(reader.result), 1000) // 模拟延迟
+      setTimeout(() => resolve(reader.result), 1000)
     }
     reader.readAsDataURL(file)
   })
@@ -33,7 +31,6 @@ const mockUpload = (file: File) => {
 const handleAvatarUpload = async (file: File) => {
   const loading = ElLoading.service({ fullscreen: false })
   try {
-    // TODO: 实际应替换为真实上传接口
     const avatarUrl = await mockUpload(file)
     tempAvatar.value = avatarUrl as string
     ElMessage.success('头像上传成功')
@@ -43,18 +40,42 @@ const handleAvatarUpload = async (file: File) => {
 }
 
 const fetchUserInfo = async () => {
-  const { username } = JSON.parse(sessionStorage.getItem('user') || '{}')
-  const res = await getUserInfo(username)
-  Object.assign(userData.value, res.data)
-  tempAvatar.value = res.data.avatar
+  const username = sessionStorage.getItem('username')
+  if (!username) {
+    ElMessage.error('未获取到用户信息，请重新登录')
+    return
+  }
+
+  try {
+    const res = await getUserInfo(username)
+    // 更新数据映射逻辑
+    userData.value = {
+      username: res.data.data.username,
+      name: res.data.data.name,
+      avatar: res.data.data.avatar,
+      telephone: res.data.data.phone || '',
+      email: res.data.data.email || '',
+      location: res.data.data.address || ''
+    }
+    tempAvatar.value = res.data.data.avatar || ''
+  } catch (error) {
+    ElMessage.error('获取用户信息失败')
+  }
 }
 
 const handleSubmit = async () => {
   try {
-    await updateUserInfo({
-      ...userData.value,
-      avatar: tempAvatar.value
-    })
+    // 优化参数构造逻辑
+    const updateData = {
+      username: userData.value.username,
+      name: userData.value.name || undefined,
+      avatar: tempAvatar.value || undefined,
+      phone: userData.value.telephone || undefined,
+      email: userData.value.email || undefined,
+      address: userData.value.location || undefined
+    }
+
+    await updateUserInfo(updateData)
     ElMessage.success('信息更新成功')
     editMode.value = false
     await fetchUserInfo()
@@ -69,7 +90,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Header />
+  <!-- 保持template结构不变 -->
   <div class="dashboard-container">
     <el-card class="profile-card">
       <div class="avatar-section">
@@ -141,6 +162,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 保持样式不变 */
 .dashboard-container {
   padding: 2rem;
   background-color: #e3f6f5;
