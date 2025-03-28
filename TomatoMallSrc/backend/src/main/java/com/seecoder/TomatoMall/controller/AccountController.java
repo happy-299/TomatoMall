@@ -18,8 +18,9 @@ public class AccountController {
     /**
      * 获取用户详情
      */
-    @GetMapping()
-    public Response<AccountVO> getAccount() {
+    @GetMapping("/{username}")
+    public Response<AccountVO> getAccount(@PathVariable String username) {
+        System.out.println("getAccount");
         return Response.buildSuccess(accountService.getInformation());
     }
 
@@ -28,6 +29,7 @@ public class AccountController {
      */
     @PostMapping()
     public Response<Boolean> createUser(@RequestBody AccountVO accountVO) {
+        System.out.println("createUser");
         return Response.buildSuccess(accountService.register(accountVO));
     }
 
@@ -36,6 +38,13 @@ public class AccountController {
      */
     @PutMapping()
     public Response<Boolean> updateUser(@RequestBody AccountVO accountVO) {
+        System.out.println(accountVO.getUsername());
+        System.out.println(accountVO.getName());
+        System.out.println(accountVO.getPhone());
+        System.out.println(accountVO.getAddress());
+        System.out.println(accountVO.getEmail());
+        System.out.println(accountVO.getAvatar());
+        System.out.println(accountVO.getRole());
         return Response.buildSuccess(accountService.updateInformation(accountVO));
     }
 
@@ -44,6 +53,7 @@ public class AccountController {
      */
     @PostMapping("/login")
     public Response<String> login(@RequestParam("username") String username, @RequestParam("password") String password) {
+        System.out.println("login");
         return Response.buildSuccess(accountService.login(username, password));
     }
 }

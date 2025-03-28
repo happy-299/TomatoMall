@@ -23,7 +23,7 @@ const handleLogin = async () => {
       password: password.value
     });
 
-    if (response.data.code === '000') {
+    if (response.data.code === '200') {
       ElMessage({
         message: "登录成功！",
         type: 'success',
@@ -31,10 +31,13 @@ const handleLogin = async () => {
       });
 
       // 存储token（根据实际API响应结构调整）
-      const token = response.data.result?.token || '';
+      console.log(response)
+      const token = response.data.data;
       sessionStorage.setItem('token', token);
-
+      sessionStorage.setItem('username', username.value);
+      console.log("username => " ,username.value)
       // 跳转到仪表盘
+      console.log(token)
       router.push({ path: "/dashboard" });
     } else {
       ElMessage({

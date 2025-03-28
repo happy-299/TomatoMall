@@ -15,9 +15,9 @@ const formData = ref({
   confirmPassword: '',
   name: '',
   avatar: '',
-  telephone: '',
+  phone: '',
   email: '',
-  location: '' // 确保使用location字段
+  address: ''
 })
 
 // 增强的验证规则
@@ -75,16 +75,18 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
     loading.value = true
 
     const { confirmPassword, ...submitData } = formData.value
+    console.log(submitData)
     const res = await userRegister(submitData)
-
-    if (res.data.code === 200) {
+    console.log(res)
+    console.log(res.data.code)
+    if (res.data.code === '200') {
       ElMessage.success('注册成功，请登录')
       router.push('/login')
     } else {
       ElMessage.warning(res.data.data.msg || '注册失败')
     }
   } catch (error: any) {
-    if (error?.response?.data?.code === 400) {
+    if (error?.response?.data?.code === '400') {
       ElMessage.error(error.response.data.data.msg)
     } else {
       ElMessage.error('请求异常，请稍后重试')
@@ -128,7 +130,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         <el-form-item prop="telephone">
           <label>手机号（可选）</label>
           <el-input
-              v-model="formData.telephone"
+              v-model="formData.phone"
               placeholder="1xxxxxxxxxx"
           />
         </el-form-item>
@@ -146,7 +148,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         <el-form-item prop="location">
           <label>地址（可选）</label>
           <el-input
-              v-model="formData.location"
+              v-model="formData.address"
               placeholder="请输入地址"
           />
         </el-form-item>

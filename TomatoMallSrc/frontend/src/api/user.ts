@@ -12,26 +12,26 @@ type RegisterInfo = {
     password: string
     name: string
     avatar?: string
-    telephone?: string
+    phone?: string
     email?: string
-    location?: string
+    address?: string
 }
 
 type UpdateInfo = {
     username: string
     name?: string
     avatar?: string
-    telephone?: string
+    phone?: string
     email?: string
-    location?: string
+    address?: string
 }
 
 // 用户登录
 export const userLogin = (loginInfo: LoginInfo) => {
-    return axios.post(`${USER_MODULE}/login`, loginInfo, {
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true
-    })
+    return axios.post(`${USER_MODULE}/login`, null, {params: loginInfo})
+        .then(res => {
+            return res
+        })
 }
 
 // 用户注册
@@ -43,15 +43,22 @@ export const userRegister = (registerInfo: RegisterInfo) => {
 
 // 获取用户详情
 export const getUserInfo = (username: string) => {
+    const token = sessionStorage.getItem('token');
     return axios.get(`${USER_MODULE}/${username}`, {
-        withCredentials: true
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token
+        }
     })
 }
 
 // 更新用户信息
 export const updateUserInfo = (updateInfo: UpdateInfo) => {
+    const token = sessionStorage.getItem('token');
     return axios.put(USER_MODULE, updateInfo, {
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token
+        }
     })
 }

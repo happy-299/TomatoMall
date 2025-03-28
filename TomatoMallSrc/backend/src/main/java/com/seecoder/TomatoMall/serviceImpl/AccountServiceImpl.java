@@ -15,7 +15,7 @@ import java.util.Date;
 /**
  * @Author: GaoZhaolong
  * @Date: 14:46 2023/11/26
- *
+ * <p>
  * 注册登录功能实现
  */
 @Service
@@ -49,27 +49,37 @@ public class AccountServiceImpl implements AccountService {
         if (account == null) {
             throw TomatoMallException.loginFail();
         }
+
         return tokenUtil.getToken(account);
     }
 
     @Override
     public AccountVO getInformation() {
-        Account account=securityUtil.getCurrentAccount();
+        Account account = securityUtil.getCurrentAccount();
+        System.out.println("getInformation => "+account);
         return account.toVO();
     }
 
     @Override
     public Boolean updateInformation(AccountVO accountVO) {
-        Account account=securityUtil.getCurrentAccount();
-        if (accountVO.getPassword()!=null){
-            account.setPassword(accountVO.getPassword());
-        }
-        if (accountVO.getName()!=null){
+        Account account = securityUtil.getCurrentAccount();
+        System.out.println("account => "+account);
+        if (accountVO.getName() != null) {
             account.setName(accountVO.getName());
         }
-        if (accountVO.getAddress()!=null){
+        if (accountVO.getAvatar() != null) {
+            account.setAvatar(accountVO.getAvatar());
+        }
+        if (accountVO.getPhone() != null) {
+            account.setPhone(accountVO.getPhone());
+        }
+        if (accountVO.getEmail() != null) {
+            account.setEmail(accountVO.getEmail());
+        }
+        if (accountVO.getAddress() != null) {
             account.setAddress(accountVO.getAddress());
         }
+
         accountRepository.save(account);
         return true;
     }

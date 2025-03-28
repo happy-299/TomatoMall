@@ -12,7 +12,8 @@ public class SecurityUtil {
     @Autowired
     HttpServletRequest httpServletRequest;
 
-    public Account getCurrentAccount(){
+    public Account getCurrentAccount() {
         return (Account) httpServletRequest.getSession().getAttribute("currentAccount");
     }
+
 }
