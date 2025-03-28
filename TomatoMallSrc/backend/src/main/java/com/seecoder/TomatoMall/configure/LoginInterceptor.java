@@ -25,15 +25,13 @@ public class LoginInterceptor implements HandlerInterceptor {
 
         String uri = request.getRequestURI();
         String method = request.getMethod();
-        System.out.println(uri);
-        System.out.println(method);
         if ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method)) {
             return true;
         }
         String token = request.getHeader("token");
 
         if (token != null && tokenUtil.verifyToken(token)) {
-            System.out.println("get account by token: "+tokenUtil.getAccount(token));
+//            System.out.println("get account by token: "+tokenUtil.getAccount(token));
             request.getSession().setAttribute("currentAccount", tokenUtil.getAccount(token));
             return true;
         } else {
