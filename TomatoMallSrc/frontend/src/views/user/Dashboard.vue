@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import { getUserInfo, updateUserInfo } from '../../api/user'
 import { ElMessage, ElLoading } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
+import { uploadUserImage } from '../../api/util'
 
 const userData = ref({
   username: '',
@@ -28,16 +29,29 @@ const mockUpload = (file: File) => {
   })
 }
 
-const handleAvatarUpload = async (file: File) => {
-  const loading = ElLoading.service({ fullscreen: false })
+const handleAvatarUpload = async (params: any) => { // 使用element-plus上传规范参数
+  const loading = ElLoading.service({ fullscreen: false });
   try {
-    const avatarUrl = await mockUpload(file)
-    tempAvatar.value = avatarUrl as string
-    ElMessage.success('头像上传成功')
+    const { file } = params; // 从参数中解构file对象
+    console.log("upload =>", file);
+    const response = await uploadUserImage(file);
+    tempAvatar.value = response.data.data;
+    const updateData = {
+      username: userData.value.username,
+      name: userData.value.name || undefined,
+      avatar: tempAvatar.value || undefined,
+      phone: userData.value.telephone || undefined,
+      email: userData.value.email || undefined,
+      address: userData.value.location || undefined
+    }
+    await updateUserInfo(updateData)
+    ElMessage.success('头像上传成功');
+  } catch (error) {
+    ElMessage.error('头像上传失败，请重试');
   } finally {
-    loading.close()
+    loading.close();
   }
-}
+};
 
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
@@ -95,9 +109,9 @@ onMounted(() => {
     <el-card class="profile-card">
       <div class="avatar-section">
         <el-upload
-            :auto-upload="false"
+            :auto-upload="true"
+            :http-request="handleAvatarUpload"
             :show-file-list="false"
-            :on-change="(file) => handleAvatarUpload(file.raw!)"
         >
           <el-avatar :size="120" :src="tempAvatar || userData.avatar">
             <template #default>
