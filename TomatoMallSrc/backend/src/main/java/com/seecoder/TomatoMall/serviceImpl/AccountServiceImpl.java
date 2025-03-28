@@ -55,8 +55,6 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Boolean updateInformation(AccountVO accountVO) {
         Account account=securityUtil.getCurrentAccount();
-        assert (account == null);
-        System.out.println(account);
         if (accountVO.getPassword()!=null){
             account.setPassword(accountVO.getPassword());
         }
