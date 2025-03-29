@@ -12,22 +12,12 @@ const userData = ref({
   avatar: '',
   telephone: '',
   email: '',
-  location: ''
+  location: '',
+  role: ''
 })
 
 const editMode = ref(false)
-const avatarFile = ref<File | null>(null)
 const tempAvatar = ref('')
-
-const mockUpload = (file: File) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      setTimeout(() => resolve(reader.result), 1000)
-    }
-    reader.readAsDataURL(file)
-  })
-}
 
 const handleAvatarUpload = async (params: any) => { // 使用element-plus上传规范参数
   const loading = ElLoading.service({ fullscreen: false });
@@ -40,9 +30,10 @@ const handleAvatarUpload = async (params: any) => { // 使用element-plus上传�
       username: userData.value.username,
       name: userData.value.name || undefined,
       avatar: tempAvatar.value || undefined,
-      phone: userData.value.telephone || undefined,
+      telephone: userData.value.telephone || undefined,
       email: userData.value.email || undefined,
-      address: userData.value.location || undefined
+      location: userData.value.location || undefined,
+      role: userData.value.role || undefined
     }
     await updateUserInfo(updateData)
     ElMessage.success('头像上传成功');
@@ -67,9 +58,10 @@ const fetchUserInfo = async () => {
       username: res.data.data.username,
       name: res.data.data.name,
       avatar: res.data.data.avatar,
-      telephone: res.data.data.phone || '',
+      telephone: res.data.data.telephone || '',
       email: res.data.data.email || '',
-      location: res.data.data.address || ''
+      location: res.data.data.location || '',
+      role: res.data.data.role
     }
     tempAvatar.value = res.data.data.avatar || ''
   } catch (error) {
@@ -84,9 +76,10 @@ const handleSubmit = async () => {
       username: userData.value.username,
       name: userData.value.name || undefined,
       avatar: tempAvatar.value || undefined,
-      phone: userData.value.telephone || undefined,
+      telephone: userData.value.telephone || undefined,
       email: userData.value.email || undefined,
-      address: userData.value.location || undefined
+      location: userData.value.location || undefined,
+      role: userData.value.role || undefined
     }
 
     await updateUserInfo(updateData)
@@ -119,7 +112,7 @@ onMounted(() => {
             </template>
           </el-avatar>
           <template #tip>
-            <div class="upload-tip">点击更换头像（模拟上传）</div>
+            <div class="upload-tip">（点击头像可更换头像）</div>
           </template>
         </el-upload>
       </div>
@@ -127,6 +120,10 @@ onMounted(() => {
       <el-form :model="userData" label-width="80px" class="profile-form">
         <el-form-item label="用户名">
           <el-input v-model="userData.username" disabled />
+        </el-form-item>
+
+        <el-form-item label="身份">
+          <el-input v-model="userData.role" disabled />
         </el-form-item>
 
         <el-form-item label="姓名">

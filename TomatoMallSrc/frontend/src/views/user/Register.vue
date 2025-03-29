@@ -16,9 +16,9 @@ const formData = ref({
   name: '',
   role:'',
   avatar: '',
-  phone: '',
+  telephone: '',
   email: '',
-  address: ''
+  location: ''
 })
 
 // 增强的验证规则
@@ -35,8 +35,8 @@ const rules = {
     { required: true, message: '请输入真实姓名', trigger: 'blur' },
     { min: 2, max: 10, message: '长度在2-10个字符', trigger: 'blur' }
   ],
-  phone: [
-    { pattern: /^1[3-9]\d{9}$/, // 改为非必填但保留格式校验
+  telephone: [
+    { pattern: /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/,
       message: '请输入有效的手机号码',
       trigger: 'blur'
     }
@@ -150,10 +150,10 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         </el-form-item>
 
         <!-- 手机号 -->
-        <el-form-item prop="phone">
+        <el-form-item prop="telephone">
           <label>手机号</label>
           <el-input
-              v-model="formData.phone"
+              v-model="formData.telephone"
               placeholder="1xxxxxxxxxx"
           />
         </el-form-item>
@@ -171,7 +171,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         <el-form-item prop="location">
           <label>地址</label>
           <el-input
-              v-model="formData.address"
+              v-model="formData.location"
               placeholder="请输入地址"
           />
         </el-form-item>

@@ -1,6 +1,6 @@
 // api/user.ts
-import { axios } from '../utils/request'
-import { USER_MODULE } from './_prefix'
+import {axios} from '../utils/request'
+import {USER_MODULE} from './_prefix'
 
 type LoginInfo = {
     username: string
@@ -12,23 +12,26 @@ type RegisterInfo = {
     password: string
     name: string
     avatar?: string
-    phone?: string
+    telephone?: string
     email?: string
-    address?: string
+    location?: string
+    role?: string
 }
 
 type UpdateInfo = {
     username: string
     name?: string
     avatar?: string
-    phone?: string
+    telephone?: string
     email?: string
-    address?: string
+    location?: string
 }
 
 // 用户登录
 export const userLogin = (loginInfo: LoginInfo) => {
-    return axios.post(`${USER_MODULE}/login`, null, {params: loginInfo})
+    return axios.post(`${USER_MODULE}/login`, loginInfo, {
+        headers: {'Content-Type': 'application/json'}
+    })
         .then(res => {
             return res
         })
@@ -37,7 +40,7 @@ export const userLogin = (loginInfo: LoginInfo) => {
 // 用户注册
 export const userRegister = (registerInfo: RegisterInfo) => {
     return axios.post(USER_MODULE, registerInfo, {
-        headers: { 'Content-Type': 'application/json' }
+        headers: {'Content-Type': 'application/json'}
     })
 }
 
