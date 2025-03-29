@@ -8,6 +8,7 @@ import com.seecoder.TomatoMall.util.SecurityUtil;
 import com.seecoder.TomatoMall.util.TokenUtil;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -25,6 +26,9 @@ public class AccountServiceImpl implements AccountService
     @Autowired
     SecurityUtil securityUtil;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     public Boolean register(AccountVO accountVO)
@@ -34,6 +38,11 @@ public class AccountServiceImpl implements AccountService
         {
             throw TomatoMallException.usernameAlreadyExists();
         }
+        // encode the password
+        String rawPassword = accountVO.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        accountVO.setPassword(encodedPassword);
+
         Account newAccount = accountVO.toPO();
         newAccount.setCreateTime(new Date());
         accountRepository.save(newAccount);
@@ -41,14 +50,14 @@ public class AccountServiceImpl implements AccountService
     }
 
     @Override
-    public String login(String phone, String password)
+    public String login(String username, String rawPassword)
     {
-        Account account = accountRepository.findByUsernameAndPassword(phone, password);
-        if (account == null)
-        {
-            throw TomatoMallException.loginFail();
+        Account account = accountRepository.findByUsername(username);
+        if (account != null
+                && passwordEncoder.matches(rawPassword, account.getPassword())) {
+            return tokenUtil.getToken(account);
         }
-        return tokenUtil.getToken(account);
+        throw TomatoMallException.loginFail();
     }
 
     @Override
