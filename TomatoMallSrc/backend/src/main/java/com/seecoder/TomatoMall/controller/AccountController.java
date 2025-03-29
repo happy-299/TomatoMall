@@ -65,7 +65,7 @@ public class AccountController
     @PostMapping("/login")
     public Response<String> login(@RequestBody LoginRequest loginRequest)
     {
-        System.out.println("user" + loginRequest.username);
+//        System.out.println("user" + loginRequest.username);
         return Response.buildSuccess(accountService.login(
                 loginRequest.username, loginRequest.password));
     }

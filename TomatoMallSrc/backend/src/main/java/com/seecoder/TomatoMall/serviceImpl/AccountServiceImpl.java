@@ -54,7 +54,8 @@ public class AccountServiceImpl implements AccountService
     {
         Account account = accountRepository.findByUsername(username);
         if (account != null
-                && passwordEncoder.matches(rawPassword, account.getPassword())) {
+                && passwordEncoder.matches(rawPassword, account.getPassword()))
+        {
             return tokenUtil.getToken(account);
         }
         throw TomatoMallException.loginFail();
@@ -73,7 +74,9 @@ public class AccountServiceImpl implements AccountService
         Account account = securityUtil.getCurrentAccount();
         if (accountVO.getPassword() != null)
         {
-            account.setPassword(accountVO.getPassword());
+            String rawPassword = accountVO.getPassword();
+            String encodedPassword = passwordEncoder.encode(rawPassword);
+            account.setPassword(encodedPassword);
         }
         if (accountVO.getName() != null)
         {
