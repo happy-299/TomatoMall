@@ -1,10 +1,10 @@
 <!-- Dashboard.vue -->
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getUserInfo, updateUserInfo } from '../../api/user'
-import { ElMessage, ElLoading } from 'element-plus'
-import { UserFilled } from '@element-plus/icons-vue'
-import { uploadUserImage } from '../../api/util'
+import {ref, onMounted} from 'vue'
+import {getUserInfo, updateUserInfo} from '../../api/user'
+import {ElMessage, ElLoading, ElDialog, type FormInstance} from 'element-plus'
+import {UserFilled} from '@element-plus/icons-vue'
+import {uploadUserImage} from '../../api/util'
 
 const userData = ref({
   username: '',
@@ -13,17 +13,160 @@ const userData = ref({
   telephone: '',
   email: '',
   location: '',
-  role: ''
+  role: '',
+  password: '',
+  confirmPassword: '' // 新增确认密码字段到表单模型
 })
-
+const originalPassword = ref('')
+const showReloginDialog = ref(false)
 const editMode = ref(false)
 const tempAvatar = ref('')
+const formRef = ref<FormInstance>()
+const isChangingPassword = ref(false)
 
-const handleAvatarUpload = async (params: any) => { // 使用element-plus上传规范参数
-  const loading = ElLoading.service({ fullscreen: false });
+const rules = {
+  username: [
+    {required: true, message: '请输入用户名', trigger: 'blur'},
+    {
+      pattern: /^[a-zA-Z0-9]{4,20}$/,
+      message: '4-20位字母数字组合',
+      trigger: 'blur'
+    }
+  ],
+  name: [
+    {required: true, message: '请输入真实姓名', trigger: 'blur'},
+    {min: 2, max: 10, message: '长度在2-10个字符', trigger: 'blur'}
+  ],
+  telephone: [
+    {
+      pattern: /^1(3[0-9]|4[579]|5[0-35-9]|6[2567]|7[0-8]|8[0-9]|9[189])\d{8}$/,
+      message: '请输入有效的手机号码',
+      trigger: 'blur'
+    }
+  ],
+  email: [
+    {
+      type: 'email',
+      pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      message: '请输入有效的邮箱地址',
+      trigger: ['blur', 'change']
+    }
+  ],
+  password: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (!isChangingPassword.value) return callback()
+        if (!value) return callback(new Error('请输入密码'))
+        if (value.length < 6 || value.length > 20) {
+          return callback(new Error('长度在6-20个字符'))
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  confirmPassword: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (!isChangingPassword.value) return callback()
+        if (!value) return callback(new Error('请确认密码'))
+        if (value !== userData.value.password) {
+          return callback(new Error('两次输入密码不一致'))
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+const fetchUserInfo = async () => {
+  const username = sessionStorage.getItem('username')
+  if (!username) {
+    ElMessage.error('未获取到用户信息，请重新登录')
+    return
+  }
+
   try {
-    const { file } = params; // 从参数中解构file对象
-    console.log("upload =>", file);
+    const res = await getUserInfo(username)
+    userData.value = {
+      username: res.data.data.username,
+      name: res.data.data.name,
+      avatar: res.data.data.avatar,
+      telephone: res.data.data.telephone || '',
+      email: res.data.data.email || '',
+      location: res.data.data.location || '',
+      role: res.data.data.role,
+      password: res.data.data.password,
+      confirmPassword: ''
+
+    }
+    originalPassword.value = res.data.data.password // 确保在数据加载后设置
+    tempAvatar.value = res.data.data.avatar || ''
+    userData.value.confirmPassword = ''
+  } catch (error) {
+    ElMessage.error('获取用户信息失败')
+  }
+}
+
+const handleSubmit = async () => {
+  try {
+    if (isChangingPassword.value) {
+      await formRef.value?.validateField(['password', 'confirmPassword'])
+    }
+    await formRef.value?.validate()
+
+    const isPasswordChanged = isChangingPassword.value &&
+        userData.value.password !== originalPassword.value
+    const updateData = {
+      username: userData.value.username,
+      name: userData.value.name || undefined,
+      avatar: tempAvatar.value || undefined,
+      telephone: userData.value.telephone || undefined,
+      email: userData.value.email || undefined,
+      location: userData.value.location || undefined,
+      role: userData.value.role || undefined,
+      password: isPasswordChanged ? userData.value.password : undefined
+    }
+
+    await updateUserInfo(updateData)
+    ElMessage.success('信息更新成功')
+
+    if (isPasswordChanged) {
+      showReloginDialog.value = true
+    } else {
+      editMode.value = false
+      await fetchUserInfo()
+    }
+  } catch (error) {
+    ElMessage.error('表单验证失败，请检查输入')
+  }
+}
+
+// 新增密码修改开关
+const togglePasswordChange = () => {
+  isChangingPassword.value = !isChangingPassword.value
+  if (!isChangingPassword.value) {
+    // 重置密码字段并清除验证
+    userData.value.password = originalPassword.value
+    userData.value.confirmPassword = ''
+    formRef.value?.clearValidate(['password', 'confirmPassword'])
+  }
+}
+
+onMounted(() => {
+  fetchUserInfo()
+})
+
+const handleRelogin = () => {
+  sessionStorage.clear()
+  window.location.href = '/login'
+}
+
+const handleAvatarUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false});
+  try {
+    const {file} = params;
     const response = await uploadUserImage(file);
     tempAvatar.value = response.data.data;
     const updateData = {
@@ -43,61 +186,9 @@ const handleAvatarUpload = async (params: any) => { // 使用element-plus上传�
     loading.close();
   }
 };
-
-const fetchUserInfo = async () => {
-  const username = sessionStorage.getItem('username')
-  if (!username) {
-    ElMessage.error('未获取到用户信息，请重新登录')
-    return
-  }
-
-  try {
-    const res = await getUserInfo(username)
-    // 更新数据映射逻辑
-    userData.value = {
-      username: res.data.data.username,
-      name: res.data.data.name,
-      avatar: res.data.data.avatar,
-      telephone: res.data.data.telephone || '',
-      email: res.data.data.email || '',
-      location: res.data.data.location || '',
-      role: res.data.data.role
-    }
-    tempAvatar.value = res.data.data.avatar || ''
-  } catch (error) {
-    ElMessage.error('获取用户信息失败')
-  }
-}
-
-const handleSubmit = async () => {
-  try {
-    // 优化参数构造逻辑
-    const updateData = {
-      username: userData.value.username,
-      name: userData.value.name || undefined,
-      avatar: tempAvatar.value || undefined,
-      telephone: userData.value.telephone || undefined,
-      email: userData.value.email || undefined,
-      location: userData.value.location || undefined,
-      role: userData.value.role || undefined
-    }
-
-    await updateUserInfo(updateData)
-    ElMessage.success('信息更新成功')
-    editMode.value = false
-    await fetchUserInfo()
-  } catch (error) {
-    ElMessage.error('更新失败，请重试')
-  }
-}
-
-onMounted(() => {
-  fetchUserInfo()
-})
 </script>
 
 <template>
-  <!-- 保持template结构不变 -->
   <div class="dashboard-container">
     <el-card class="profile-card">
       <div class="avatar-section">
@@ -108,7 +199,7 @@ onMounted(() => {
         >
           <el-avatar :size="120" :src="tempAvatar || userData.avatar">
             <template #default>
-              <UserFilled style="font-size: 48px" />
+              <UserFilled style="font-size: 48px"/>
             </template>
           </el-avatar>
           <template #tip>
@@ -117,21 +208,27 @@ onMounted(() => {
         </el-upload>
       </div>
 
-      <el-form :model="userData" label-width="80px" class="profile-form">
+      <el-form
+          :model="userData"
+          :rules="rules"
+          label-width="80px"
+          class="profile-form"
+          ref="formRef"
+      >
         <el-form-item label="用户名">
-          <el-input v-model="userData.username" disabled />
+          <el-input v-model="userData.username" disabled/>
         </el-form-item>
 
         <el-form-item label="身份">
-          <el-input v-model="userData.role" disabled />
+          <el-input v-model="userData.role" disabled/>
         </el-form-item>
 
         <el-form-item label="姓名">
-          <el-input v-model="userData.name" :disabled="!editMode" />
+          <el-input v-model="userData.name" :disabled="!editMode"/>
         </el-form-item>
 
 
-        <el-form-item label="手机号">
+        <el-form-item label="手机号" prop="telephone">
           <el-input
               v-model="userData.telephone"
               :disabled="!editMode"
@@ -139,7 +236,40 @@ onMounted(() => {
           />
         </el-form-item>
 
-        <el-form-item label="邮箱">
+        <el-form-item label="密码" prop="password">
+          <div class="password-field">
+            <el-input
+                v-model="userData.password"
+                :disabled="!editMode || !isChangingPassword"
+                type="password"
+                show-password
+                placeholder="留空表示不修改"
+            />
+            <el-button
+                v-if="editMode"
+                @click="togglePasswordChange"
+                class="change-pwd-btn"
+                :type="isChangingPassword ? 'danger' : 'primary'"
+            >
+              {{ isChangingPassword ? '取消修改' : '修改密码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item
+            v-if="isChangingPassword"
+            label="确认密码"
+            prop="confirmPassword"
+        >
+          <el-input
+              v-model="userData.confirmPassword"
+              type="password"
+              show-password
+              placeholder="请再次输入新密码"
+          />
+        </el-form-item>
+
+        <el-form-item label="邮箱" prop="email">
           <el-input
               v-model="userData.email"
               :disabled="!editMode"
@@ -170,6 +300,18 @@ onMounted(() => {
         </div>
       </el-form>
     </el-card>
+    <el-dialog
+        v-model="showReloginDialog"
+        title="安全提示"
+        width="30%"
+        :close-on-click-modal="false"
+        :show-close="false"
+    >
+      <span>密码已修改，请重新登录以确保账户安全</span>
+      <template #footer>
+        <el-button type="primary" @click="handleRelogin">重新登录</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -179,6 +321,17 @@ onMounted(() => {
   padding: 2rem;
   background-color: #e3f6f5;
   min-height: 100vh;
+}
+
+.password-field {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.change-pwd-btn {
+  margin-left: 10px;
+  flex-shrink: 0;
 }
 
 .profile-card {
