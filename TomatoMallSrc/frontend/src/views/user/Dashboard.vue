@@ -15,7 +15,7 @@ const userData = ref({
   location: '',
   role: '',
   password: '',
-  confirmPassword: '' // 新增确认密码字段到表单模型
+  confirmPassword: ''
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -89,6 +89,7 @@ const fetchUserInfo = async () => {
 
   try {
     const res = await getUserInfo(username)
+    originalPassword.value = res.data.data.password
     userData.value = {
       username: res.data.data.username,
       name: res.data.data.name,
@@ -97,13 +98,10 @@ const fetchUserInfo = async () => {
       email: res.data.data.email || '',
       location: res.data.data.location || '',
       role: res.data.data.role,
-      password: res.data.data.password,
+      password: '',
       confirmPassword: ''
-
     }
-    originalPassword.value = res.data.data.password // 确保在数据加载后设置
     tempAvatar.value = res.data.data.avatar || ''
-    userData.value.confirmPassword = ''
   } catch (error) {
     ElMessage.error('获取用户信息失败')
   }
@@ -116,8 +114,6 @@ const handleSubmit = async () => {
     }
     await formRef.value?.validate()
 
-    const isPasswordChanged = isChangingPassword.value &&
-        userData.value.password !== originalPassword.value
     const updateData = {
       username: userData.value.username,
       name: userData.value.name || undefined,
@@ -126,13 +122,14 @@ const handleSubmit = async () => {
       email: userData.value.email || undefined,
       location: userData.value.location || undefined,
       role: userData.value.role || undefined,
-      password: isPasswordChanged ? userData.value.password : undefined
+      password: isChangingPassword.value ? userData.value.password : undefined
     }
 
     await updateUserInfo(updateData)
     ElMessage.success('信息更新成功')
 
-    if (isPasswordChanged) {
+    if (isChangingPassword.value) {
+      originalPassword.value = userData.value.password
       showReloginDialog.value = true
     } else {
       editMode.value = false
@@ -143,15 +140,21 @@ const handleSubmit = async () => {
   }
 }
 
-// 新增密码修改开关
 const togglePasswordChange = () => {
   isChangingPassword.value = !isChangingPassword.value
   if (!isChangingPassword.value) {
-    // 重置密码字段并清除验证
-    userData.value.password = originalPassword.value
+    userData.value.password = ''
     userData.value.confirmPassword = ''
     formRef.value?.clearValidate(['password', 'confirmPassword'])
   }
+}
+
+const cancelEdit = () => {
+  editMode.value = false
+  isChangingPassword.value = false
+  userData.value.password = ''
+  userData.value.confirmPassword = ''
+  fetchUserInfo()
 }
 
 onMounted(() => {
@@ -227,7 +230,6 @@ const handleAvatarUpload = async (params: any) => {
           <el-input v-model="userData.name" :disabled="!editMode"/>
         </el-form-item>
 
-
         <el-form-item label="手机号" prop="telephone">
           <el-input
               v-model="userData.telephone"
@@ -243,7 +245,8 @@ const handleAvatarUpload = async (params: any) => {
                 :disabled="!editMode || !isChangingPassword"
                 type="password"
                 show-password
-                placeholder="留空表示不修改"
+                :placeholder="editMode ? '请输入新密码' : ''"
+                autocomplete="new-password"
             />
             <el-button
                 v-if="editMode"
@@ -266,6 +269,7 @@ const handleAvatarUpload = async (params: any) => {
               type="password"
               show-password
               placeholder="请再次输入新密码"
+              autocomplete="new-password"
           />
         </el-form-item>
 
@@ -294,7 +298,7 @@ const handleAvatarUpload = async (params: any) => {
             编辑信息
           </el-button>
           <template v-else>
-            <el-button @click="editMode = false">取消</el-button>
+            <el-button @click="cancelEdit">取消</el-button>
             <el-button type="primary" @click="handleSubmit">保存更改</el-button>
           </template>
         </div>
@@ -316,7 +320,7 @@ const handleAvatarUpload = async (params: any) => {
 </template>
 
 <style scoped>
-/* 保持样式不变 */
+/* 保持原有样式不变 */
 .dashboard-container {
   padding: 2rem;
   background-color: #e3f6f5;
