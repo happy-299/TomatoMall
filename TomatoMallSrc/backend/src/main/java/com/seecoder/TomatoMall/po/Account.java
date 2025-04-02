@@ -1,6 +1,5 @@
 package com.seecoder.TomatoMall.po;
 
-import com.seecoder.TomatoMall.enums.RoleEnum;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,8 +12,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Account
-{
+public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "id")
@@ -68,8 +66,7 @@ public class Account
 //    @Enumerated(EnumType.STRING)
 //    private RoleEnum role;
 
-    public AccountVO toVO()
-    {
+    public AccountVO toVO() {
         AccountVO accountVO = new AccountVO();
         accountVO.setId(this.id);
         accountVO.setUsername(this.username);

@@ -14,8 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 
 @Service
-public class AccountServiceImpl implements AccountService
-{
+public class AccountServiceImpl implements AccountService {
 
     @Autowired
     AccountRepository accountRepository;
@@ -31,11 +30,9 @@ public class AccountServiceImpl implements AccountService
 
 
     @Override
-    public Boolean register(AccountVO accountVO)
-    {
+    public Boolean register(AccountVO accountVO) {
         Account account = accountRepository.findByUsername(accountVO.getUsername());
-        if (account != null)
-        {
+        if (account != null) {
             throw TomatoMallException.usernameAlreadyExists();
         }
         // encode the password
@@ -50,56 +47,45 @@ public class AccountServiceImpl implements AccountService
     }
 
     @Override
-    public String login(String username, String rawPassword)
-    {
+    public String login(String username, String rawPassword) {
         Account account = accountRepository.findByUsername(username);
         if (account != null
-                && passwordEncoder.matches(rawPassword, account.getPassword()))
-        {
+                && passwordEncoder.matches(rawPassword, account.getPassword())) {
             return tokenUtil.getToken(account);
         }
         throw TomatoMallException.loginFail();
     }
 
     @Override
-    public AccountVO getInformation()
-    {
+    public AccountVO getInformation() {
         Account account = securityUtil.getCurrentAccount();
         return account.toVO();
     }
 
     @Override
-    public Boolean updateInformation(AccountVO accountVO)
-    {
+    public Boolean updateInformation(AccountVO accountVO) {
         Account account = securityUtil.getCurrentAccount();
-        if (accountVO.getPassword() != null)
-        {
+        if (accountVO.getPassword() != null) {
             String rawPassword = accountVO.getPassword();
             String encodedPassword = passwordEncoder.encode(rawPassword);
             account.setPassword(encodedPassword);
         }
-        if (accountVO.getName() != null)
-        {
+        if (accountVO.getName() != null) {
             account.setName(accountVO.getName());
         }
-        if (accountVO.getLocation() != null)
-        {
+        if (accountVO.getLocation() != null) {
             account.setLocation(accountVO.getLocation());
         }
-        if (accountVO.getAvatar() != null)
-        {
+        if (accountVO.getAvatar() != null) {
             account.setAvatar(accountVO.getAvatar());
         }
-        if (accountVO.getEmail() != null)
-        {
+        if (accountVO.getEmail() != null) {
             account.setEmail(accountVO.getEmail());
         }
-        if (accountVO.getTelephone() != null)
-        {
+        if (accountVO.getTelephone() != null) {
             account.setTelephone(accountVO.getTelephone());
         }
-        if (accountVO.getRole() != null)
-        {
+        if (accountVO.getRole() != null) {
             account.setRole(accountVO.getRole());
         }
         accountRepository.save(account);
