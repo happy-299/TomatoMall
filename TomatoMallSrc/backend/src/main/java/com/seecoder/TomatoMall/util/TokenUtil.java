@@ -28,19 +28,19 @@ public class TokenUtil {
 
     public boolean verifyToken(String token) {
         try {
-            Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
-            Account account= accountRepository.findById(accountId).get();
+            Integer accountId = Integer.parseInt(JWT.decode(token).getAudience().get(0));
+            Account account = accountRepository.findById(accountId).get();
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(account.getPassword())).build();
             jwtVerifier.verify(token);
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
     }
 
-    public Account getAccount(String token){
+    public Account getAccount(String token) {
         assert (token != null);
-        Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
+        Integer accountId = Integer.parseInt(JWT.decode(token).getAudience().get(0));
         return accountRepository.findById(accountId).get();
     }
 
