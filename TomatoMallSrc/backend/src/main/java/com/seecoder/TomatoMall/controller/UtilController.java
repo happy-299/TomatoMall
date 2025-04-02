@@ -12,14 +12,12 @@ import javax.annotation.Resource;
 
 @RestController
 @RequestMapping("/api/utils")
-public class UtilController
-{
+public class UtilController {
     @Resource
     UtilService utilService;
 
     @PostMapping("/upload")
-    public Response<String> create(@RequestParam("rawFileContent") MultipartFile rawFileContent)
-    {
+    public Response<String> create(@RequestParam("rawFileContent") MultipartFile rawFileContent) {
         return Response.buildSuccess(utilService.upload(rawFileContent));
     }
 }

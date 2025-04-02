@@ -8,16 +8,11 @@ import com.seecoder.TomatoMall.util.SecurityUtil;
 import com.seecoder.TomatoMall.util.TokenUtil;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 
-/**
- * @Author: GaoZhaolong
- * @Date: 14:46 2023/11/26
- *
- * 注册登录功能实现
- */
 @Service
 public class AccountServiceImpl implements AccountService {
 
@@ -30,6 +25,9 @@ public class AccountServiceImpl implements AccountService {
     @Autowired
     SecurityUtil securityUtil;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @Override
     public Boolean register(AccountVO accountVO) {
@@ -37,6 +35,11 @@ public class AccountServiceImpl implements AccountService {
         if (account != null) {
             throw TomatoMallException.usernameAlreadyExists();
         }
+        // encode the password
+        String rawPassword = accountVO.getPassword();
+        String encodedPassword = passwordEncoder.encode(rawPassword);
+        accountVO.setPassword(encodedPassword);
+
         Account newAccount = accountVO.toPO();
         newAccount.setCreateTime(new Date());
         accountRepository.save(newAccount);
@@ -44,31 +47,46 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public String login(String phone, String password) {
-        Account account = accountRepository.findByUsernameAndPassword(phone, password);
-        if (account == null) {
-            throw TomatoMallException.loginFail();
+    public String login(String username, String rawPassword) {
+        Account account = accountRepository.findByUsername(username);
+        if (account != null
+                && passwordEncoder.matches(rawPassword, account.getPassword())) {
+            return tokenUtil.getToken(account);
         }
-        return tokenUtil.getToken(account);
+        throw TomatoMallException.loginFail();
     }
 
     @Override
     public AccountVO getInformation() {
-        Account account=securityUtil.getCurrentAccount();
+        Account account = securityUtil.getCurrentAccount();
         return account.toVO();
     }
 
     @Override
     public Boolean updateInformation(AccountVO accountVO) {
-        Account account=securityUtil.getCurrentAccount();
-        if (accountVO.getPassword()!=null){
-            account.setPassword(accountVO.getPassword());
+        Account account = securityUtil.getCurrentAccount();
+        if (accountVO.getPassword() != null) {
+            String rawPassword = accountVO.getPassword();
+            String encodedPassword = passwordEncoder.encode(rawPassword);
+            account.setPassword(encodedPassword);
         }
-        if (accountVO.getName()!=null){
+        if (accountVO.getName() != null) {
             account.setName(accountVO.getName());
         }
-        if (accountVO.getAddress()!=null){
-            account.setAddress(accountVO.getAddress());
+        if (accountVO.getLocation() != null) {
+            account.setLocation(accountVO.getLocation());
+        }
+        if (accountVO.getAvatar() != null) {
+            account.setAvatar(accountVO.getAvatar());
+        }
+        if (accountVO.getEmail() != null) {
+            account.setEmail(accountVO.getEmail());
+        }
+        if (accountVO.getTelephone() != null) {
+            account.setTelephone(accountVO.getTelephone());
+        }
+        if (accountVO.getRole() != null) {
+            account.setRole(accountVO.getRole());
         }
         accountRepository.save(account);
         return true;

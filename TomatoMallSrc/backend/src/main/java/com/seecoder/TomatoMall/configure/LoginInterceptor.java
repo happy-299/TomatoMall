@@ -3,6 +3,7 @@ package com.seecoder.TomatoMall.configure;
 import com.seecoder.TomatoMall.exception.TomatoMallException;
 import com.seecoder.TomatoMall.util.TokenUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -18,11 +19,22 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String token = request.getHeader("token");
-        if (token != null && tokenUtil.verifyToken(token)) {
-            request.getSession().setAttribute("currentAccount",tokenUtil.getAccount(token));
+        if (HttpMethod.OPTIONS.toString().equals(request.getMethod())) {
             return true;
-        }else {
+        }
+
+        String uri = request.getRequestURI();
+        String method = request.getMethod();
+        if ("/api/accounts".equals(uri) && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+        String token = request.getHeader("token");
+
+        if (token != null && tokenUtil.verifyToken(token)) {
+//            System.out.println("get account by token: "+tokenUtil.getAccount(token));
+            request.getSession().setAttribute("currentAccount", tokenUtil.getAccount(token));
+            return true;
+        } else {
             throw TomatoMallException.notLogin();
         }
     }

@@ -10,16 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
-/**
- * @Author: DingXiaoyu
- * @Date: 0:28 2023/11/26
- * 这是一个token的工具类，
- * 设置了过期时间为1天。
- * getToken方法用来获取token，
- * token中包含了用户的Id、密码信息以及到期时间。
- * verifyToken方法用来检验token是否正确。
- * getAccount方法用来从token中获得用户信息。
- */
 
 @Component
 public class TokenUtil {
@@ -38,18 +28,20 @@ public class TokenUtil {
 
     public boolean verifyToken(String token) {
         try {
-            Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
-            Account account= accountRepository.findById(accountId).get();
+            Integer accountId = Integer.parseInt(JWT.decode(token).getAudience().get(0));
+            Account account = accountRepository.findById(accountId).get();
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(account.getPassword())).build();
             jwtVerifier.verify(token);
             return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             return false;
         }
     }
 
-    public Account getAccount(String token){
-        Integer accountId=Integer.parseInt(JWT.decode(token).getAudience().get(0));
+    public Account getAccount(String token) {
+        assert (token != null);
+        Integer accountId = Integer.parseInt(JWT.decode(token).getAudience().get(0));
         return accountRepository.findById(accountId).get();
     }
+
 }
