@@ -22,7 +22,7 @@ public class Specification {
     @Column(nullable = false, length = 255)
     private String value;
 
-    @Column(nullable = false)
+    @Column(name = "product_id", nullable = false)
     private Integer productId;
 
     @ManyToOne
