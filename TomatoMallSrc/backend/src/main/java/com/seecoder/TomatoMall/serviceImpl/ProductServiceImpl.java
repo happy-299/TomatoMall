@@ -52,9 +52,11 @@ public class ProductServiceImpl implements ProductService {
 
         // 全量更新规格信息
         specificationRepository.deleteByProductId(product.getId());
-        productVO.getSpecifications().stream()
-                .map(vo -> vo.toPO().withProductId(product.getId()))
-                .forEach(specificationRepository::save);
+        if(productVO.getSpecifications() != null) {
+            productVO.getSpecifications().stream()
+                    .map(vo -> vo.toPO().withProductId(product.getId()))
+                    .forEach(specificationRepository::save);
+        }
     }
 
     @Override
@@ -64,9 +66,11 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.save(productVO.toPO());
 
         // 保存规格信息
-        productVO.getSpecifications().stream()
-                .map(vo -> vo.toPO().withProductId(product.getId()))
-                .forEach(specificationRepository::save);
+        if(productVO.getSpecifications() != null) {
+            productVO.getSpecifications().stream()
+                    .map(vo -> vo.toPO().withProductId(product.getId()))
+                    .forEach(specificationRepository::save);
+        }
 
         // 初始化库存
         stockpileRepository.save(new Stockpile()
