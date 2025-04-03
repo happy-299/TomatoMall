@@ -1,7 +1,7 @@
 <!-- Header.vue -->
 <script setup lang="ts">
 import { router } from '../router'
-import { User, ShoppingCart, SwitchButton } from '@element-plus/icons-vue'
+import { User, ShoppingCart, SwitchButton,Menu} from '@element-plus/icons-vue'
 
 const role = sessionStorage.getItem('role')
 const username = sessionStorage.getItem('username')
@@ -33,6 +33,11 @@ function logout() {
         <el-tooltip content="购物车" placement="bottom">
           <el-icon :size="24" class="header-icon" @click="router.push('/cart')">
             <ShoppingCart />
+          </el-icon>
+        </el-tooltip>
+        <el-tooltip content="浏览" placement="bottom">
+          <el-icon :size="24" class="header-icon" @click="router.push('/productlist')">
+            <Menu />
           </el-icon>
         </el-tooltip>
         <el-tooltip content="个人中心" placement="bottom">

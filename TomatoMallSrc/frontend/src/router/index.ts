@@ -24,15 +24,16 @@ const router = createRouter({
                 component: () => import('../views/user/Dashboard.vue'),
                 meta: {title: '个人信息'}
             },
+             {
+                path: '/productList',
+                component: () => import('../views/shop/ProductList.vue'),
+                meta: {title: '商品列表'}
+            },{
+                path: '/product/:id',
+                component: () => import('../views/shop/Product.vue'),
+                meta: {title: '商品详情'}
+            },
         ]
-    }, {
-        path: '/product',
-        component: () => import('../views/shop/Product.vue'),
-        meta: {title: '商品详情'}
-    }, {
-        path: '/productList',
-        component: () => import('../views/shop/ProductList.vue'),
-        meta: {title: '商品列表'}
     }, {
         path: '/404',
         name: '404',
