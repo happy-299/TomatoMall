@@ -1,34 +1,109 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElCard, ElMessage, ElButton, ElRate, ElMessageBox } from 'element-plus'
-import { getProductById, deleteProduct, type Product } from '../../api/product'
+import {
+  ElCard, ElMessage, ElButton, ElRate, ElMessageBox,
+  ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElTag
+} from 'element-plus'
+import { getProductById, deleteProduct, updateProduct, type Product, type Specification } from '../../api/product'
+import { getUserInfo } from "../../api/user.ts";
 
 const route = useRoute()
 const router = useRouter()
 const product = ref<Product | null>(null)
 const loading = ref(true)
-const isAdmin = ref(!!sessionStorage.getItem('token'))
+const isAdmin = ref(false)
+const editDialogVisible = ref(false)
+
+// 编辑表单数据
+const editForm = ref({
+  id: '',
+  title: '',
+  price: 0,
+  rate: 0,
+  description: '',
+  cover: '',
+  detail: '',
+  specifications: [] as Specification[]
+})
+
+// 验证规则
+const rules = {
+  title: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  price: [
+    { required: true, message: '请输入商品价格', trigger: 'blur' },
+    { type: 'number', min: 0, message: '价格不能小于0', trigger: 'change' }
+  ],
+  cover: [{ required: true, message: '请输入封面URL', trigger: 'blur' }]
+}
 
 // 获取商品详情
 const fetchProduct = async () => {
   try {
     const res = await getProductById(route.params.id as string);
-    console.log('完整响应:', res);
-
-    // 修正数据结构解析
-    if (res.data && res.data.code === "200") {
-      product.value = res.data.data; // 正确访问数据层级
+    if (res.data?.code === "200") {
+      product.value = res.data.data;
+      initEditForm(); // 初始化编辑表单
     } else {
       throw new Error(res.data?.msg || '无效的响应结构');
     }
   } catch (error: any) {
-    console.error('请求错误:', error);
     ElMessage.error(`加载失败: ${error.message}`);
   } finally {
-    loading.value = false; // 确保关闭加载状态
+    loading.value = false;
   }
 };
+
+// 初始化编辑表单
+const initEditForm = () => {
+  if (product.value) {
+    editForm.value = {
+      id: product.value.id,
+      title: product.value.title,
+      price: product.value.price,
+      rate: product.value.rate,
+      description: product.value.description || '',
+      cover: product.value.cover || '',
+      detail: product.value.detail || '',
+      specifications: product.value.specifications?.map(spec => ({
+        ...spec
+      })) || []
+    }
+  }
+}
+
+// 打开编辑对话框
+const openEditDialog = () => {
+  editDialogVisible.value = true
+}
+
+// 提交修改
+const handleEditSubmit = async () => {
+  try {
+    if (!product.value) return
+
+    await updateProduct(editForm.value)
+    ElMessage.success('商品更新成功')
+    editDialogVisible.value = false
+    await fetchProduct() // 刷新数据
+  } catch (error) {
+    ElMessage.error('商品更新失败')
+  }
+}
+
+// 规格操作
+const handleAddSpec = () => {
+  editForm.value.specifications.push({
+    id: Date.now().toString(),
+    item: '',
+    value: '',
+    productId: product.value?.id || ''
+  })
+}
+
+const handleRemoveSpec = (index: number) => {
+  editForm.value.specifications.splice(index, 1)
+}
 
 // 删除商品
 const handleDelete = async () => {
@@ -49,28 +124,137 @@ const handleDelete = async () => {
   }
 }
 
-onMounted(() => {
-  fetchProduct()
+// 初始化
+onMounted(async () => {
+  try {
+    // 检查管理员权限
+    const username = sessionStorage.getItem('username')
+    if (username) {
+      const res = await getUserInfo(username)
+      isAdmin.value = res.data.data?.role === 'admin'
+    }
+
+    // 获取商品数据
+    await fetchProduct()
+  } catch (error) {
+    ElMessage.error('初始化失败')
+  }
 })
 </script>
 
 <template>
   <div class="product-detail-container">
     <el-card v-loading="loading" class="product-card">
-
       <!-- 管理员操作 -->
       <div v-if="isAdmin" class="admin-actions">
-        <el-button
-            type="danger"
-            @click.stop="handleDelete"
-        >
+        <el-button type="primary" @click.stop="openEditDialog"
+        color="#bae8e8">
+          编辑商品
+        </el-button>
+        <el-button type="danger" @click.stop="handleDelete">
           删除商品
         </el-button>
       </div>
 
+      <!-- 编辑对话框 -->
+      <el-dialog
+          v-model="editDialogVisible"
+          title="编辑商品信息"
+          width="800px"
+          :close-on-click-modal="false"
+      >
+        <el-form
+            :model="editForm"
+            :rules="rules"
+            label-width="100px"
+            label-position="top"
+        >
+          <el-form-item label="商品名称" prop="title">
+            <el-input v-model="editForm.title" />
+          </el-form-item>
+
+          <el-form-item label="价格" prop="price">
+            <el-input-number
+                v-model="editForm.price"
+                :min="0"
+                :precision="2"
+                controls-position="right"
+            />
+          </el-form-item>
+
+          <el-form-item label="商品评分">
+            <el-rate
+                v-model="editForm.rate"
+                :max="10"
+                :colors="['#272643', '#272643', '#272643']"
+                allow-half
+            />
+          </el-form-item>
+
+          <el-form-item label="封面URL" prop="cover">
+            <el-input v-model="editForm.cover" />
+          </el-form-item>
+
+          <el-form-item label="商品描述">
+            <el-input
+                v-model="editForm.description"
+                type="textarea"
+                :rows="4"
+            />
+          </el-form-item>
+
+          <el-form-item label="商品详情">
+            <el-input
+                v-model="editForm.detail"
+                type="textarea"
+                :rows="6"
+            />
+          </el-form-item>
+
+          <el-form-item label="商品规格">
+            <div class="spec-editor">
+              <div
+                  v-for="(spec, index) in editForm.specifications"
+                  :key="spec.id"
+                  class="spec-item"
+              >
+                <el-input
+                    v-model="spec.item"
+                    placeholder="规格名称"
+                    class="spec-input"
+                />
+                <el-input
+                    v-model="spec.value"
+                    placeholder="规格值"
+                    class="spec-input"
+                />
+                <el-button
+                    type="danger"
+                    circle
+                    @click="handleRemoveSpec(index)"
+                >
+                  ×
+                </el-button>
+              </div>
+              <el-button
+                  type="primary"
+                  plain
+                  @click="handleAddSpec"
+              >
+                添加规格
+              </el-button>
+            </div>
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleEditSubmit">保存修改</el-button>
+        </template>
+      </el-dialog>
+
       <!-- 商品内容 -->
       <div v-if="product" class="product-content">
-        <!-- 封面大图 -->
         <div class="cover-container">
           <img
               v-if="product.cover"
@@ -81,7 +265,6 @@ onMounted(() => {
           <div v-else class="cover-placeholder">暂无图片</div>
         </div>
 
-        <!-- 商品信息 -->
         <div class="product-info">
           <h1 class="title">{{ product.title }}</h1>
 
@@ -96,7 +279,6 @@ onMounted(() => {
               />
             </div>
 
-            <!-- 商品规格 -->
             <div v-if="product.specifications?.length" class="specifications">
               <h3>产品规格</h3>
               <div class="spec-grid">
@@ -111,7 +293,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- 商品描述和详情 -->
             <div class="description-section">
               <div class="description">
                 <h3>商品描述</h3>
@@ -144,18 +325,13 @@ onMounted(() => {
   border-radius: 12px;
 }
 
-.back-button {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  z-index: 1;
-}
-
 .admin-actions {
   position: absolute;
   right: 20px;
   top: 20px;
   z-index: 1;
+  display: flex;
+  gap: 10px;
 }
 
 .product-content {
@@ -218,6 +394,49 @@ onMounted(() => {
   font-weight: bold;
 }
 
+.spec-editor {
+  width: 100%;
+}
+
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.spec-input {
+  flex: 1;
+}
+
+.specifications {
+  margin-top: 20px;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.spec-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spec-label {
+  color: #606266;
+}
+
+.spec-value {
+  flex-shrink: 0;
+}
+
+.description-section {
+  margin-top: 24px;
+}
+
 .description {
   background: #f8f9fa;
   padding: 16px;
@@ -230,10 +449,8 @@ onMounted(() => {
   font-size: 18px;
 }
 
-.description p {
-  color: #606266;
-  line-height: 1.6;
-  margin: 0;
+.detail-content {
+  white-space: pre-wrap;
 }
 
 @media (max-width: 768px) {

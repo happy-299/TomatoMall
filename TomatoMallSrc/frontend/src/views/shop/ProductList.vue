@@ -11,9 +11,10 @@ import {
   adjustStockpile,
   getStockpile,
   type Product,
-  type Stockpile
+  type Stockpile, Specification
 } from '../../api/product'
 import { useRouter } from 'vue-router'
+import {getUserInfo} from "../../api/user.ts";
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -23,15 +24,7 @@ const dialogVisible = ref(false)
 const stockDialogVisible = ref(false)
 const currentProduct = ref<Product | null>(null)
 
-type PublicationInfo = {
-  author: string;
-  publisher: string;
-  isbn: string;
-  publishDate: string;
-  pages: number;
-  binding: string;
-  subtitle?: string;
-}
+
 // 表单结构
 const formDefaults = {
   title: '',
@@ -39,17 +32,24 @@ const formDefaults = {
   cover: '',
   rate: 0,
   description: '',
-  author: '',          // 作者
-  publisher: '',       // 出版社
-  isbn: '',            // ISBN
-  publishDate: '',     // 出版日期
-  pages: 0,            // 页数
-  binding: '平装',     // 装帧
-  subtitle: ''         // 副标题
+  detail:'',
+  specifications: [] as Specification[] // 新增规格字段
 }
 
 const form = reactive({ ...formDefaults })
-const stockForm = reactive({ amount: 0 })
+const stockForm = reactive({
+  amount: 0,
+  frozen: 0
+})
+
+// 新增规格操作方法
+const addSpecification = () => {
+  form.specifications.push({ item: '', value: '' });
+}
+
+const removeSpecification = (index: number) => {
+  form.specifications.splice(index, 1);
+}
 
 // 验证规则
 const rules = {
@@ -96,10 +96,6 @@ const fetchProducts = async () => {
           amount: 0,
           frozen: 0
         };
-        // 开发环境显示错误
-        if (process.env.NODE_ENV === 'development') {
-          ElMessage.error(`库存初始化失败: ${error.message}`);
-        }
       }
     }));
   } catch (error) {
@@ -112,12 +108,14 @@ const openStockDialog = async (product: Product) => {
   try {
     currentProduct.value = product
     const res = await getStockpile(product.id)
-    stockForm.amount = res.data.amount
+    stockForm.amount = res.data.data.amount
+    stockForm.frozen = res.data.data.frozen // 新增冻结库存初始化
     stockDialogVisible.value = true
   } catch (error) {
     ElMessage.error('获取库存信息失败')
   }
 }
+
 
 // 提交库存修改
 const handleStockUpdate = async () => {
@@ -147,17 +145,21 @@ const handleStockUpdate = async () => {
 // 商品创建
 const submitForm = async () => {
   try {
+    // 过滤空规格
+    const validSpecs = form.specifications.filter(s => s.item.trim() && s.value.trim());
+
     await createProduct({
       ...form,
       price: Number(form.price),
-    })
+      specifications: validSpecs
+    });
 
-    ElMessage.success('创建成功')
-    dialogVisible.value = false
-    Object.assign(form, formDefaults)
-    await fetchProducts()
+    ElMessage.success('创建成功');
+    dialogVisible.value = false;
+    Object.assign(form, formDefaults);
+    await fetchProducts();
   } catch (error) {
-    ElMessage.error('创建失败')
+    ElMessage.error('创建失败');
   }
 }
 
@@ -172,7 +174,23 @@ const handleDelete = async (id: string) => {
   }
 }
 
-onMounted(fetchProducts)
+onMounted(async () => {
+  // 先获取用户信息
+  try {
+    const username = sessionStorage.getItem('username')
+    if (username) {
+      const res = await getUserInfo(username)
+      isAdmin.value = res.data.data?.role === 'admin'
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+    ElMessage.error('获取用户权限失败')
+  }
+
+  // 然后获取商品列表
+  await fetchProducts()
+})
+
 </script>
 
 <template>
@@ -202,19 +220,18 @@ onMounted(fetchProducts)
               v-model="form.price"
               :min="0"
               :precision="2"
-              :step="0.1"
               controls-position="right"
           />
         </el-form-item>
-        <el-form-item label="商品评分" prop="rate">
+
+        <el-form-item label="商品评分">
           <el-rate
               v-model="form.rate"
               :max="10"
               :colors="['#272643', '#272643', '#272643']"
-              show-score
-              allow-half
           />
         </el-form-item>
+
         <el-form-item label="封面URL" prop="cover">
           <el-input v-model="form.cover" />
         </el-form-item>
@@ -224,52 +241,51 @@ onMounted(fetchProducts)
               v-model="form.description"
               type="textarea"
               :rows="4"
-              placeholder="请输入商品详细描述"
-          />
-        </el-form-item>
-        <el-form-item label="作者" prop="author">
-          <el-input v-model="form.author" placeholder="请输入作者/编者姓名" />
-        </el-form-item>
-
-        <el-form-item label="出版社" prop="publisher">
-          <el-input v-model="form.publisher" placeholder="请输入出版社全称" />
-        </el-form-item>
-
-        <el-form-item label="ISBN" prop="isbn">
-          <el-input v-model="form.isbn" placeholder="请输入13位ISBN号码" />
-        </el-form-item>
-
-        <el-form-item label="出版日期" prop="publishDate">
-          <el-date-picker
-              v-model="form.publishDate"
-              type="month"
-              value-format="YYYY-MM"
-              placeholder="选择年月"
           />
         </el-form-item>
 
-        <el-form-item label="页数" prop="pages">
-          <el-input-number
-              v-model="form.pages"
-              :min="1"
-              :max="2000"
-              controls-position="right"
+        <el-form-item label="商品详情">
+          <el-input
+              v-model="form.detail"
+              type="textarea"
+              :rows="6"
           />
         </el-form-item>
 
-        <el-form-item label="装帧方式">
-          <el-select v-model="form.binding">
-            <el-option label="平装" value="平装" />
-            <el-option label="精装" value="精装" />
-            <el-option label="线装" value="线装" />
-            <el-option label="盒装" value="盒装" />
-          </el-select>
+        <el-form-item label="商品规格">
+          <div class="specifications">
+            <div
+                v-for="(spec, index) in form.specifications"
+                :key="index"
+                class="spec-item"
+            >
+              <el-input
+                  v-model="spec.item"
+                  placeholder="规格"
+                  style="width: 200px; margin-right: 10px;"
+              />
+              <el-input
+                  v-model="spec.value"
+                  placeholder="值"
+                  style="width: 250px; margin-right: 10px;"
+              />
+              <el-button
+                  type="danger"
+                  circle
+                  @click="removeSpecification(index)"
+              >
+                ×
+              </el-button>
+            </div>
+            <el-button
+                type="primary"
+                plain
+                @click="addSpecification"
+            >
+              添加规格
+            </el-button>
+          </div>
         </el-form-item>
-
-        <el-form-item label="副标题">
-          <el-input v-model="form.subtitle" placeholder="可选填副标题" />
-        </el-form-item>
-
       </el-form>
 
       <template #footer>
@@ -332,6 +348,7 @@ onMounted(fetchProducts)
                 size="small"
                 type="primary"
                 @click.stop="openStockDialog(product)"
+                color="#bae8e8"
             >
               改库存
             </el-button>
@@ -351,18 +368,7 @@ onMounted(fetchProducts)
 
 <style scoped>
 
-/* 增加紧凑布局样式 */
-.el-form-item--small {
-  margin-bottom: 16px;
-}
 
-.el-date-editor.el-input {
-  width: 100%;
-}
-
-.el-select {
-  width: 100%;
-}
 
 .product-list-container {
   padding: 24px;
