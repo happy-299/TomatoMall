@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import {
   ElCard, ElMessage, ElButton, ElRate, ElDialog,
-  ElForm, ElFormItem, ElInput, ElInputNumber
+  ElForm, ElFormItem, ElInput, ElInputNumber, ElLoading
 } from 'element-plus'
 import {
   getProducts,
@@ -15,6 +15,7 @@ import {
 } from '../../api/product'
 import { useRouter } from 'vue-router'
 import {getUserInfo} from "../../api/user.ts";
+import {uploadUserImage} from "../../api/util.ts";
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -51,6 +52,20 @@ const removeSpecification = (index: number) => {
   form.specifications.splice(index, 1);
 }
 
+const handleCoverUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false });
+  try {
+    const { file } = params;
+    const response = await uploadUserImage(file);
+    form.cover = response.data.data; // 更新封面URL
+    ElMessage.success('封面图片上传成功');
+  } catch (error) {
+    ElMessage.error('封面图片上传失败，请重试');
+  } finally {
+    loading.close();
+  }
+};
+
 // 验证规则
 const rules = {
   title: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
@@ -58,7 +73,7 @@ const rules = {
     { required: true, message: '请输入商品价格', trigger: 'blur' },
     { type: 'number', min: 0, message: '价格不能小于0', trigger: 'change' }
   ],
-  cover: [{ required: true, message: '请输入封面URL', trigger: 'blur' }]
+  cover: [{ required: true, message: '请上传图片', trigger: 'blur' }]
 }
 
 // 获取商品列表及库存
@@ -232,8 +247,27 @@ onMounted(async () => {
           />
         </el-form-item>
 
-        <el-form-item label="封面URL" prop="cover">
-          <el-input v-model="form.cover" />
+        <el-form-item label="封面图片" prop="cover">
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleCoverUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">上传封面</el-button>
+            </template>
+            <div class="cover-preview" v-if="form.cover">
+              <img
+                  :src="form.cover"
+                  class="preview-image"
+                  alt="封面预览"
+              />
+              <div class="preview-tip">（点击上方按钮重新上传）</div>
+            </div>
+            <template #tip>
+              <div class="upload-tip">支持JPG/PNG格式，建议尺寸800x800px</div>
+            </template>
+          </el-upload>
         </el-form-item>
 
         <el-form-item label="商品描述">
@@ -465,5 +499,28 @@ onMounted(async () => {
 
 .el-input-number {
   width: 100%;
+}
+
+.cover-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+
+.preview-tip {
+  color: #909399;
+  font-size: 12px;
+}
+
+.upload-tip {
+  color: #2c698d;
+  font-size: 12px;
+  margin-top: 8px;
 }
 </style>
