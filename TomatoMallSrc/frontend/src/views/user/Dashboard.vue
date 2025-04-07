@@ -23,6 +23,7 @@ const editMode = ref(false)
 const tempAvatar = ref('')
 const formRef = ref<FormInstance>()
 const isChangingPassword = ref(false)
+const role = ref('')
 
 const rules = {
   username: [
@@ -101,6 +102,8 @@ const fetchUserInfo = async () => {
       password: '',
       confirmPassword: ''
     }
+    sessionStorage.setItem('role', userData.value.role);
+    role.value = userData.value.role === 'user' ? "顾客" : "管理员";
     tempAvatar.value = res.data.data.avatar || ''
   } catch (error) {
     ElMessage.error('获取用户信息失败')
@@ -223,7 +226,7 @@ const handleAvatarUpload = async (params: any) => {
         </el-form-item>
 
         <el-form-item label="身份">
-          <el-input v-model="userData.role" disabled/>
+          <el-input v-model="role" disabled/>
         </el-form-item>
 
         <el-form-item label="姓名">

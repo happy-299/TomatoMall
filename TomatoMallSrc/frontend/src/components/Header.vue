@@ -4,6 +4,7 @@ import { router } from '../router'
 import { User, ShoppingCart, SwitchButton,Menu} from '@element-plus/icons-vue'
 
 const role = sessionStorage.getItem('role')
+console.log("role => ",role)
 const username = sessionStorage.getItem('username')
 
 function logout() {
@@ -26,7 +27,7 @@ function logout() {
     <div class="header-content">
       <div class="left-section">
         <h1 class="logo-text">番茄书城</h1>
-        <el-tag class="role-tag" effect="dark">{{ role === 'ADMIN' ? '管理' : '用户' }}中心</el-tag>
+<!--        <el-tag class="role-tag" effect="dark">{{ role === 'admin' ? '管理员模式' : '顾客模式' }}</el-tag>-->
       </div>
 
       <div class="right-section">
@@ -35,7 +36,7 @@ function logout() {
             <ShoppingCart />
           </el-icon>
         </el-tooltip>
-        <el-tooltip content="浏览" placement="bottom">
+        <el-tooltip content="书城" placement="bottom">
           <el-icon :size="24" class="header-icon" @click="router.push('/productlist')">
             <Menu />
           </el-icon>
