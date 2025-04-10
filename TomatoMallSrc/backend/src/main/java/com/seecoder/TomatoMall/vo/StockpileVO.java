@@ -8,18 +8,24 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class StockpileVO {
+public class StockpileVO
+{
     private Integer id;
     private Integer amount;
     private Integer frozen;
     private Integer productId;
 
-    public Stockpile toPO() {
+    private Integer version;
+
+    public Stockpile toPO()
+    {
         Stockpile po = new Stockpile();
         po.setId(this.id);
         po.setAmount(this.amount);
         po.setFrozen(this.frozen);
         po.setProductId(this.productId);
+
+        po.setVersion(this.version);
         return po;
     }
 }
