@@ -22,7 +22,8 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 @ConfigurationProperties("aliyun.oss")  //作用是可以加载配置文件中的值到你的bean属性中
-public class OssUtil {
+public class OssUtil
+{
     private String endpoint;
     private String accessKeyId;
     private String accessKeySecret;
@@ -30,45 +31,63 @@ public class OssUtil {
 
     //传入(文件名字，MultipartFile.getInputStream),返回ossUrl;
     // oss中会以"fileName-Date"附加时间戳作为实际文件名
-    public String upload(MultipartFile rawFileContent) {
+    public String upload(MultipartFile rawFileContent)
+    {
         InputStream inputStream = null;
-        try {
+        try
+        {
             inputStream = rawFileContent.getInputStream();
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             throw TomatoMallException.noFileContent();
         }
         String objectName = addTimeToName(rawFileContent.getOriginalFilename());//附加时间戳解决重复文件问题
 
         OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
         PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, inputStream);
-        try {
+        try
+        {
             ossClient.putObject(putObjectRequest);
-        } finally {
-            if (ossClient != null) {
+        } finally
+        {
+            if (ossClient != null)
+            {
                 ossClient.shutdown();
             }
         }
         String retUrl = ossClient.generatePresignedUrl(bucketName, objectName, new Date()).toString().split("\\?Expires")[0];
-        if (retUrl == null || retUrl.equals("")) {
+        if (retUrl == null || retUrl.equals(""))
+        {
             throw TomatoMallException.ossInternalWrong();
         }
         return retUrl;
     }
 
-    public String addTimeToName(String originalName) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-        String timestamp = LocalDateTime.now().format(formatter);
+    public String addTimeToName(String originalName)
+    {
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+//        String timestamp = LocalDateTime.now().format(formatter);
+        String timestamp = getCurrentTime();
 
         int lastDotIndex = originalName.lastIndexOf('.');
-        if (lastDotIndex == -1) {
+        if (lastDotIndex == -1)
+        {
             // 无扩展名，直接附加时间戳
             return originalName + "_" + timestamp;
-        } else {
+        } else
+        {
             // 分离名称和扩展名
             String namePart = originalName.substring(0, lastDotIndex);
             String extension = originalName.substring(lastDotIndex);
             return namePart + "_" + timestamp + extension;
         }
 
+    }
+
+    public String getCurrentTime()
+    {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+        String timestamp = LocalDateTime.now().format(formatter);
+        return timestamp;
     }
 }

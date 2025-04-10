@@ -11,7 +11,8 @@ import javax.persistence.*;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Stockpile {
+public class Stockpile
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -29,27 +30,36 @@ public class Stockpile {
     @JoinColumn(name = "product_id", insertable = false, updatable = false)
     private Product product;
 
-    public Stockpile withProductId(Integer productId) {
+    @Version
+    private Integer version;
+
+    public Stockpile withProductId(Integer productId)
+    {
         this.productId = productId;
         return this;
     }
-    public Stockpile withAmount(Integer amount) {
+
+    public Stockpile withAmount(Integer amount)
+    {
         this.amount = amount;
         return this;
     }
-    public Stockpile withFrozen(Integer frozen) {
+
+    public Stockpile withFrozen(Integer frozen)
+    {
         this.frozen = frozen;
         return this;
     }
 
-
-
-    public StockpileVO toVO() {
+    public StockpileVO toVO()
+    {
         StockpileVO vo = new StockpileVO();
         vo.setId(this.id);
         vo.setAmount(this.amount);
         vo.setFrozen(this.frozen);
         vo.setProductId(this.productId);
+
+        vo.setVersion(this.version);
         return vo;
     }
 
