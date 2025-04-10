@@ -12,4 +12,6 @@ public interface OrderService
     OrderController.RetPay pay(Integer orderId);
 
     void handleAlipayNotify(HttpServletRequest request, HttpServletResponse response) throws IOException;
+
+    String deleteOrder(Integer orderId);
 }

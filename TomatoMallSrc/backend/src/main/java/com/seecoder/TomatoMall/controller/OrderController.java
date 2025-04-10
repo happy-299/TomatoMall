@@ -52,10 +52,18 @@ public class OrderController
         private String paymentMethod = "Alipay";
     }
 
+    //支付订单
     @PostMapping("{orderId}/pay")
     public Response<RetPay> pay(@PathVariable Integer orderId)
     {
         return Response.buildSuccess(orderService.pay(orderId));
+    }
+
+    //取消订单：delete 方法,给定orderId,返回"删除成功"或报错信息; 后端将删除的订单status置为 FAILED
+    @DeleteMapping("{orderId}")
+    public Response<String> deleteOrder(@PathVariable Integer orderId)
+    {
+        return Response.buildSuccess(orderService.deleteOrder(orderId));
     }
 
 

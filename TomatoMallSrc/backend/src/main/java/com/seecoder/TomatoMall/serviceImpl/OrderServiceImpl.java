@@ -102,6 +102,16 @@ public class OrderServiceImpl implements OrderService
         response.getWriter().print("success");
     }
 
+    @Override
+    public String deleteOrder(Integer orderId)
+    {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(TomatoMallException::orderNotFound);
+        order.setStringStatus("FAILED");
+        orderRepository.save(order);
+        return "删除成功";
+    }
+
     private BigDecimal getTotalAmountByOrderId(Integer orderId)
     {
         Order order = orderRepository.findById(orderId).
