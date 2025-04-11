@@ -32,7 +32,11 @@ const router = createRouter({
                 path: '/product/:id',
                 component: () => import('../views/shop/Product.vue'),
                 meta: {title: '商品详情'}
-            },
+            },{
+                path: '/pay',
+                component: () => import('../views/shop/Pay.vue'),
+                meta: {title: '支付页面'}
+            }
         ]
     }, {
         path: '/404',

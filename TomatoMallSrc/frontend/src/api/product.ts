@@ -1,6 +1,5 @@
 import { axios } from '../utils/request'
-
-const PRODUCT_MODULE = '/api/products'
+import {PRODUCT_MODULE} from "./_prefix.ts";
 
 /**
  * 商品相关接口类型定义

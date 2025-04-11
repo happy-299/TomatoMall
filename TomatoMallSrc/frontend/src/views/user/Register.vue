@@ -93,7 +93,7 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
     if (error?.response?.data?.code === '400') {
       ElMessage.error(error.response.data.data.msg)
     } else {
-      ElMessage.error('请求异常，请稍后重试')
+      ElMessage.error('用户名已存在，请重新输入！')
     }
   } finally {
     loading.value = false

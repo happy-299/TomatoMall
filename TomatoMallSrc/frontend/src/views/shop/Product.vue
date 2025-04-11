@@ -8,6 +8,9 @@ import {
 import { getProductById, deleteProduct, updateProduct, type Product, type Specification } from '../../api/product'
 import { getUserInfo } from "../../api/user.ts";
 import { uploadUserImage } from '../../api/util'
+import { ShoppingCart } from '@element-plus/icons-vue'
+import { getCart, addToCart, updateCartItemQuantity, deleteCartItem, type CartItem } from '../../api/cart'
+import { getStockpile } from '../../api/product'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +18,8 @@ const product = ref<Product | null>(null)
 const loading = ref(true)
 const isAdmin = ref(false)
 const editDialogVisible = ref(false)
+const cartItems = ref<Record<string, { cartItemId: string; quantity: number }>>({})
+const stock = ref(0)
 
 // 编辑表单数据
 const editForm = ref({
@@ -27,6 +32,54 @@ const editForm = ref({
   detail: '',
   specifications: [] as Specification[]
 })
+
+// 获取购物车数据
+const fetchCart = async () => {
+  try {
+    const res = await getCart()
+    if (res.data.code === '200') {
+      res.data.data.items.forEach((item: CartItem) => {
+        cartItems.value[item.productId] = {
+          cartItemId: item.cartItemId,
+          quantity: item.quantity
+        }
+      })
+    }
+  } catch (error) {
+    ElMessage.error('获取购物车失败')
+  }
+}
+
+// 处理购物车操作
+const handleCart = async (type: 'add' | 'subtract') => {
+  if (!product.value) return
+  const productId = product.value.id
+  const currentItem = cartItems.value[productId]
+
+  try {
+    let newQuantity = currentItem?.quantity || 0
+
+    if (type === 'add') {
+      if (newQuantity >= stock.value) return ElMessage.warning('库存不足')
+      newQuantity++
+    } else {
+      newQuantity = Math.max(0, newQuantity - 1)
+    }
+
+    if (newQuantity === 0) {
+      await deleteCartItem(currentItem.cartItemId)
+      delete cartItems.value[productId]
+    } else if (currentItem) {
+      await updateCartItemQuantity(currentItem.cartItemId, newQuantity)
+      cartItems.value[productId].quantity = newQuantity
+    } else {
+      await addToCart(productId, 1)
+      await fetchCart()
+    }
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+  }
+}
 
 const handleCoverUpload = async (params: any) => {
   const loading = ElLoading.service({ fullscreen: false });
@@ -59,6 +112,16 @@ const fetchProduct = async () => {
     if (res.data?.code === "200") {
       product.value = res.data.data;
       initEditForm(); // 初始化编辑表单
+      if(product.value === null){
+        ElMessage.error("暂无商品或者商品数据获取失败");
+        return
+      }
+      // 获取库存
+      const stockRes = await getStockpile(product.value.id)
+      if (stockRes.data.code === '200') {
+        stock.value = stockRes.data.data.amount
+      }
+
     } else {
       throw new Error(res.data?.msg || '无效的响应结构');
     }
@@ -151,6 +214,7 @@ onMounted(async () => {
 
     // 获取商品数据
     await fetchProduct()
+    await fetchCart()
   } catch (error) {
     ElMessage.error('初始化失败')
   }
@@ -311,6 +375,44 @@ onMounted(async () => {
                   disabled
                   :colors="['#272643', '#272643', '#272643']"
               />
+            </div>
+            <div class="user-actions">
+              <el-button
+                  type="primary"
+                  @click.stop="router.push('/pay')"
+                  class="buy-btn"
+              >
+                立即购买
+              </el-button>
+
+              <div class="cart-operations">
+                <template v-if="cartItems[product.id]?.quantity > 0">
+                  <el-button
+                      circle
+                      size="small"
+                      @click.stop="handleCart('subtract')"
+                  >
+                    -
+                  </el-button>
+                  <span class="quantity">{{ cartItems[product.id]?.quantity }}</span>
+                  <el-button
+                      circle
+                      size="small"
+                      :disabled="cartItems[product.id]?.quantity >= stock"
+                      @click.stop="handleCart('add')"
+                  >
+                    +
+                  </el-button>
+                </template>
+                <el-button
+                    v-else
+                    :icon="ShoppingCart"
+                    circle
+                    type="info"
+                    size="small"
+                    @click.stop="handleCart('add')"
+                />
+              </div>
             </div>
 
             <div v-if="product.specifications?.length" class="specifications">
@@ -523,5 +625,46 @@ onMounted(async () => {
   color: #2c698d;
   font-size: 12px;
   margin-top: 8px;
+}
+
+.user-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.buy-btn {
+  background: #2c698d;
+  border-color: #2c698d;
+  color: white;
+  flex: 1;
+  transition: all 0.3s;
+}
+
+.buy-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.cart-operations {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.quantity {
+  min-width: 24px;
+  text-align: center;
+  color: #2c698d;
+  font-weight: 500;
+}
+
+:deep(.el-button.is-circle) {
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 </style>
