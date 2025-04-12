@@ -1,8 +1,7 @@
 import { axios } from '../utils/request'
 import {CART_MODULE} from "./_prefix.ts";
 
-//购物车相关接口类型定义
-
+// 购物车相关接口类型定义
 export interface CartItem {
     cartItemId: string
     productId: string
@@ -20,10 +19,7 @@ export interface CartListResponse {
     totalAmount: number
 }
 
-
-//购物车API接口实现
-
-
+// 购物车API接口实现
 // 添加商品到购物车
 export const addToCart = (productId: string, quantity: number) => {
     const token = sessionStorage.getItem('token')
@@ -39,6 +35,16 @@ export const addToCart = (productId: string, quantity: number) => {
 export const deleteCartItem = (cartItemId: string) => {
     const token = sessionStorage.getItem('token')
     return axios.delete(`${CART_MODULE}/${cartItemId}`, {
+        headers: {
+            'token': token || ''
+        }
+    })
+}
+
+// 清空购物车全部商品
+export const deleteAllCartItems = () => {
+    const token = sessionStorage.getItem('token')
+    return axios.delete(CART_MODULE, {
         headers: {
             'token': token || ''
         }
