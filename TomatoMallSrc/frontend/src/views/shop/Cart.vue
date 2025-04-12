@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElCard, ElButton, ElCheckbox } from 'element-plus'
-import { getCart, updateCartItemQuantity, deleteCartItem, type CartItem } from '../../api/cart'
+import { getCart, updateCartItemQuantity, deleteAllCartItems, deleteCartItem, type CartItem } from '../../api/cart'
 import { getStockpile } from '../../api/product'
 import { useRouter } from 'vue-router'
 
@@ -50,6 +50,32 @@ const handleQuantityChange = async (item: CartItem, type: 'add' | 'subtract') =>
   }
 }
 
+const handleClearCart = async () => {
+  try {
+    // 添加确认弹窗
+    await ElMessageBox.confirm(
+        '确定要清空整个购物车吗？该操作不可恢复！',
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+          center: true,
+          customClass: 'clear-cart-confirm'
+        }
+    )
+
+    await deleteAllCartItems()
+    await fetchCart()
+    ElMessage.success('购物车已清空')
+  } catch (error) {
+    // 用户点击取消时error为'cancel'
+    if (error !== 'cancel') {
+      ElMessage.error('清空购物车失败')
+    }
+  }
+}
+
 // 删除商品
 const handleDelete = async (cartItemId: string) => {
   try {
@@ -87,9 +113,19 @@ onMounted(() => {
     <el-card class="cart-list" v-loading="loading">
       <!-- 全选 -->
       <div class="select-all">
-        <el-checkbox v-model="selectAll" @change="handleSelectAll">
-          全选（{{ selectedItems.length }}）
-        </el-checkbox>
+        <div class="select-group">
+          <el-checkbox v-model="selectAll" @change="handleSelectAll">
+            全选（{{ selectedItems.length }}）
+          </el-checkbox>
+          <el-button
+              type="danger"
+              size="small"
+              :disabled="!cartItems.length"
+              @click="handleClearCart"
+          >
+            清空购物车
+          </el-button>
+        </div>
       </div>
 
       <!-- 购物车商品列表 -->
@@ -298,6 +334,18 @@ onMounted(() => {
 .amount {
   color: #ff4d4f;
   font-size: 24px;
+  font-weight: bold;
+}
+
+.clear-cart-confirm {
+  width: 400px !important;
+}
+.clear-cart-confirm .el-message-box__content {
+  font-size: 16px;
+  color: #606266;
+}
+.clear-cart-confirm .el-message-box__title {
+  font-size: 18px;
   font-weight: bold;
 }
 
