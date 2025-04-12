@@ -103,6 +103,17 @@ public class CartServiceImpl implements CartService
 
     @Override
     @Transactional
+    public String deleteAllProduct()
+    {
+        Integer userId = securityUtil.getCurrentAccount().getId();
+        int deletedRow = cartRepository.deleteAllByUserId(userId);
+        if (deletedRow > 0)
+            return "成功删除购物车中所有商品";
+        return "购物车已为空";
+    }
+
+    @Override
+    @Transactional
     public String adjustProductQuantity(Integer cartItemId, Integer quantity)
     {
         Cart cart = cartRepository.findCartById(cartItemId);
@@ -225,4 +236,6 @@ public class CartServiceImpl implements CartService
         return ret;
 
     }
+
+
 }

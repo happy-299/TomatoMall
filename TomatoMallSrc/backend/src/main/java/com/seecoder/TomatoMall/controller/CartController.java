@@ -35,6 +35,13 @@ public class CartController
         return Response.buildSuccess(cartService.deleteProduct(cartItemId));
     }
 
+    //追加购物车内全部删除的方法
+    @DeleteMapping
+    public Response<String> deteleAllProduct()
+    {
+        return Response.buildSuccess(cartService.deleteAllProduct());
+    }
+
     //    1.3 修改购物车商品数量
 //    注意，不能超出库存数量
     @PatchMapping("/{cartItemId}")
