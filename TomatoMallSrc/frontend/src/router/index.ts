@@ -24,6 +24,23 @@ const router = createRouter({
                 component: () => import('../views/user/Dashboard.vue'),
                 meta: {title: '个人信息'}
             },
+             {
+                path: '/productList',
+                component: () => import('../views/shop/ProductList.vue'),
+                meta: {title: '商品列表'}
+            },{
+                path: '/product/:id',
+                component: () => import('../views/shop/Product.vue'),
+                meta: {title: '商品详情'}
+            },{
+                path: '/pay',
+                component: () => import('../views/shop/Pay.vue'),
+                meta: {title: '支付页面'}
+            },{
+                path: '/cart',
+                component: () => import('../views/shop/Cart.vue'),
+                meta: {title: '购物车'}
+            }
         ]
     }, {
         path: '/product',

@@ -1,0 +1,7 @@
+/*
+!.gitignore
+!/*.ts
+!/*.json
+!/*.html
+!/public
+!/src
