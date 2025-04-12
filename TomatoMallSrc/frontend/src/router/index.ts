@@ -36,6 +36,10 @@ const router = createRouter({
                 path: '/pay',
                 component: () => import('../views/shop/Pay.vue'),
                 meta: {title: '支付页面'}
+            },{
+                path: '/cart',
+                component: () => import('../views/shop/Cart.vue'),
+                meta: {title: '购物车'}
             }
         ]
     }, {
