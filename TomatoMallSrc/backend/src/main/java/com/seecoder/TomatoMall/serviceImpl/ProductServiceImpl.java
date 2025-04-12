@@ -39,6 +39,8 @@ public class ProductServiceImpl implements ProductService
     private CartsOrdersRelationRepository cartsOrdersRelationRepository;
     @Autowired
     private CartRepository cartRepository;
+    @Autowired
+    private UtilServiceImpl utilServiceImpl;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,7 +68,9 @@ public class ProductServiceImpl implements ProductService
                 .orElseThrow(() -> TomatoMallException.productNotFound());
 
         // 更新商品基本信息
-        product.updateFromVO(productVO);
+//        product.updateFromVO(productVO);
+        utilServiceImpl.updateFromVO(product, productVO);//解决可能的bug，应该只更新非空字段
+
         productRepository.save(product);
 
         // 全量更新规格信息
