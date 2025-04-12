@@ -17,4 +17,6 @@ public interface CartService
     CartController.RetGetAllProducts getAllProducts();
 
     CartController.RetCheckout checkout(CartController.CheckoutRequest checkoutRequest);
+
+    String deleteAllProduct();
 }
