@@ -253,6 +253,7 @@ const handleDelete = async (cartItemId: string) => {
 const handleCheckout = async () => {
   try {
     // 调用接口
+    //console.log(selectedItems.value);
     const order = await submitOrder({
       cartItemIds: selectedItems.value,
       shipping_address: {

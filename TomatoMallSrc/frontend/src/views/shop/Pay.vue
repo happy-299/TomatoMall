@@ -45,10 +45,21 @@
             <el-icon><CreditCard /></el-icon>
             立即支付
           </el-button>
+          <!-- 新增取消支付按钮 -->
+          <el-button
+              type="warning"
+              class="cancel-button"
+              @click="handleCancelPayment"
+          >
+            <el-icon><Close /></el-icon>
+            取消订单
+          </el-button>
+
         </div>
       </div>
     </el-card>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -57,7 +68,7 @@ import { ElMessage } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { Check, Close, Clock, CreditCard } from '@element-plus/icons-vue'
 // 修复导入语句
-import { payOrder, getOrderStatus, type RetPay } from '../../api/order'
+import {payOrder, getOrderStatus, type RetPay, cancelOrder} from '../../api/order'
 
 const router = useRouter()
 const route = useRoute()
@@ -66,7 +77,7 @@ type PaymentStatus = 'pending' | 'success' | 'failed'
 const paymentStatus = ref<PaymentStatus>('pending')
 const loading = ref(false)
 const errorMessage = ref('')
-const timeLeft = ref(60) // 30分钟倒计时
+const timeLeft = ref(1800) // 30分钟倒计时
 
 // 从路由参数获取订单信息
 const orderId = ref(route.query.orderId?.toString() || '')
@@ -75,6 +86,37 @@ const totalAmount = ref(Number(route.query.amount) || 0)
 // 倒计时计算
 const minutes = computed(() => Math.floor(timeLeft.value / 60).toString().padStart(2, '0'))
 const seconds = computed(() => (timeLeft.value % 60).toString().padStart(2, '0'))
+
+// 新增取消支付处理逻辑
+const handleCancelPayment = async () => {
+  try {
+    loading.value = true;
+
+    // 严格校验订单ID
+    const rawId = orderId.value;
+    if (!rawId || !/^\d+$/.test(rawId)) {
+      throw new Error('订单ID格式错误');
+    }
+    const orderIdNum = Number(rawId);
+
+    await ElMessageBox.confirm('确定要取消该订单吗？', '取消确认', {
+      confirmButtonText: '确定取消',
+      cancelButtonText: '继续支付',
+      type: 'warning'
+    });
+
+    await cancelOrder(orderIdNum); // 传递数字类型ID
+    paymentStatus.value = 'failed'; // 使用独立状态
+    ElMessage.success('订单已取消');
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      const errMsg = error.response?.data?.msg || error.message;
+      ElMessage.error(`取消失败: ${errMsg}`);
+    }
+  } finally {
+    loading.value = false;
+  }
+}
 
 // 支付处理
 const handlePayment = async () => {
@@ -198,6 +240,7 @@ onBeforeUnmount(clearIntervals)
   width: 100%;
   margin-top: 24px;
   padding: 16px;
+  margin-bottom: 16px;
   font-size: 16px;
 }
 

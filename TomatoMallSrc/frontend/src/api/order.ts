@@ -7,7 +7,7 @@ export interface Order {
     totalAmount: number;
     paymentMethod: 'ALIPAY' | 'WECHAT';
     createTime: string;
-    status: 'PENDING' | 'PAID' | 'CANCELLED';
+    status: 'PENDING' | 'PAID' | 'CANCELLED'| 'FAILED';
 }
 
 export interface RetPay {
@@ -55,11 +55,11 @@ export function submitOrder(params: {
         const responseData = response.data; // 直接访问data层
 
         // 调试日志
-        console.log('接口原始响应:', JSON.stringify({
-            code: response,
-            data: responseData,
-            message: response
-        }));
+        // console.log('接口原始响应:', JSON.stringify({
+        //     code: response,
+        //     data: responseData,
+        //     message: response
+        // }));
 
         // 转换逻辑
         const validatedData: Order = {
@@ -84,11 +84,18 @@ export function submitOrder(params: {
 }
 
 export function cancelOrder(orderId: number): Promise<void> {
+
+    console.log('[取消订单] 请求参数:', {
+        url: `/api/orders/${orderId}`,
+        method: 'DELETE'
+    });
+
     return request({
         url: `/api/orders/${orderId}`,
         method: 'DELETE'
     })
 }
+
 
 export function getOrderStatus(orderId: string): Promise<{ status: 'PENDING' | 'PAID' | 'CANCELLED' }> {
     return request({
