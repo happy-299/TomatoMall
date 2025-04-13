@@ -94,8 +94,14 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("减少库存失败");
     }
 
-    public static TomatoMallException optimisticLockConflict() {
+    public static TomatoMallException optimisticLockConflict()
+    {
         return new TomatoMallException("库存扣减冲突，请稍后重试", "409"); // HTTP 409 Conflict
+    }
+
+    public static TomatoMallException adNotFound()
+    {
+        return new TomatoMallException("广告不存在");
     }
 
 

@@ -8,4 +8,6 @@ public interface UtilService
 
     String getCurrentTime();
 
+    void updateFromVO(Object target, Object vo);
+
 }

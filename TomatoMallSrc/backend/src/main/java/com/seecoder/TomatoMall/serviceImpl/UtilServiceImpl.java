@@ -1,10 +1,14 @@
 package com.seecoder.TomatoMall.serviceImpl;
 
 import com.seecoder.TomatoMall.service.UtilService;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.seecoder.TomatoMall.util.OssUtil;
+
+import java.beans.PropertyDescriptor;
 
 @Service
 public class UtilServiceImpl implements UtilService
@@ -24,6 +28,21 @@ public class UtilServiceImpl implements UtilService
     public String getCurrentTime()
     {
         return oss.getCurrentTime();
+    }
+
+    @Override
+    public void updateFromVO(Object target, Object vo)
+    {
+        BeanWrapper srcWrap = new BeanWrapperImpl(vo);
+        BeanWrapper targetWrap = new BeanWrapperImpl(target);
+        for (PropertyDescriptor pd : srcWrap.getPropertyDescriptors())
+        {
+            Object value = srcWrap.getPropertyValue(pd.getName());
+            if (value != null && !pd.getName().equals("class"))//仅更新非空字段
+            {
+                targetWrap.setPropertyValue(pd.getName(), value);
+            }
+        }
     }
 
 
