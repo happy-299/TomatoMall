@@ -169,21 +169,27 @@ public class ProductServiceImpl implements ProductService
         expiredOrders.forEach(order ->
         {
             Integer orderId = order.getId();
-            List<CartsOrdersRelation> corList = cartsOrdersRelationRepository.findAllByOrderId(orderId);
-
-            corList.forEach(cor ->
-            {
-                Integer cartItemId = cor.getCartItemId();
-                Cart cart = cartRepository.findCartById(cartItemId);
-                StockpileVO stockpileVO = getStockpile(cart.getProductId());
-                adjustStockpile(cart.getProductId(),
-                        stockpileVO.getAmount() + cart.getQuantity(),
-                        stockpileVO.getFrozen() - cart.getQuantity());//完成恢复
-            });
+            refreshStockpile(orderId);
 
             // 3. 更新订单状态
             order.setStringStatus("TIMEOUT");
             orderRepository.save(order);
+        });
+    }
+
+    @Transactional
+    public void refreshStockpile(Integer orderId)
+    {
+        List<CartsOrdersRelation> corList = cartsOrdersRelationRepository.findAllByOrderId(orderId);
+
+        corList.forEach(cor ->
+        {
+            Integer cartItemId = cor.getCartItemId();
+            Cart cart = cartRepository.findCartById(cartItemId);
+            StockpileVO stockpileVO = getStockpile(cart.getProductId());
+            adjustStockpile(cart.getProductId(),
+                    stockpileVO.getAmount() + cart.getQuantity(),
+                    stockpileVO.getFrozen() - cart.getQuantity());//完成恢复
         });
     }
 

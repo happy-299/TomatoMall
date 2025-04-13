@@ -107,6 +107,7 @@ public class OrderServiceImpl implements OrderService
     {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(TomatoMallException::orderNotFound);
+        productServiceImpl.refreshStockpile(orderId);
         order.setStringStatus("FAILED");
         orderRepository.save(order);
         return "删除成功";
