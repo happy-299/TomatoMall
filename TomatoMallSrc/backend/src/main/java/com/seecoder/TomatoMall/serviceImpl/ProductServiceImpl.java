@@ -39,6 +39,8 @@ public class ProductServiceImpl implements ProductService
     private CartsOrdersRelationRepository cartsOrdersRelationRepository;
     @Autowired
     private CartRepository cartRepository;
+    @Autowired
+    private UtilServiceImpl utilServiceImpl;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,7 +68,9 @@ public class ProductServiceImpl implements ProductService
                 .orElseThrow(() -> TomatoMallException.productNotFound());
 
         // 更新商品基本信息
-        product.updateFromVO(productVO);
+//        product.updateFromVO(productVO);
+        utilServiceImpl.updateFromVO(product, productVO);//解决可能的bug，应该只更新非空字段
+
         productRepository.save(product);
 
         // 全量更新规格信息
@@ -165,21 +169,27 @@ public class ProductServiceImpl implements ProductService
         expiredOrders.forEach(order ->
         {
             Integer orderId = order.getId();
-            List<CartsOrdersRelation> corList = cartsOrdersRelationRepository.findAllByOrderId(orderId);
-
-            corList.forEach(cor ->
-            {
-                Integer cartItemId = cor.getCartItemId();
-                Cart cart = cartRepository.findCartById(cartItemId);
-                StockpileVO stockpileVO = getStockpile(cart.getProductId());
-                adjustStockpile(cart.getProductId(),
-                        stockpileVO.getAmount() + cart.getQuantity(),
-                        stockpileVO.getFrozen() - cart.getQuantity());//完成恢复
-            });
+            refreshStockpile(orderId);
 
             // 3. 更新订单状态
             order.setStringStatus("TIMEOUT");
             orderRepository.save(order);
+        });
+    }
+
+    @Transactional
+    public void refreshStockpile(Integer orderId)
+    {
+        List<CartsOrdersRelation> corList = cartsOrdersRelationRepository.findAllByOrderId(orderId);
+
+        corList.forEach(cor ->
+        {
+            Integer cartItemId = cor.getCartItemId();
+            Cart cart = cartRepository.findCartById(cartItemId);
+            StockpileVO stockpileVO = getStockpile(cart.getProductId());
+            adjustStockpile(cart.getProductId(),
+                    stockpileVO.getAmount() + cart.getQuantity(),
+                    stockpileVO.getFrozen() - cart.getQuantity());//完成恢复
         });
     }
 
