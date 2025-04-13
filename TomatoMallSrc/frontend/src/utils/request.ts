@@ -41,3 +41,4 @@ service.interceptors.response.use(
 export {
     service as axios
 }
+export default service

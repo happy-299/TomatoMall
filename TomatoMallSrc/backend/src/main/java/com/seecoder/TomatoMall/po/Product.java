@@ -4,11 +4,8 @@ import com.seecoder.TomatoMall.vo.ProductVO;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
 
 import javax.persistence.*;
-import java.beans.PropertyDescriptor;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -16,8 +13,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Product
-{
+public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -52,23 +48,18 @@ public class Product
     @OneToOne(mappedBy = "product")
     private Stockpile stockpile;
 
-    public Product updateFromVO(ProductVO vo)
-    {
-        //todo may wrong! 当字段为空的时候不应该更新
-//        this.title = vo.getTitle();
-//        this.price = vo.getPrice();
-//        this.rate = vo.getRate();
-//        this.description = vo.getDescription();
-//        this.cover = vo.getCover();
-//        this.detail = vo.getDetail();
-//        return this;
-
+    public Product updateFromVO(ProductVO vo) {
+        this.title = vo.getTitle();
+        this.price = vo.getPrice();
+        this.rate = vo.getRate();
+        this.description = vo.getDescription();
+        this.cover = vo.getCover();
+        this.detail = vo.getDetail();
         return this;
     }
 
 
-    public ProductVO toVO()
-    {
+    public ProductVO toVO() {
         ProductVO vo = new ProductVO();
         vo.setId(this.id);
         vo.setTitle(this.title);
