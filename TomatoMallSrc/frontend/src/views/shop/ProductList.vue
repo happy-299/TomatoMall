@@ -55,6 +55,15 @@ const removeSpecification = (index: number) => {
   form.specifications.splice(index, 1);
 }
 
+const handleBuyNow = (productId: string) => {
+  console.log(productId)
+  router.push({
+    path: '/cart',
+    query: {
+      highlight: productId // 携带当前商品ID
+    }
+  })
+}
 const handleCoverUpload = async (params: any) => {
   const loading = ElLoading.service({ fullscreen: false });
   try {
@@ -477,7 +486,7 @@ onMounted(async () => {
             <el-button
                 type="primary"
                 class="buy-btn"
-                @click.stop="router.push('/pay')"
+                @click.stop="handleBuyNow(product.id)"
             >
               立即购买
             </el-button>

@@ -65,7 +65,6 @@ const handleCart = async (type: 'add' | 'subtract') => {
     } else {
       newQuantity = Math.max(0, newQuantity - 1)
     }
-
     if (newQuantity === 0) {
       await deleteCartItem(currentItem.cartItemId)
       delete cartItems.value[productId]
@@ -94,6 +93,18 @@ const handleCoverUpload = async (params: any) => {
     loading.close();
   }
 };
+
+
+
+const handleBuyNow = () => {
+  console.log(product.value)
+  router.push({
+    path: '/home/cart',
+    query: {
+      highlight: product.value?.id // 携带商品ID用于高亮
+    }
+  })
+}
 
 // 验证规则
 const rules = {
@@ -379,8 +390,7 @@ onMounted(async () => {
             <div class="user-actions">
               <el-button
                   type="primary"
-                  @click.stop="router.push('/pay')"
-                  class="buy-btn"
+                  @click="handleBuyNow"
               >
                 立即购买
               </el-button>
