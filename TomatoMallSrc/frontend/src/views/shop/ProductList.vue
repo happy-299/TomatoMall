@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed} from 'vue'
+import {ref, reactive, onMounted, computed} from 'vue'
 import {
   ElCard, ElMessage, ElButton, ElRate, ElDialog,
   ElForm, ElFormItem, ElInput, ElInputNumber, ElLoading
@@ -13,13 +13,19 @@ import {
   type Product,
   type Stockpile, Specification
 } from '../../api/product'
-import { useRouter } from 'vue-router'
+import {useRouter} from 'vue-router'
 import {getUserInfo} from "../../api/user.ts";
 import {uploadUserImage} from "../../api/util.ts";
 import AdCarousel from '../../components/AdCarousel.vue'
-import {Advertisement, createAdvertisement, deleteAdvertisement, getAdvertisements} from '../../api/advertisement'
+import {
+  Advertisement,
+  updateAdvertisement,
+  createAdvertisement,
+  deleteAdvertisement,
+  getAdvertisements
+} from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import { ShoppingCart } from '@element-plus/icons-vue'
+import {ShoppingCart} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -31,6 +37,14 @@ const currentProduct = ref<Product | null>(null)
 
 const cartItems = ref<Record<string, { cartItemId: string; quantity: number }>>({})
 const loadingCart = ref(false)
+const editAdDialogVisible = ref(false)
+const editAdForm = reactive({
+  id: '',
+  title: '',
+  content: '',
+  imgUrl: '',
+  productId: ''
+})
 
 // 表单结构
 const formDefaults = {
@@ -39,7 +53,7 @@ const formDefaults = {
   cover: '',
   rate: 0,
   description: '',
-  detail:'',
+  detail: '',
   specifications: [] as Specification[] // 新增规格字段
 }
 
@@ -69,7 +83,7 @@ const fetchAds = async () => {
 
 // 修改handleAdClick方法，添加loading状态和错误处理
 const handleAdClick = async (productId: string) => {
-  const loading = ElLoading.service({ fullscreen: true })
+  const loading = ElLoading.service({fullscreen: true})
   try {
     if (hasAdvertisement.value(productId)) {
       const adIndex = ads.value.findIndex(ad => ad.productId === productId)
@@ -91,9 +105,9 @@ const handleAdClick = async (productId: string) => {
 }
 
 const handleAdImageUpload = async (params: any) => {
-  const loading = ElLoading.service({ fullscreen: false })
+  const loading = ElLoading.service({fullscreen: false})
   try {
-    const { file } = params
+    const {file} = params
     const response = await uploadUserImage(file)
     adForm.imgUrl = response.data.data
     ElMessage.success('图片上传成功')
@@ -106,7 +120,7 @@ const handleAdImageUpload = async (params: any) => {
 
 // 修改createNewAd方法
 const createNewAd = async () => {
-  const loading = ElLoading.service({ fullscreen: true })
+  const loading = ElLoading.service({fullscreen: true})
   try {
     const res = await createAdvertisement(adForm)
     // 使用unshift使新广告立即显示
@@ -126,15 +140,60 @@ const createNewAd = async () => {
   }
 }
 
-const form = reactive({ ...formDefaults })
+const form = reactive({...formDefaults})
 const stockForm = reactive({
   amount: 0,
   frozen: 0
 })
 
+const openEditAdDialog = (productId: string) => {
+  const ad = ads.value.find(ad => ad.productId === productId)
+  if (ad) {
+    editAdForm.id = ad.id
+    editAdForm.title = ad.title
+    editAdForm.content = ad.content
+    editAdForm.imgUrl = ad.imgUrl
+    editAdForm.productId = ad.productId
+    editAdDialogVisible.value = true
+  }
+}
+
+// 更新广告方法
+const updateAd = async () => {
+  const loading = ElLoading.service({fullscreen: true})
+  try {
+    await updateAdvertisement(editAdForm)
+    // 更新本地广告数据
+    const index = ads.value.findIndex(ad => ad.id === editAdForm.id)
+    if (index > -1) {
+      ads.value[index] = {...ads.value[index], ...editAdForm}
+    }
+    ElMessage.success('广告更新成功')
+    editAdDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('更新失败')
+  } finally {
+    loading.close()
+  }
+}
+
+const handleEditAdImageUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false })
+  try {
+    const { file } = params
+    const response = await uploadUserImage(file)
+    editAdForm.imgUrl = response.data.data  // 更新到编辑表单
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
 // 新增规格操作方法
 const addSpecification = () => {
-  form.specifications.push({ item: '', value: '' });
+  form.specifications.push({item: '', value: ''});
 }
 
 const removeSpecification = (index: number) => {
@@ -142,9 +201,9 @@ const removeSpecification = (index: number) => {
 }
 
 const handleCoverUpload = async (params: any) => {
-  const loading = ElLoading.service({ fullscreen: false });
+  const loading = ElLoading.service({fullscreen: false});
   try {
-    const { file } = params;
+    const {file} = params;
     const response = await uploadUserImage(file);
     form.cover = response.data.data; // 更新封面URL
     ElMessage.success('封面图片上传成功');
@@ -160,7 +219,7 @@ const fetchCart = async () => {
   try {
     loadingCart.value = true
     const res = await getCart()
-    console.log("getCart => ",res)
+    console.log("getCart => ", res)
 
     // 增加业务状态码检查
     if (res.data.code !== '200') { // 注意code是字符串类型
@@ -232,12 +291,12 @@ const handleCart = async (productId: string, type: 'add' | 'subtract') => {
 
 // 验证规则
 const rules = {
-  title: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  title: [{required: true, message: '请输入商品名称', trigger: 'blur'}],
   price: [
-    { required: true, message: '请输入商品价格', trigger: 'blur' },
-    { type: 'number', min: 0, message: '价格不能小于0', trigger: 'change' }
+    {required: true, message: '请输入商品价格', trigger: 'blur'},
+    {type: 'number', min: 0, message: '价格不能小于0', trigger: 'change'}
   ],
-  cover: [{ required: true, message: '请上传图片', trigger: 'blur' }]
+  cover: [{required: true, message: '请上传图片', trigger: 'blur'}]
 }
 
 // 获取商品列表及库存
@@ -375,7 +434,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ad-carousel :ads="ads" />
+  <ad-carousel :ads="ads"/>
   <div class="product-list-container">
     <!-- 头部 -->
     <div class="header">
@@ -394,7 +453,7 @@ onMounted(async () => {
     >
       <el-form :model="form" :rules="rules" label-width="100px">
         <el-form-item label="商品名称" prop="title">
-          <el-input v-model="form.title" />
+          <el-input v-model="form.title"/>
         </el-form-item>
 
         <el-form-item label="价格" prop="price">
@@ -504,7 +563,7 @@ onMounted(async () => {
     >
       <el-form :model="adForm" label-width="80px">
         <el-form-item label="标题" required>
-          <el-input v-model="adForm.title" placeholder="请输入广告标题" />
+          <el-input v-model="adForm.title" placeholder="请输入广告标题"/>
         </el-form-item>
         <el-form-item label="内容" required>
           <el-input
@@ -563,7 +622,52 @@ onMounted(async () => {
         <el-button type="primary" @click="handleStockUpdate">确认修改</el-button>
       </template>
     </el-dialog>
-
+    <!-- 添加编辑广告弹窗 -->
+    <el-dialog
+        v-model="editAdDialogVisible"
+        title="编辑广告"
+        width="500px"
+    >
+      <el-form :model="editAdForm" label-width="80px">
+        <el-form-item label="标题" required>
+          <el-input v-model="editAdForm.title" placeholder="请输入广告标题"/>
+        </el-form-item>
+        <el-form-item label="内容" required>
+          <el-input
+              v-model="editAdForm.content"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入广告内容"
+          />
+        </el-form-item>
+        <el-form-item label="广告图片" required>
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleEditAdImageUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">重新上传图片</el-button>
+            </template>
+            <div class="cover-preview" v-if="editAdForm.imgUrl">
+              <img
+                  :src="editAdForm.imgUrl"
+                  class="preview-image"
+                  alt="广告图片预览"
+              />
+              <div class="preview-tip">（点击上方按钮重新上传）</div>
+            </div>
+            <template #tip>
+              <div class="upload-tip">支持JPG/PNG格式，建议尺寸1200x400px</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editAdDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="updateAd">保存修改</el-button>
+      </template>
+    </el-dialog>
     <!-- 商品列表 -->
     <div class="grid-container">
       <el-card
@@ -572,7 +676,7 @@ onMounted(async () => {
           class="product-card"
           @click="router.push(`/product/${product.id}`)"
       >
-        <img v-if="product.cover" :src="product.cover" class="product-cover" />
+        <img v-if="product.cover" :src="product.cover" class="product-cover"/>
         <div class="product-info">
           <h3 class="title">{{ product.title }}</h3>
 
@@ -593,28 +697,41 @@ onMounted(async () => {
           </div>
 
           <div v-if="isAdmin" class="admin-actions">
-            <el-button
-                size="small"
-                :type="hasAdvertisement(product.id) ? 'danger' : 'primary'"
-                @click.stop="handleAdClick(product.id)"
-            >
-              {{ hasAdvertisement(product.id) ? '删除广告' : '添加广告' }}
-            </el-button>
-            <el-button
-                size="small"
-                type="primary"
-                @click.stop="openStockDialog(product)"
-                color="#bae8e8"
-            >
-              改库存
-            </el-button>
-            <el-button
-                type="danger"
-                size="small"
-                @click.stop="handleDelete(product.id)"
-            >
-              删除
-            </el-button>
+            <div class="action-group">
+              <el-button
+                  v-if="hasAdvertisement(product.id)"
+                  size="small"
+                  type="warning"
+                  @click.stop="openEditAdDialog(product.id)"
+              >
+                更新广告
+              </el-button>
+              <el-button
+                  size="small"
+                  :type="hasAdvertisement(product.id) ? 'danger' : 'primary'"
+                  @click.stop="handleAdClick(product.id)"
+              >
+                {{ hasAdvertisement(product.id) ? '移除广告' : '添加广告' }}
+              </el-button>
+            </div>
+
+            <div class="action-group">
+              <el-button
+                  size="small"
+                  type="primary"
+                  @click.stop="openStockDialog(product)"
+                  color="#bae8e8"
+              >
+                库存管理
+              </el-button>
+              <el-button
+                  type="danger"
+                  size="small"
+                  @click.stop="handleDelete(product.id)"
+              >
+                删除商品
+              </el-button>
+            </div>
           </div>
 
           <div class="user-actions">
@@ -662,7 +779,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-
 
 
 .product-list-container {
@@ -746,20 +862,48 @@ onMounted(async () => {
 .admin-actions {
   margin-top: 12px;
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  justify-content: flex-end;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  position: relative;
+  z-index: 2; /* 确保点击按钮时不会触发卡片点击 */
 }
 
 :deep(.el-dialog__body) {
   padding: 20px 25px;
 }
 
-.el-form-item {
-  margin-bottom: 18px;
+.action-group {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
 }
 
-.el-input-number {
-  width: 100%;
+.action-group + .action-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #eee;
+}
+
+/* 调整按钮文字间距 */
+.el-button--small {
+  letter-spacing: 0.5px;
+  flex: 1;
+  justify-content: center;
+}
+
+/* 优化hover效果 */
+.el-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 调整删除按钮样式 */
+.el-button--danger {
+  background: #ff4d4f;
+  border-color: #ff4d4f;
 }
 
 .cover-preview {
@@ -784,6 +928,7 @@ onMounted(async () => {
   font-size: 12px;
   margin-top: 8px;
 }
+
 .user-actions {
   margin-top: 12px;
   display: flex;

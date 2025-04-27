@@ -9,6 +9,24 @@ export interface Advertisement {
     productId: string
 }
 
+export interface UpdateAdvertisementPayload {
+    id: string;
+    productId: string;
+    title?: string;
+    content?: string;
+    imgUrl?: string;
+}
+
+export const updateAdvertisement = (data: UpdateAdvertisementPayload) => {
+    const token = sessionStorage.getItem('token');
+    return axios.put(ADVERTISEMENT_MODULE, data, {
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token || ''
+        }
+    });
+};
+
 export const getAdvertisements = () => {
     return axios.get(ADVERTISEMENT_MODULE)
 }

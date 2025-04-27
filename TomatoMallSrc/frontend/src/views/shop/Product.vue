@@ -99,7 +99,7 @@ const handleCoverUpload = async (params: any) => {
 const handleBuyNow = () => {
   console.log(product.value)
   router.push({
-    path: '/home/cart',
+    path: '/cart',
     query: {
       highlight: product.value?.id // 携带商品ID用于高亮
     }

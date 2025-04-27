@@ -1,3 +1,4 @@
+//D:\CollegeCourse\grade-2-spring\软工二\TomatoMall\TomatoMallSrc\frontend\src\components\AdCarousel.vue
 <template>
   <el-carousel
       indicator-position="outside"
