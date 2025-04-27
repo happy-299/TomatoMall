@@ -78,6 +78,7 @@ export const updateProduct = (productInfo: UpdateProductInfo) => {
 
 // 新增商品
 export const createProduct = (productInfo: CreateProductInfo) => {
+    console.log("create Product =>",productInfo)
     const token = sessionStorage.getItem('token')
     return axios.post(PRODUCT_MODULE, productInfo, {
         headers: {
