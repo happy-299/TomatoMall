@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class SpecificationVO {
-    private Integer id;
+    private Long id;
     private String item;
     private String value;
     private Integer productId;

@@ -37,10 +37,11 @@ public class UtilServiceImpl implements UtilService
         BeanWrapper targetWrap = new BeanWrapperImpl(target);
         for (PropertyDescriptor pd : srcWrap.getPropertyDescriptors())
         {
-            Object value = srcWrap.getPropertyValue(pd.getName());
-            if (value != null && !pd.getName().equals("class"))//仅更新非空字段
+            String propertyName = pd.getName();
+            Object value = srcWrap.getPropertyValue(propertyName);
+            if (value != null && !pd.getName().equals("class") && !propertyName.equals("specifications"))//仅更新非空字段
             {
-                targetWrap.setPropertyValue(pd.getName(), value);
+                targetWrap.setPropertyValue(propertyName, value);
             }
         }
     }
