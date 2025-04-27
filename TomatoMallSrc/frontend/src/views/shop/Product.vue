@@ -5,7 +5,7 @@ import {
   ElCard, ElMessage, ElButton, ElRate, ElMessageBox,
   ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElTag, ElLoading
 } from 'element-plus'
-import { getProductById, deleteProduct, updateProduct, type Product, type Specification } from '../../api/product'
+import { getProductById, deleteProduct, updateProduct, type Product, type Specification, type UpdateProductInfo } from '../../api/product'
 import { getUserInfo } from "../../api/user.ts";
 import { uploadUserImage } from '../../api/util'
 import { ShoppingCart } from '@element-plus/icons-vue'
@@ -171,7 +171,28 @@ const handleEditSubmit = async () => {
   try {
     if (!product.value) return
 
-    await updateProduct(editForm.value)
+    // 确保每个规格都包含商品ID
+    if (!product.value.id) {
+      ElMessage.error('商品ID不存在')
+      return
+    }
+
+    const currentProduct = product.value as Product
+    const updateInfo: UpdateProductInfo = {
+      id: currentProduct.id,
+      title: editForm.value.title,
+      price: editForm.value.price,
+      rate: editForm.value.rate,
+      description: editForm.value.description,
+      cover: editForm.value.cover,
+      detail: editForm.value.detail,
+      specifications: editForm.value.specifications.map(spec => ({
+        ...spec,
+        productId: currentProduct.id
+      }))
+    }
+
+    await updateProduct(updateInfo)
     ElMessage.success('商品更新成功')
     editDialogVisible.value = false
     await fetchProduct() // 刷新数据

@@ -66,6 +66,7 @@ export const getProductById = (id: string) => {
 
 // 更新商品信息
 export const updateProduct = (productInfo: UpdateProductInfo) => {
+    console.log("productInfo => ",productInfo)
     const token = sessionStorage.getItem('token')
     return axios.put(PRODUCT_MODULE, productInfo, {
         headers: {

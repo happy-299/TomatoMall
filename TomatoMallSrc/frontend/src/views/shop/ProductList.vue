@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed} from 'vue'
 import {
   ElCard, ElMessage, ElButton, ElRate, ElDialog,
   ElForm, ElFormItem, ElInput, ElInputNumber, ElLoading
@@ -16,8 +16,8 @@ import {
 import { useRouter } from 'vue-router'
 import {getUserInfo} from "../../api/user.ts";
 import {uploadUserImage} from "../../api/util.ts";
-import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import { ShoppingCart } from '@element-plus/icons-vue'
+import AdCarousel from '../../components/AdCarousel.vue'
+import {Advertisement, createAdvertisement, deleteAdvertisement, getAdvertisements} from '../../api/advertisement'
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -26,8 +26,7 @@ const isAdmin = ref(!!sessionStorage.getItem('token'))
 const dialogVisible = ref(false)
 const stockDialogVisible = ref(false)
 const currentProduct = ref<Product | null>(null)
-const cartItems = ref<Record<string, { cartItemId: string; quantity: number }>>({})
-const loadingCart = ref(false)
+
 
 // 表单结构
 const formDefaults = {
@@ -38,6 +37,89 @@ const formDefaults = {
   description: '',
   detail:'',
   specifications: [] as Specification[] // 新增规格字段
+}
+
+const ads = ref<Advertisement[]>([])
+const adDialogVisible = ref(false)
+const currentAdProductId = ref('')
+const adForm = reactive({
+  title: '',
+  content: '',
+  imgUrl: '',
+  productId: ''
+})
+
+// 修改后的计算属性
+const hasAdvertisement = computed(() => (productId: string) => {
+  return ads.value.some(ad => ad.productId === productId)
+})
+
+const fetchAds = async () => {
+  try {
+    const res = await getAdvertisements()
+    ads.value = res.data.data
+  } catch (error) {
+    console.error('获取广告失败:', error)
+  }
+}
+
+// 修改handleAdClick方法，添加loading状态和错误处理
+const handleAdClick = async (productId: string) => {
+  const loading = ElLoading.service({ fullscreen: true })
+  try {
+    if (hasAdvertisement.value(productId)) {
+      const adIndex = ads.value.findIndex(ad => ad.productId === productId)
+      if (adIndex > -1) {
+        await deleteAdvertisement(ads.value[adIndex].id)
+        // 使用splice保持响应式更新
+        ads.value.splice(adIndex, 1)
+        ElMessage.success('广告删除成功')
+      }
+    } else {
+      adForm.productId = productId
+      adDialogVisible.value = true
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  } finally {
+    loading.close()
+  }
+}
+
+const handleAdImageUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false })
+  try {
+    const { file } = params
+    const response = await uploadUserImage(file)
+    adForm.imgUrl = response.data.data
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 修改createNewAd方法
+const createNewAd = async () => {
+  const loading = ElLoading.service({ fullscreen: true })
+  try {
+    const res = await createAdvertisement(adForm)
+    // 使用unshift使新广告立即显示
+    ads.value.unshift(res.data.data)
+    ElMessage.success('广告创建成功')
+    adDialogVisible.value = false
+    Object.assign(adForm, {
+      title: '',
+      content: '',
+      imgUrl: '',
+      productId: ''
+    })
+  } catch (error) {
+    ElMessage.error('创建失败')
+  } finally {
+    loading.close()
+  }
 }
 
 const form = reactive({ ...formDefaults })
@@ -55,15 +137,6 @@ const removeSpecification = (index: number) => {
   form.specifications.splice(index, 1);
 }
 
-const handleBuyNow = (productId: string) => {
-  console.log(productId)
-  router.push({
-    path: '/cart',
-    query: {
-      highlight: productId // 携带当前商品ID
-    }
-  })
-}
 const handleCoverUpload = async (params: any) => {
   const loading = ElLoading.service({ fullscreen: false });
   try {
@@ -77,81 +150,6 @@ const handleCoverUpload = async (params: any) => {
     loading.close();
   }
 };
-
-// 获取购物车数据
-const fetchCart = async () => {
-  try {
-    loadingCart.value = true
-    const res = await getCart()
-    console.log("getCart => ",res)
-
-    // 增加业务状态码检查
-    if (res.data.code !== '200') { // 注意code是字符串类型
-      throw new Error(res.data.msg || '获取购物车数据失败')
-    }
-
-    // 安全访问数据
-    const cartData = res.data.data || {}
-    cartData.items?.forEach((item: CartItem) => {
-      cartItems.value[item.productId] = {
-        cartItemId: item.cartItemId,
-        quantity: item.quantity
-      }
-    })
-
-  } catch (error: any) {
-    ElMessage.error(error.message || '获取购物车失败')
-  } finally {
-    loadingCart.value = false
-  }
-}
-
-// 处理购物车操作
-const handleCart = async (productId: string, type: 'add' | 'subtract') => {
-  try {
-    const currentItem = cartItems.value[productId]
-    if (!currentItem) {
-      // 如果商品不在购物车中，尝试添加
-      if (type === 'add') {
-        await addToCart(productId, 1)
-        await fetchCart() // 重新获取购物车数据以获取cartItemId
-      }
-      return
-    }
-
-    const currentQuantity = currentItem.quantity
-    const stock = stockpiles.value[productId]?.amount || 0
-    let newQuantity = currentQuantity
-
-    if (type === 'add') {
-      if (currentQuantity >= stock) {
-        return ElMessage.warning('库存不足')
-      }
-      newQuantity = currentQuantity + 1
-    } else {
-      newQuantity = Math.max(0, currentQuantity - 1)
-    }
-
-    // 处理数量变化
-    if (newQuantity === 0) {
-      // 删除商品项
-      await deleteCartItem(currentItem.cartItemId)
-      delete cartItems.value[productId]
-    } else {
-      // 更新数量
-      await updateCartItemQuantity(currentItem.cartItemId, newQuantity)
-      cartItems.value[productId].quantity = newQuantity
-    }
-
-    // 立即更新UI
-    if (newQuantity > 0) {
-      cartItems.value[productId].quantity = newQuantity
-    }
-  } catch (error) {
-    ElMessage.error('操作失败，请重试')
-    console.error('购物车操作错误:', error)
-  }
-}
 
 // 验证规则
 const rules = {
@@ -291,12 +289,13 @@ onMounted(async () => {
 
   // 然后获取商品列表
   await fetchProducts()
-  await fetchCart()
+  await fetchAds();
 })
 
 </script>
 
 <template>
+  <ad-carousel :ads="ads" />
   <div class="product-list-container">
     <!-- 头部 -->
     <div class="header">
@@ -416,6 +415,54 @@ onMounted(async () => {
       </template>
     </el-dialog>
 
+    <!-- 添加广告表单弹窗 -->
+    <el-dialog
+        v-model="adDialogVisible"
+        title="创建广告"
+        width="500px"
+        @closed="currentAdProductId = ''"
+    >
+      <el-form :model="adForm" label-width="80px">
+        <el-form-item label="标题" required>
+          <el-input v-model="adForm.title" placeholder="请输入广告标题" />
+        </el-form-item>
+        <el-form-item label="内容" required>
+          <el-input
+              v-model="adForm.content"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入广告内容"
+          />
+        </el-form-item>
+        <el-form-item label="广告图片" required>
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleAdImageUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">上传图片</el-button>
+            </template>
+            <div class="cover-preview" v-if="adForm.imgUrl">
+              <img
+                  :src="adForm.imgUrl"
+                  class="preview-image"
+                  alt="广告图片预览"
+              />
+              <div class="preview-tip">（点击上方按钮重新上传）</div>
+            </div>
+            <template #tip>
+              <div class="upload-tip">支持JPG/PNG格式，建议尺寸1200x400px</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="adDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="createNewAd">创建</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 库存修改弹窗 -->
     <el-dialog
         v-model="stockDialogVisible"
@@ -468,6 +515,13 @@ onMounted(async () => {
           <div v-if="isAdmin" class="admin-actions">
             <el-button
                 size="small"
+                :type="hasAdvertisement(product.id) ? 'danger' : 'primary'"
+                @click.stop="handleAdClick(product.id)"
+            >
+              {{ hasAdvertisement(product.id) ? '删除广告' : '添加广告' }}
+            </el-button>
+            <el-button
+                size="small"
                 type="primary"
                 @click.stop="openStockDialog(product)"
                 color="#bae8e8"
@@ -481,44 +535,6 @@ onMounted(async () => {
             >
               删除
             </el-button>
-          </div>
-          <div class="user-actions">
-            <el-button
-                type="primary"
-                class="buy-btn"
-                @click.stop="handleBuyNow(product.id)"
-            >
-              立即购买
-            </el-button>
-
-            <div class="cart-operations">
-              <template v-if="cartItems[product.id]?.quantity > 0">
-                <el-button
-                    circle
-                    size="small"
-                    @click.stop="handleCart(product.id, 'subtract')"
-                >
-                  -
-                </el-button>
-                <span class="quantity">{{ cartItems[product.id]?.quantity }}</span>
-                <el-button
-                    circle
-                    size="small"
-                    :disabled="cartItems[product.id]?.quantity >= stockpiles[product.id]?.amount"
-                    @click.stop="handleCart(product.id, 'add')"
-                >
-                  +
-                </el-button>
-              </template>
-              <el-button
-                  v-else
-                  :icon="ShoppingCart"
-                  circle
-                  type="info"
-                  size="small"
-                  @click.stop="handleCart(product.id, 'add')"
-              />
-            </div>
           </div>
         </div>
       </el-card>
@@ -648,42 +664,5 @@ onMounted(async () => {
   color: #2c698d;
   font-size: 12px;
   margin-top: 8px;
-}
-.user-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.buy-btn {
-  background: #2c698d;
-  border-color: #2c698d;
-  color: white;
-  transition: all 0.3s;
-}
-
-.buy-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.cart-operations {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quantity {
-  min-width: 24px;
-  text-align: center;
-  color: #2c698d;
-  font-weight: 500;
-}
-
-:deep(.el-button.is-circle) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
 }
 </style>

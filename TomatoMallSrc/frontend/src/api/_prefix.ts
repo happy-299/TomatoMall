@@ -8,3 +8,5 @@ export const PRODUCT_MODULE = `${API_MODULE}/products`
 export const CART_MODULE = `${API_MODULE}/cart`
 //图片上传
 export const UTIL_MODULE = `${API_MODULE}/utils`
+//广告模块
+export const ADVERTISEMENT_MODULE = `${API_MODULE}/advertisements`
