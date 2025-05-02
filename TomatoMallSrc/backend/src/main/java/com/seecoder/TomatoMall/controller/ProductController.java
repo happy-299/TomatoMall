@@ -1,14 +1,18 @@
 package com.seecoder.TomatoMall.controller;
 
 import com.seecoder.TomatoMall.exception.TomatoMallException;
+import com.seecoder.TomatoMall.po.Review;
 import com.seecoder.TomatoMall.service.ProductService;
+import com.seecoder.TomatoMall.service.ReviewService;
 import com.seecoder.TomatoMall.vo.ProductVO;
 import com.seecoder.TomatoMall.vo.Response;
+import com.seecoder.TomatoMall.vo.ReviewVO;
 import com.seecoder.TomatoMall.vo.StockpileVO;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +23,8 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+    @Autowired
+    private ReviewService reviewService;
 
     // 1. 获取商品列表
     @GetMapping
@@ -74,6 +80,57 @@ public class ProductController {
     public Response<StockpileVO> getStockpile(@PathVariable Integer productId) {
         StockpileVO stockpile = productService.getStockpile(productId);
         return Response.buildSuccess(stockpile);
+    }
+
+    /*
+     * =================================
+     * |            review             |
+     * =================================
+     */
+
+    @PostMapping("/{productId}/reviews")
+    public Response<Review> addReview(
+            @PathVariable Integer productId,
+            @RequestBody ReviewVO reviewVO) {
+        // ensure the reviewVO has correct productId
+        reviewVO.setProductId(productId);
+        Review review = reviewService.addReview(reviewVO);
+        return Response.buildSuccess(review);
+    }
+
+    @GetMapping("/{productId}/reviews")
+    public Response<PageResponse<Review>> getReviews(
+            @PathVariable Integer productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Review> reviews = reviewService.getProductReviews(productId, page, size);
+        return Response.buildSuccess(new PageResponse<>(reviews));
+    }
+
+    @GetMapping("/{productId}/rating")
+    public Response<Double> getAverageRating(@PathVariable Integer productId) {
+        Double rating = reviewService.getProductAverageRating(productId);
+        return Response.buildSuccess(rating);
+    }
+
+
+    // review page DTO
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    static class PageResponse<T> {
+        private List<T> content;
+        private int page;
+        private int size;
+        private long total;
+
+        public PageResponse(Page<T> page) {
+            this.content = page.getContent();
+            this.page = page.getNumber();
+            this.size = page.getSize();
+            this.total = page.getTotalElements();
+        }
     }
 
     // 库存调整请求DTO
