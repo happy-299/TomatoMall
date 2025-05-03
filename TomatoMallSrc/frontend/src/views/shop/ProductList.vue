@@ -25,9 +25,9 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import {ShoppingCart} from '@element-plus/icons-vue'
 
-const router = useRouter()
+
+//const router = useRouter()
 const products = ref<Product[]>([])
 const stockpiles = ref<Record<string, Stockpile>>({})
 const isAdmin = ref(!!sessionStorage.getItem('token'))
@@ -193,7 +193,7 @@ const handleEditAdImageUpload = async (params: any) => {
 
 // 新增规格操作方法
 const addSpecification = () => {
-  form.specifications.push({item: '', value: ''});
+  form.specifications.push({item: '', value: '',id:'',productId:''});
 }
 
 const removeSpecification = (index: number) => {
@@ -464,7 +464,6 @@ onMounted(async () => {
               controls-position="right"
           />
         </el-form-item>
-
         <el-form-item label="商品评分">
           <el-rate
               v-model="form.rate"
@@ -670,110 +669,20 @@ onMounted(async () => {
     </el-dialog>
     <!-- 商品列表 -->
     <div class="grid-container">
-      <el-card
+      <product-card
           v-for="product in products"
           :key="product.id"
-          class="product-card"
-          @click="router.push(`/product/${product.id}`)"
-      >
-        <img v-if="product.cover" :src="product.cover" class="product-cover"/>
-        <div class="product-info">
-          <h3 class="title">{{ product.title }}</h3>
-
-          <div class="price-rate">
-            <div class="price-section">
-              <span class="price">¥{{ product.price.toFixed(2) }}</span>
-              <div class="stock-info">
-                <span>库存: {{ stockpiles[product.id]?.amount || 0 }}</span>
-                <span class="frozen">(冻结: {{ stockpiles[product.id]?.frozen || 0 }})</span>
-              </div>
-            </div>
-            <el-rate
-                v-model="product.rate"
-                :max="10"
-                disabled
-                :colors="['#272643', '#272643', '#272643']"
-            />
-          </div>
-
-          <div v-if="isAdmin" class="admin-actions">
-            <div class="action-group">
-              <el-button
-                  v-if="hasAdvertisement(product.id)"
-                  size="small"
-                  type="warning"
-                  @click.stop="openEditAdDialog(product.id)"
-              >
-                更新广告
-              </el-button>
-              <el-button
-                  size="small"
-                  :type="hasAdvertisement(product.id) ? 'danger' : 'primary'"
-                  @click.stop="handleAdClick(product.id)"
-              >
-                {{ hasAdvertisement(product.id) ? '移除广告' : '添加广告' }}
-              </el-button>
-            </div>
-
-            <div class="action-group">
-              <el-button
-                  size="small"
-                  type="primary"
-                  @click.stop="openStockDialog(product)"
-                  color="#bae8e8"
-              >
-                库存管理
-              </el-button>
-              <el-button
-                  type="danger"
-                  size="small"
-                  @click.stop="handleDelete(product.id)"
-              >
-                删除商品
-              </el-button>
-            </div>
-          </div>
-
-          <div class="user-actions">
-            <el-button
-                type="primary"
-                class="buy-btn"
-                @click.stop="router.push('/pay')"
-            >
-              立即购买
-            </el-button>
-
-            <div class="cart-operations">
-              <template v-if="cartItems[product.id]?.quantity > 0">
-                <el-button
-                    circle
-                    size="small"
-                    @click.stop="handleCart(product.id, 'subtract')"
-                >
-                  -
-                </el-button>
-                <span class="quantity">{{ cartItems[product.id]?.quantity }}</span>
-                <el-button
-                    circle
-                    size="small"
-                    :disabled="cartItems[product.id]?.quantity >= stockpiles[product.id]?.amount"
-                    @click.stop="handleCart(product.id, 'add')"
-                >
-                  +
-                </el-button>
-              </template>
-              <el-button
-                  v-else
-                  :icon="ShoppingCart"
-                  circle
-                  type="info"
-                  size="small"
-                  @click.stop="handleCart(product.id, 'add')"
-              />
-            </div>
-          </div>
-        </div>
-      </el-card>
+          :product="product"
+          :stockpile="stockpiles[product.id]"
+          :is-admin="isAdmin"
+          :cart-items="cartItems"
+          :has-advertisement="hasAdvertisement(product.id)"
+          @delete="handleDelete"
+          @ad-click="handleAdClick"
+          @stock-update="openStockDialog"
+          @cart-add="(id: string) => handleCart(id, 'add')"
+          @cart-subtract="(id: string) => handleCart(id, 'subtract')"
+      />
     </div>
   </div>
 </template>
