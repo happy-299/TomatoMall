@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref, reactive, onMounted, computed} from 'vue'
 import {
-  ElCard, ElMessage, ElButton, ElRate, ElDialog,
+  ElMessage, ElButton, ElRate, ElDialog,
   ElForm, ElFormItem, ElInput, ElInputNumber, ElLoading
 } from 'element-plus'
 import {
@@ -13,7 +13,6 @@ import {
   type Product,
   type Stockpile, Specification
 } from '../../api/product'
-import {useRouter} from 'vue-router'
 import {getUserInfo} from "../../api/user.ts";
 import {uploadUserImage} from "../../api/util.ts";
 import AdCarousel from '../../components/AdCarousel.vue'

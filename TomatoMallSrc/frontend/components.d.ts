@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AdCarousel: typeof import('./src/components/AdCarousel.vue')['default']
+    CartCard: typeof import('./src/components/CartCard.vue')['default']
+    CartItem: typeof import('./src/components/CartItem.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCard: typeof import('element-plus/es')['ElCard']
