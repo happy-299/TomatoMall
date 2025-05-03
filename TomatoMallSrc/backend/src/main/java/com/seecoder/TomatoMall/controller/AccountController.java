@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -60,5 +61,39 @@ public class AccountController {
 //        System.out.println("user" + loginRequest.username);
         return Response.buildSuccess(accountService.login(
                 loginRequest.username, loginRequest.password));
+    }
+
+    /*
+     * ==================================
+     *       follow related
+     * ==================================
+     */
+    @PostMapping("/{userId}/follow")
+    public Response<String> follow(
+            @PathVariable Integer userId, @RequestBody Integer targetId
+    ) {
+        accountService.followUser(userId, targetId);
+        return Response.buildSuccess("关注成功");
+    }
+
+
+    @DeleteMapping("/{userId}/follow")
+    public Response<String> unfollow(
+            @PathVariable Integer userId, @RequestBody Integer targetId
+    ) {
+        accountService.unfollowUser(userId, targetId);
+        return Response.buildSuccess("取消关注成功");
+    }
+
+    @GetMapping("/{userId}/following")
+    public Response<List<AccountVO>> getFollowing(@PathVariable Integer userId) {
+        List<AccountVO> followingList = accountService.getFollowingList(userId);
+        return Response.buildSuccess(followingList);
+    }
+
+    @GetMapping("/{userId}/follower")
+    public Response<List<AccountVO>> getFollower(@PathVariable Integer userId) {
+        List<AccountVO> followerList = accountService.getFollowerList(userId);
+        return Response.buildSuccess(followerList);
     }
 }

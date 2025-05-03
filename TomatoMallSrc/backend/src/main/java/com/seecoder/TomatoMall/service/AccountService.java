@@ -2,6 +2,8 @@ package com.seecoder.TomatoMall.service;
 
 import com.seecoder.TomatoMall.vo.AccountVO;
 
+import java.util.List;
+
 public interface AccountService {
     Boolean register(AccountVO accountVO);
 
@@ -10,4 +12,13 @@ public interface AccountService {
     AccountVO getInformation();
 
     Boolean updateInformation(AccountVO accountVO);
+
+
+    void followUser(Integer followerId, Integer followedId);
+
+    void unfollowUser(Integer followerId, Integer followedId);
+
+    List<AccountVO> getFollowingList(Integer userId);
+
+    List<AccountVO> getFollowerList(Integer userId);
 }

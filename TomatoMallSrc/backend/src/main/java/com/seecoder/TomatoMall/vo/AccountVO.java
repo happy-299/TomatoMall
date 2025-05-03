@@ -32,6 +32,12 @@ public class AccountVO {
 
     private Date createTime;
 
+    private Boolean isVerified;
+
+    private Integer followerCount;
+
+    private Integer followingCount;
+
 
 //    private RoleEnum role;
 
@@ -48,6 +54,9 @@ public class AccountVO {
         account.setLocation(this.location);
         account.setCreateTime(this.createTime);
         account.setRole(this.role);
+        account.setIsVerified(this.isVerified);
+        account.setFollowerCount(this.followerCount);
+        account.setFollowingCount(this.followingCount);
         return account;
     }
 }

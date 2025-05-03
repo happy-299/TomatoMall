@@ -2,16 +2,26 @@ package com.seecoder.TomatoMall.serviceImpl;
 
 import com.seecoder.TomatoMall.exception.TomatoMallException;
 import com.seecoder.TomatoMall.po.Account;
+import com.seecoder.TomatoMall.po.UserFollow;
 import com.seecoder.TomatoMall.repository.AccountRepository;
+import com.seecoder.TomatoMall.repository.UserFollowRepository;
 import com.seecoder.TomatoMall.service.AccountService;
 import com.seecoder.TomatoMall.util.SecurityUtil;
 import com.seecoder.TomatoMall.util.TokenUtil;
 import com.seecoder.TomatoMall.vo.AccountVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -27,6 +37,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserFollowRepository followRepository;
 
 
     @Override
@@ -92,4 +105,59 @@ public class AccountServiceImpl implements AccountService {
         return true;
     }
 
+    /*
+     * ===============================
+     *      follow related
+     * ===============================
+     */
+    // 关注用户
+    @Override
+    @Transactional
+    public void followUser(Integer followerId, Integer followedId) {
+        if (followerId.equals(followedId)) {
+            throw TomatoMallException.selfFollowError();
+        }
+
+        if (!followRepository.existsByFollowerIdAndFollowedId(followerId, followedId)) {
+            UserFollow uf = new UserFollow();
+            uf.setFollowerId(followerId);
+            uf.setFollowedId(followedId);
+            uf.setCreateTime(LocalDateTime.now());
+            followRepository.save(uf);
+
+            // 更新计数
+            accountRepository.incrementFollowingCount(followerId);
+            accountRepository.incrementFollowerCount(followedId);
+        }
+    }
+
+    // 取消关注
+    @Override
+    @Transactional
+    public void unfollowUser(Integer followerId, Integer followedId) {
+        if (followRepository.existsByFollowerIdAndFollowedId(followerId, followedId)) {
+            followRepository.deleteByFollowerIdAndFollowedId(followerId, followedId);
+
+            // 更新计数
+            accountRepository.decrementFollowingCount(followerId);
+            accountRepository.decrementFollowerCount(followedId);
+        }
+    }
+
+    // 获取关注列表
+    @Override
+    public List<AccountVO> getFollowingList(Integer userId) {
+        List<Integer> ids = followRepository.findFollowingIds(userId);
+        List<Account> users = accountRepository.findAllById(ids);
+        return users.stream().map(u -> u.toVO()).collect(Collectors.toList());
+    }
+
+
+    // 获取粉丝列表
+    @Override
+    public List<AccountVO> getFollowerList(Integer userId) {
+        List<Integer> ids = followRepository.findFollowerIds(userId);
+        List<Account> users = accountRepository.findAllById(ids);
+        return users.stream().map(u -> u.toVO()).collect(Collectors.toList());
+    }
 }

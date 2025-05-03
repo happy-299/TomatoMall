@@ -61,6 +61,18 @@ public class Account {
     @Column(name = "create_time")
     private Date createTime;
 
+    // 大v认证
+    @Basic
+    private Boolean isVerified = false;
+
+    // 粉丝数量
+    @Basic
+    private Integer followerCount = 0;
+
+    // 关注数量
+    @Basic
+    private Integer followingCount = 0;
+
 //    @Basic
 //    @Column(name = "role")
 //    @Enumerated(EnumType.STRING)
@@ -78,6 +90,9 @@ public class Account {
         accountVO.setLocation(this.location);
         accountVO.setCreateTime(this.createTime);
         accountVO.setRole(this.role);
+        accountVO.setIsVerified(this.isVerified);
+        accountVO.setFollowerCount(this.followerCount);
+        accountVO.setFollowingCount(this.followingCount);
         return accountVO;
     }
 

@@ -104,6 +104,10 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("广告不存在");
     }
 
+    public static TomatoMallException selfFollowError() {
+        return new TomatoMallException("不能关注自己");
+    }
+
 
     public String getErrCode()
     {
