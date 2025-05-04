@@ -31,11 +31,15 @@ public class Review {
     @Column(nullable = false)
     private String content;
 
-    private LocalDateTime createTime;
+    private LocalDateTime createTime = LocalDateTime.now();
 
-    @OneToMany
-    @JoinColumn(name = "review_id")
-    private List<ReviewImg> images;
+    @ElementCollection
+    @CollectionTable(
+            name = "review_img",
+            joinColumns = @JoinColumn(name = "review_id")
+    )
+    @OrderColumn(name = "idx")
+    private List<String> reviewImgs = new ArrayList<>();
 
     public ReviewVO toVO() {
         ReviewVO vo = new ReviewVO();
@@ -46,11 +50,7 @@ public class Review {
         vo.setContent(content);
         vo.setCreateTime(createTime);
         // vo only care about url
-        List<String> imageUrls = new ArrayList<>();
-        images.stream()
-                .map(image -> image.getImgUrl())
-                .forEach(imageUrls::add);
-        vo.setImages(imageUrls);
+        vo.setImages(reviewImgs);
         return vo;
     }
 }

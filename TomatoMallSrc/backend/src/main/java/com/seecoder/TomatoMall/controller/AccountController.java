@@ -68,32 +68,32 @@ public class AccountController {
      *       follow related
      * ==================================
      */
-    @PostMapping("/{userId}/follow")
-    public Response<String> follow(
-            @PathVariable Integer userId, @RequestBody Integer targetId
-    ) {
-        accountService.followUser(userId, targetId);
+    @PostMapping("/follow")
+    public Response<String> follow(@RequestBody Integer targetId) {
+        AccountVO accountVO = accountService.getInformation();
+        accountService.followUser(accountVO.getId(), targetId);
         return Response.buildSuccess("关注成功");
     }
 
 
-    @DeleteMapping("/{userId}/follow")
-    public Response<String> unfollow(
-            @PathVariable Integer userId, @RequestBody Integer targetId
-    ) {
-        accountService.unfollowUser(userId, targetId);
+    @DeleteMapping("/follow")
+    public Response<String> unfollow(@RequestBody Integer targetId) {
+        AccountVO accountVO = accountService.getInformation();
+        accountService.unfollowUser(accountVO.getId(), targetId);
         return Response.buildSuccess("取消关注成功");
     }
 
-    @GetMapping("/{userId}/following")
-    public Response<List<AccountVO>> getFollowing(@PathVariable Integer userId) {
-        List<AccountVO> followingList = accountService.getFollowingList(userId);
+    @GetMapping("/following")
+    public Response<List<AccountVO>> getFollowing() {
+        AccountVO accountVO = accountService.getInformation();
+        List<AccountVO> followingList = accountService.getFollowingList(accountVO.getId());
         return Response.buildSuccess(followingList);
     }
 
-    @GetMapping("/{userId}/follower")
-    public Response<List<AccountVO>> getFollower(@PathVariable Integer userId) {
-        List<AccountVO> followerList = accountService.getFollowerList(userId);
+    @GetMapping("/follower")
+    public Response<List<AccountVO>> getFollower() {
+        AccountVO accountVO = accountService.getInformation();
+        List<AccountVO> followerList = accountService.getFollowerList(accountVO.getId());
         return Response.buildSuccess(followerList);
     }
 }

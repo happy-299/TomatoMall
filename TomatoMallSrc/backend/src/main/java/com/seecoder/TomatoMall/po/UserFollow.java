@@ -4,9 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Basic;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Getter
@@ -15,6 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 public class UserFollow {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Basic
@@ -24,6 +23,6 @@ public class UserFollow {
     private Integer followedId;
 
     @Basic
-    private LocalDateTime createTime;
+    private LocalDateTime createTime = LocalDateTime.now();
 
 }

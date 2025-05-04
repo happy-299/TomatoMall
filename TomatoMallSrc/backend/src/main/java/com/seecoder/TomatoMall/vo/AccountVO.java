@@ -54,9 +54,7 @@ public class AccountVO {
         account.setLocation(this.location);
         account.setCreateTime(this.createTime);
         account.setRole(this.role);
-        account.setIsVerified(this.isVerified);
-        account.setFollowerCount(this.followerCount);
-        account.setFollowingCount(this.followingCount);
+        // don't set following, follower, isverified here!!!
         return account;
     }
 }

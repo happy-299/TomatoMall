@@ -1,7 +1,6 @@
 package com.seecoder.TomatoMall.vo;
 
 import com.seecoder.TomatoMall.po.Review;
-import com.seecoder.TomatoMall.po.ReviewImg;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,7 +16,7 @@ public class ReviewVO {
     private Integer userId;
     private Double rating;
     private String content;
-    private LocalDateTime createTime;
+    private LocalDateTime createTime = LocalDateTime.now();
     private List<String> images;
 
     public Review toPO() {
@@ -28,11 +27,7 @@ public class ReviewVO {
         review.setRating(rating);
         review.setContent(content);
         review.setCreateTime(createTime);
-        List<ReviewImg> imgs = new ArrayList<>();
-        images.stream()
-                .map(image -> new ReviewImg(id, image))
-                .forEach(imgs::add);
-        review.setImages(imgs);
+        review.setReviewImgs(images);
         return review;
     }
 }
