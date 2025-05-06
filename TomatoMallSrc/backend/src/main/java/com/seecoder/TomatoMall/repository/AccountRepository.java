@@ -1,13 +1,18 @@
 package com.seecoder.TomatoMall.repository;
 
 import com.seecoder.TomatoMall.po.Account;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 
-public interface AccountRepository extends JpaRepository<Account, Integer> {
+
+public interface AccountRepository extends JpaRepository<Account, Integer>
+{
     Account findByUsername(String username);
 
     Account findByUsernameAndPassword(String username, String password);
@@ -31,5 +36,9 @@ public interface AccountRepository extends JpaRepository<Account, Integer> {
     @Modifying
     @Query("UPDATE Account u SET u.followerCount = u.followerCount - 1 WHERE u.id = :userId")
     void decrementFollowerCount(@Param("userId") Integer userId);
+
+    //按用户名搜索
+    @Query("SELECT a FROM Account a WHERE LOWER(a.username) LIKE %:keyword%")
+    List<Account> searchAccounts(@Param("keyword") String keyword);
 
 }

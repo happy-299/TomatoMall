@@ -168,7 +168,7 @@ public class ProductServiceImpl implements ProductService
                 Order.OrderStatus.PENDING, LocalDateTime.now().minusMinutes(waitingMin)
         );
 
-        System.out.println("触发冻结库存检查，expList.size=" + expiredOrders.size());
+//        System.out.println("触发冻结库存检查，expList.size=" + expiredOrders.size());
 
         // 2. 恢复库存
         expiredOrders.forEach(order ->
