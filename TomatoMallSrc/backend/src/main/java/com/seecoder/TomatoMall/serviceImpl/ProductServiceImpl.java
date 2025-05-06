@@ -41,6 +41,8 @@ public class ProductServiceImpl implements ProductService
     private CartRepository cartRepository;
     @Autowired
     private UtilServiceImpl utilServiceImpl;
+    @Autowired
+    private AdvertisementRepository advertisementRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -118,6 +120,9 @@ public class ProductServiceImpl implements ProductService
         specificationRepository.deleteByProductId(id);
         stockpileRepository.deleteByProductId(id);
         productRepository.deleteById(id);
+
+        //fix 删除商品的时候需要级联地删除广告
+        advertisementRepository.deleteByProductId(id);
     }
 
     @Override
@@ -158,7 +163,7 @@ public class ProductServiceImpl implements ProductService
     public void releaseLockedStockpile()
     {
         // 1. 查询超时未支付订单
-        int waitingMin =30;//保留订单多少分钟
+        int waitingMin = 30;//保留订单多少分钟
         List<Order> expiredOrders = orderRepository.findOrdersByStatusAndCreateTimeBefore(
                 Order.OrderStatus.PENDING, LocalDateTime.now().minusMinutes(waitingMin)
         );
