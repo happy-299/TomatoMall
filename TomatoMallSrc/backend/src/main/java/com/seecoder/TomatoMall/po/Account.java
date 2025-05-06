@@ -6,13 +6,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-public class Account {
+public class Account
+{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "id")
@@ -73,12 +76,16 @@ public class Account {
     @Basic
     private Integer followingCount = 0;
 
+    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SearchHistory> searchHistories = new ArrayList<>();
+
 //    @Basic
 //    @Column(name = "role")
 //    @Enumerated(EnumType.STRING)
 //    private RoleEnum role;
 
-    public AccountVO toVO() {
+    public AccountVO toVO()
+    {
         AccountVO accountVO = new AccountVO();
         accountVO.setId(this.id);
         accountVO.setUsername(this.username);
