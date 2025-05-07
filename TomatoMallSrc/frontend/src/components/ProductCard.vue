@@ -52,6 +52,16 @@ const handleCartAction = (event: Event, type: 'add' | 'subtract') => {
   event.stopPropagation()
   emit(type === 'add' ? 'cart-add' : 'cart-subtract', props.product.id)
 }
+
+const handleBuyNow = (event: Event) => {
+  event.stopPropagation()
+  router.push({
+    path: '/cart',
+    query: {
+      highlight: props.product.id
+    }
+  })
+}
 </script>
 
 <template>
@@ -121,12 +131,7 @@ const handleCartAction = (event: Event, type: 'add' | 'subtract') => {
         <el-button
             type="primary"
             class="buy-btn"
-            @click.stop="router.push({
-          path: '/cart',
-          query: {
-            highlight: product.id // 使用正确的商品ID字段
-          }
-        })"
+            @click.stop="handleBuyNow"
         >
           立即购买
         </el-button>
