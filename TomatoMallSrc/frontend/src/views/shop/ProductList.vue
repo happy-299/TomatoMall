@@ -222,19 +222,49 @@ const fetchCart = async () => {
     const res = await getCart()
     console.log("getCart => ", res)
 
-    // 增加业务状态码检查
-    if (res.data.code !== '200') { // 注意code是字符串类型
+    if (res.data.code !== '200') {
       throw new Error(res.data.msg || '获取购物车数据失败')
     }
 
-    // 安全访问数据
     const cartData = res.data.data || {}
-    cartData.items?.forEach((item: CartItem) => {
-      cartItems.value[item.productId] = {
-        cartItemId: item.cartItemId,
-        quantity: item.quantity
+    const items = cartData.items || []
+
+    console.log("cartData => ", cartData)
+    // 清空当前购物车数据
+    cartItems.value = {}
+
+    for (const item of items) {
+      const productId = item.productId
+      const currentStock = stockpiles.value[productId]?.amount || 0
+      let adjustedQuantity = item.quantity
+
+      // 检查购物车数量是否超过库存
+      if (item.quantity > currentStock) {
+        adjustedQuantity = currentStock
+        try {
+          if (adjustedQuantity > 0) {
+            // 更新购物车数量到库存最大值
+            await updateCartItemQuantity(item.cartItemId, adjustedQuantity)
+            ElMessage.warning(`商品《${item.title}》库存不足，购物车数量已调整为最大库存数 ${adjustedQuantity}`)
+          } else {
+            // 删除该购物车项
+            await deleteCartItem(item.cartItemId)
+            ElMessage.warning(`商品《${item.title}》已无库存，已从购物车移除`)
+            continue
+          }
+        } catch (error) {
+          console.error('调整购物车失败:', error)
+          ElMessage.error('自动调整购物车失败，请手动修改')
+          continue
+        }
       }
-    })
+
+      // 更新本地购物车数据
+      cartItems.value[productId] = {
+        cartItemId: item.cartItemId,
+        quantity: adjustedQuantity
+      }
+    }
 
   } catch (error: any) {
     ElMessage.error(error.message || '获取购物车失败')
@@ -361,20 +391,21 @@ const handleStockUpdate = async () => {
   try {
     if (!currentProduct.value) return
 
-    // 1. 提交库存修改
     await adjustStockpile(currentProduct.value.id, stockForm.amount)
-
-    // 2. 获取最新库存（强制刷新）
     const res = await getStockpile(currentProduct.value.id)
 
-    // 3. 正确更新响应式数据
+    // 更新本地库存数据
     stockpiles.value = {
       ...stockpiles.value,
-      [currentProduct.value.id]: res.data.data // 根据实际API响应调整
+      [currentProduct.value.id]: res.data.data
     }
 
     ElMessage.success('库存更新成功')
     stockDialogVisible.value = false
+
+    // 重新获取购物车数据以检查数量
+    await fetchCart()
+
   } catch (error) {
     console.error('库存更新失败:', error)
     ElMessage.error('库存更新失败')
@@ -404,12 +435,33 @@ const submitForm = async () => {
 
 // 商品删除
 const handleDelete = async (id: string) => {
+  const loading = ElLoading.service({ fullscreen: true })
   try {
+    // 1. 删除关联广告
+    const relatedAds = ads.value.filter(ad => ad.productId === id)
+    await Promise.all(
+        relatedAds.map(async ad => {
+          await deleteAdvertisement(ad.id)
+          // 从本地广告列表移除
+          const index = ads.value.findIndex(a => a.id === ad.id)
+          if (index > -1) {
+            ads.value.splice(index, 1)
+          }
+        })
+    )
+
+    // 2. 删除商品
     await deleteProduct(id)
-    ElMessage.success('删除成功')
+
+    // 3. 更新商品列表
     await fetchProducts()
+
+    ElMessage.success('商品及关联广告删除成功')
   } catch (error) {
-    ElMessage.error('删除失败')
+    console.error('删除失败:', error)
+    ElMessage.error('删除失败，请重试')
+  } finally {
+    loading.close()
   }
 }
 

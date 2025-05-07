@@ -50,6 +50,19 @@ const handleAdminAction = (event: Event, action: string, payload?: any) => {
 
 const handleCartAction = (event: Event, type: 'add' | 'subtract') => {
   event.stopPropagation()
+
+  // 获取当前购物车数量和库存
+  const currentQuantity = props.cartItems[props.product.id]?.quantity || 0
+  const currentStock = props.stockpile.amount || 0
+
+  // 处理增加操作时的库存验证
+  if (type === 'add') {
+    // 如果库存为0或当前数量已超过库存，直接返回
+    if (currentStock <= 0 || currentQuantity >= currentStock) {
+      return
+    }
+  }
+
   emit(type === 'add' ? 'cart-add' : 'cart-subtract', props.product.id)
 }
 
@@ -141,16 +154,18 @@ const handleBuyNow = (event: Event) => {
             <el-button
                 circle
                 size="small"
-                @click.stop="$emit('cart-subtract', product.id)"
+                @click.stop="handleCartAction($event, 'subtract')"
             >
               -
             </el-button>
-            <span class="quantity">{{ cartItems[product.id]?.quantity }}</span>
+            <span class="quantity">{{
+                Math.min(cartItems[product.id]?.quantity, stockpile.amount)
+              }}</span>
             <el-button
                 circle
                 size="small"
-                :disabled="cartItems[product.id]?.quantity >= stockpile.amount"
-                @click.stop="$emit('cart-add', product.id)"
+                :disabled="cartItems[product.id]?.quantity >= stockpile.amount || stockpile.amount <= 0"
+                @click.stop="handleCartAction($event, 'add')"
             >
               +
             </el-button>
@@ -161,7 +176,8 @@ const handleBuyNow = (event: Event) => {
               circle
               type="info"
               size="small"
-              @click.stop="$emit('cart-add', product.id)"
+              :disabled="stockpile.amount <= 0"
+              @click.stop="handleCartAction($event, 'add')"
           />
         </div>
       </div>
