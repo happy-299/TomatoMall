@@ -11,6 +11,7 @@ import { uploadUserImage } from '../../api/util'
 import { ShoppingCart } from '@element-plus/icons-vue'
 import { getCart, addToCart, updateCartItemQuantity, deleteCartItem, type CartItem } from '../../api/cart'
 import { getStockpile } from '../../api/product'
+import ProductReview from '../../components/ProductReview.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -475,6 +476,11 @@ onMounted(async () => {
         </div>
       </div>
     </el-card>
+
+    <!-- 添加商品评论组件 -->
+    <el-card v-if="product" class="review-card">
+      <ProductReview :product-id="Number(product.id)" />
+    </el-card>
   </div>
 </template>
 
@@ -697,5 +703,11 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   padding: 0;
+}
+
+.review-card {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  border-radius: 12px;
 }
 </style>

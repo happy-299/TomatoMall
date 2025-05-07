@@ -2,6 +2,12 @@
 import { ShoppingCart } from '@element-plus/icons-vue'
 import { ElCard, ElButton, ElRate } from 'element-plus'
 import { useRouter } from 'vue-router'
+import {
+  updateAdvertisement,
+  createAdvertisement,
+  deleteAdvertisement,
+  getAdvertisements
+} from '../api/advertisement'
 
 const router = useRouter()
 
@@ -27,7 +33,8 @@ const emit = defineEmits([
   'ad-click',
   'stock-update',
   'cart-add',
-  'cart-subtract'
+  'cart-subtract',
+  'edit-ad'
 ])
 
 const handleCardClick = () => {

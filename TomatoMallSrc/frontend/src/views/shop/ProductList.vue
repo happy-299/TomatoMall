@@ -678,6 +678,7 @@ onMounted(async () => {
           :has-advertisement="hasAdvertisement(product.id)"
           @delete="handleDelete"
           @ad-click="handleAdClick"
+          @edit-ad="openEditAdDialog"
           @stock-update="openStockDialog"
           @cart-add="(id: string) => handleCart(id, 'add')"
           @cart-subtract="(id: string) => handleCart(id, 'subtract')"

@@ -1,7 +1,10 @@
 import axios from 'axios'
 
 //创建一个axios的实例service
-const service = axios.create()
+const service = axios.create({
+    baseURL: 'http://localhost:8080',
+    timeout: 30000
+})
 
 //判断是否登录
 function hasToken() {

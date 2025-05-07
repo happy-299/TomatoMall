@@ -2,7 +2,7 @@
 import { ElForm, ElMessage } from "element-plus";
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { userLogin } from '../../api/user.ts';
+import { userLogin, getUserInfo } from '../../api/user.ts';
 
 const router = useRouter();
 
@@ -23,6 +23,8 @@ const handleLogin = async () => {
       password: password.value
     });
 
+    console.log('登录响应数据:', response.data);
+
     if (response.data.code === '200') {
       ElMessage({
         message: "登录成功！",
@@ -30,14 +32,32 @@ const handleLogin = async () => {
         center: true,
       });
 
-      // 存储token（根据实际API响应结构调整）
-      console.log(response)
+      // 存储token和用户信息
       const token = response.data.data;
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('username', username.value);
-      console.log("username => " ,username.value)
+      
+      // 获取用户信息
+      try {
+        const userInfoResponse = await getUserInfo(username.value);
+        console.log('用户信息响应:', userInfoResponse.data);
+        if (userInfoResponse.data.code === '200') {
+          const userData = userInfoResponse.data.data;
+          sessionStorage.setItem('userId', userData.id);
+          sessionStorage.setItem('role', userData.role);
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+
+      console.log("登录信息：", {
+        token,
+        username: username.value,
+        userId: sessionStorage.getItem('userId'),
+        role: sessionStorage.getItem('role')
+      });
+
       // 跳转到仪表盘
-      console.log(token)
       router.push({ path: "/dashboard" });
     } else {
       ElMessage({
