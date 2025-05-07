@@ -24,6 +24,11 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("用户名已存在");
     }
 
+    public static TomatoMallException userNotFound()
+    {
+        return new TomatoMallException("用户不存在");
+    }
+
     public static TomatoMallException notLogin()
     {
         return new TomatoMallException("请登陆", "401");
@@ -104,10 +109,45 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("广告不存在");
     }
 
-    public static TomatoMallException selfFollowError() {
+    public static TomatoMallException selfFollowError()
+    {
         return new TomatoMallException("不能关注自己");
     }
 
+    public static TomatoMallException noteCreateError()
+    {
+        return new TomatoMallException("创建笔记出错，检查内容完整性");
+    }
+
+    public static TomatoMallException tomatoPriceError()
+    {
+        return new TomatoMallException("番茄币的值应为0或者正整数");
+    }
+
+    public static TomatoMallException noteNotFound()
+    {
+        return new TomatoMallException("笔记未找到");
+    }
+
+    public static TomatoMallException noteUpdateError()
+    {
+        return new TomatoMallException("笔记更新错误，不应该包含除了id,title,content,price以外的字段");
+    }
+
+    public static TomatoMallException notePaid()
+    {
+        return new TomatoMallException("已经购买此笔记");
+    }
+
+    public static TomatoMallException tomatoIllegal()
+    {
+        return new TomatoMallException("用户番茄数量不合法");
+    }
+
+    public static TomatoMallException tomatoInsufficient()
+    {
+        return new TomatoMallException("用户番茄余额不足");
+    }
 
     public String getErrCode()
     {

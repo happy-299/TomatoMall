@@ -14,4 +14,6 @@ public interface OrderService
     void handleAlipayNotify(HttpServletRequest request, HttpServletResponse response) throws IOException;
 
     String deleteOrder(Integer orderId);
+
+    Boolean payTomato(Integer price);
 }

@@ -11,7 +11,8 @@ import java.util.Date;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AccountVO {
+public class AccountVO
+{
     private Integer id;
 
     private String username;
@@ -38,11 +39,13 @@ public class AccountVO {
 
     private Integer followingCount;
 
+    private Integer tomato;
 
 //    private RoleEnum role;
 
 
-    public Account toPO() {
+    public Account toPO()
+    {
         Account account = new Account();
         account.setId(this.id);
         account.setUsername(this.username);
@@ -55,6 +58,7 @@ public class AccountVO {
         account.setCreateTime(this.createTime);
         account.setRole(this.role);
         // don't set following, follower, isverified here!!!
+        account.setTomato(this.tomato);
         return account;
     }
 }
