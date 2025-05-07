@@ -8,7 +8,9 @@ import com.alipay.api.internal.util.AlipaySignature;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.seecoder.TomatoMall.controller.OrderController;
 import com.seecoder.TomatoMall.exception.TomatoMallException;
+import com.seecoder.TomatoMall.po.Account;
 import com.seecoder.TomatoMall.po.Order;
+import com.seecoder.TomatoMall.repository.AccountRepository;
 import com.seecoder.TomatoMall.repository.OrderRepository;
 import com.seecoder.TomatoMall.repository.StockpileRepository;
 import com.seecoder.TomatoMall.service.OrderService;
@@ -18,6 +20,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -39,6 +42,7 @@ public class OrderServiceImpl implements OrderService
     private final UtilServiceImpl utilServiceImpl;
     private final StockpileRepository stockpileRepository;
     private final ProductServiceImpl productServiceImpl;
+    private final AccountRepository accountRepository;
     private String appId;
     private String privateKey;
     private String alipayPublicKey;
@@ -50,7 +54,7 @@ public class OrderServiceImpl implements OrderService
 
     private static final String FORMAT = "JSON";
 
-    public OrderServiceImpl(OssUtil ossUtil, OrderRepository orderRepository, SecurityUtil securityUtil, UtilServiceImpl utilServiceImpl, StockpileRepository stockpileRepository, ProductServiceImpl productServiceImpl)
+    public OrderServiceImpl(OssUtil ossUtil, OrderRepository orderRepository, SecurityUtil securityUtil, UtilServiceImpl utilServiceImpl, StockpileRepository stockpileRepository, ProductServiceImpl productServiceImpl, AccountRepository accountRepository)
     {
         this.ossUtil = ossUtil;
         this.orderRepository = orderRepository;
@@ -58,6 +62,7 @@ public class OrderServiceImpl implements OrderService
         this.utilServiceImpl = utilServiceImpl;
         this.stockpileRepository = stockpileRepository;
         this.productServiceImpl = productServiceImpl;
+        this.accountRepository = accountRepository;
     }
 
 
@@ -111,6 +116,27 @@ public class OrderServiceImpl implements OrderService
         order.setStringStatus("FAILED");
         orderRepository.save(order);
         return "删除成功";
+    }
+
+    //用户使用番茄币消费
+    @Override
+    @Transactional
+    public Boolean payTomato(Integer price)
+    {
+        Account acc = securityUtil.getCurrentAccount();
+        Integer userTomato = acc.getTomato();
+        if (userTomato < 0)
+        {
+            throw TomatoMallException.tomatoIllegal();
+        }
+        if (userTomato < price)
+        {
+            throw TomatoMallException.tomatoInsufficient();
+        }
+        acc.setTomato(acc.getTomato() - price);
+//        accountRepository.save(acc);
+// 无需显式 save，事务提交时自动更新
+        return true;
     }
 
     private BigDecimal getTotalAmountByOrderId(Integer orderId)

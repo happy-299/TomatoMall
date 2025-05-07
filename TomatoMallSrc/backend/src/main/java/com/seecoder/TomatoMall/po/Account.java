@@ -79,6 +79,9 @@ public class Account
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SearchHistory> searchHistories = new ArrayList<>();
 
+    @Basic
+    private Integer tomato = 0;//番茄币数量
+
 //    @Basic
 //    @Column(name = "role")
 //    @Enumerated(EnumType.STRING)
@@ -100,6 +103,8 @@ public class Account
         accountVO.setIsVerified(this.isVerified);
         accountVO.setFollowerCount(this.followerCount);
         accountVO.setFollowingCount(this.followingCount);
+
+        accountVO.setTomato(this.tomato);
         return accountVO;
     }
 
