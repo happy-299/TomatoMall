@@ -67,7 +67,9 @@ public class UtilServiceImpl implements UtilService
         {
             String propertyName = pd.getName();
             Object value = srcWrap.getPropertyValue(propertyName);
-            if (value != null && !pd.getName().equals("class") && !propertyName.equals("specifications"))//仅更新非空字段
+            if (value != null && !pd.getName().equals("class")
+                    && !propertyName.equals("specifications")
+                    && !propertyName.equals("id"))//仅更新非空字段
             {
                 targetWrap.setPropertyValue(propertyName, value);
             }
