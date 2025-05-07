@@ -40,6 +40,11 @@ const router = createRouter({
                 path: '/cart',
                 component: () => import('../views/shop/Cart.vue'),
                 meta: {title: '购物车'}
+            },
+            {
+                path: '/booklist',
+                component: () => import('../views/booklist/BookList.vue'),
+                meta: {title: '书单列表'}
             }
         ]
     }, {
@@ -50,6 +55,10 @@ const router = createRouter({
         path: '/productList',
         component: () => import('../views/shop/ProductList.vue'),
         meta: {title: '商品列表'}
+    }, {
+        path: '/booklist',
+        component: () => import('../views/booklist/BookList.vue'),
+        meta: {title: '书单列表'}
     }, {
         path: '/404',
         name: '404',

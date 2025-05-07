@@ -2,12 +2,6 @@
 import { ShoppingCart } from '@element-plus/icons-vue'
 import { ElCard, ElButton, ElRate } from 'element-plus'
 import { useRouter } from 'vue-router'
-import {
-  updateAdvertisement,
-  createAdvertisement,
-  deleteAdvertisement,
-  getAdvertisements
-} from '../api/advertisement'
 
 const router = useRouter()
 

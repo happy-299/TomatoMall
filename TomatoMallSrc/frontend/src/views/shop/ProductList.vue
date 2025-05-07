@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {ref, reactive, onMounted, computed, onUnmounted} from 'vue'
+import {useRouter} from 'vue-router'
 import {
   ElMessage, ElButton, ElRate, ElDialog,
   ElForm, ElFormItem, ElInput, ElInputNumber, ElLoading
@@ -24,11 +25,10 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Star, StarFilled, Plus, Delete, ShoppingCart, Collection } from '@element-plus/icons-vue'
 import { getSearchHistory, search, type SearchResult, type SearchHistoryItem } from '../../api/search'
 
-
-//const router = useRouter()
+const router = useRouter()
 const products = ref<Product[]>([])
 const stockpiles = ref<Record<string, Stockpile>>({})
 const isAdmin = ref(!!sessionStorage.getItem('token'))
@@ -484,6 +484,11 @@ const handleBack = async () => {
   await fetchProducts()
 }
 
+// 跳转到书单页面
+const goToBookList = () => {
+  router.push('/booklist')
+}
+
 onMounted(async () => {
   // 先获取用户信息
   try {
@@ -519,6 +524,11 @@ onUnmounted(() => {
     <div class="header">
       <h1>商品列表</h1>
       <div class="header-actions">
+        <!-- 添加书单入口按钮 -->
+        <el-button type="primary" plain @click="goToBookList">
+          <el-icon><Collection /></el-icon>
+          书单列表
+        </el-button>
         <!-- 添加搜索框 -->
         <div class="search-container">
           <el-input
@@ -811,8 +821,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-
-
 .product-list-container {
   padding: 24px;
   background: linear-gradient(120deg, #e3f6f5 0%, #d0eeff 100%);
