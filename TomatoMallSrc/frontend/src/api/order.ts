@@ -1,5 +1,6 @@
 // src/api/order.ts
 import request from '../utils/request'
+import type { OrderSubmitData } from '../types/order'
 
 export interface Order {
     orderId: number; // 改为字符串类型
@@ -26,60 +27,25 @@ export interface ShippingAddress {
     district: string
     detailAddress: string
 }
-// 修正点1：参数对象语法修复
-export function submitOrder(params: {
-    cartItemIds: string[],
+
+export interface OrderSubmitData {
+    cartItemIds: string[];
     shipping_address: {
-        recipientName: string,
-        telephone: string,
-        zipCode: string,
-        location: string // 合并的地址字符串
-    },
-    payment_method: 'ALIPAY' | 'WECHAT'
-}): Promise<Order> {
+        recipientName: string;
+        telephone: string;
+        zipCode: string;
+        location: string;
+    };
+    payment_method: string;
+    couponId?: number; // 添加优惠券ID参数
+}
+
+// 修正点1：参数对象语法修复
+export function submitOrder(data: OrderSubmitData) {
     return request({
         url: '/api/cart/checkout',
-        method: 'POST',
-        data: {
-            cartItemIds: params.cartItemIds,
-            shipping_address: {
-                recipientName: params.shipping_address.recipientName,
-                telephone: params.shipping_address.telephone,
-                zipCode: params.shipping_address.zipCode, // 保持字段名一致
-                location: params.shipping_address.location // 直接使用合并后的字符串
-            },
-            payment_method: params.payment_method
-        }
-    }).then(response => {
-        // 根据Java控制器结构调整数据访问层级
-        const responseData = response.data; // 直接访问data层
-
-        // 调试日志
-        // console.log('接口原始响应:', JSON.stringify({
-        //     code: response,
-        //     data: responseData,
-        //     message: response
-        // }));
-
-        // 转换逻辑
-        const validatedData: Order = {
-            orderId: responseData.data.orderId.toString(), // 强制转为字符串
-            totalAmount: Number(responseData.data.totalAmount) || 0,
-            username: responseData.data.username || '默认用户',
-            paymentMethod: responseData.data.paymentMethod || 'ALIPAY',
-            createTime: responseData.data.createTime || new Date().toISOString(),
-            status: responseData.data.status || 'PENDING'
-        };
-
-        // 增强校验
-        if (!/^\d+$/.test(String(validatedData.orderId))) {
-            throw new Error(`订单ID格式异常: ${validatedData.orderId}`);
-        }
-        if (validatedData.totalAmount <= 0) {
-            throw new Error(`无效金额: ${validatedData.totalAmount}`);
-        }
-
-        return validatedData;
+        method: 'post',
+        data
     });
 }
 

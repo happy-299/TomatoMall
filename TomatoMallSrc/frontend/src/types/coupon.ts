@@ -7,7 +7,7 @@ export interface CouponTemplate {
   title: string;
   description: string;
   img: string;
-  type: CouponType;
+  type: string;
   threshold: number;
   reduce: number;
   discount: number;
@@ -16,7 +16,18 @@ export interface CouponTemplate {
   expiryDateTime: string;
 }
 
-export interface UserCoupon extends CouponTemplate {
+export interface UserCoupon {
+  id: number;
   userId: number;
   couponTemplateId: number;
+  title: string;
+  description: string;
+  img: string;
+  type: string;
+  threshold: number;
+  reduce: number;
+  discount: number;
+  inUse: boolean;
+  restCnt: number;
+  expiryDateTime: string;
 } 
