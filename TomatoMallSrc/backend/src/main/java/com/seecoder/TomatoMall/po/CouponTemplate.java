@@ -57,7 +57,9 @@ public class CouponTemplate
     @Column(name = "discount", nullable = false, precision = 10, scale = 2)
     private BigDecimal discount;//折扣，与满减不兼容
 
-    @Basic
+    //    @Basic
+//    private Boolean inUse = true;//默认投入使用expiryDateTime
+    @Column(name = "is_in_use", nullable = false)
     private Boolean inUse = true;//默认投入使用expiryDateTime
 
     @Basic
