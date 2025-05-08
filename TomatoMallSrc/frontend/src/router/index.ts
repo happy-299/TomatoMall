@@ -1,9 +1,11 @@
-import {createRouter, createWebHashHistory} from "vue-router"
+import {createRouter, createWebHashHistory, createWebHistory} from "vue-router"
 import { RouteRecordRaw } from "vue-router"
 import SearchResult from '../views/search/SearchResult.vue'
+import CouponSquare from '../views/CouponSquare.vue'
+import MyCoupons from '../views/MyCoupons.vue'
 
 const router = createRouter({
-    history: createWebHashHistory(),
+    history: createWebHistory(import.meta.env.BASE_URL),
     routes: [{
         path: '/',
         redirect: '/login',
@@ -52,6 +54,18 @@ const router = createRouter({
                 path: '/booklist/:id',
                 component: () => import('../views/booklist/BookListDetail.vue'),
                 meta: {title: '书单详情'}
+            },
+            {
+                path: '/coupons',
+                name: 'coupons',
+                component: CouponSquare,
+                meta: {title: '优惠券广场'}
+            },
+            {
+                path: '/my-coupons',
+                name: 'my-coupons',
+                component: MyCoupons,
+                meta: {title: '我的优惠券'}
             }
         ]
     }, {
