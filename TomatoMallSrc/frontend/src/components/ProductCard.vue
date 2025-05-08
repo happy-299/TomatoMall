@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ShoppingCart } from '@element-plus/icons-vue'
-import { ElCard, ElButton, ElRate } from 'element-plus'
+import { ElCard, ElButton, ElRate, ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { addToCart } from '../api/cart'
 
 const router = useRouter()
 
@@ -28,7 +29,8 @@ const emit = defineEmits([
   'stock-update',
   'cart-add',
   'cart-subtract',
-  'edit-ad'
+  'edit-ad',
+  'cart-updated'
 ])
 
 const handleCardClick = () => {
@@ -60,15 +62,37 @@ const handleCartAction = (event: Event, type: 'add' | 'subtract') => {
   emit(type === 'add' ? 'cart-add' : 'cart-subtract', props.product.id)
 }
 
-const handleBuyNow = (event: Event) => {
-  event.stopPropagation()
-  router.push({
-    path: '/cart',
-    query: {
-      highlight: props.product.id
+const handleBuyNow = async (event: Event) => {
+  event.stopPropagation();
+  if (!props.product) return;
+
+  // 检查库存
+  if (props.stockpile.amount <= 0) {
+    ElMessage.warning('商品库存不足');
+    return;
+  }
+
+  try {
+    const currentQuantity = props.cartItems[props.product.id]?.quantity || 0;
+
+    // 如果购物车中没有该商品或数量为0，则添加一个
+    if (currentQuantity === 0) {
+      await addToCart(props.product.id, 1);
+      emit('cart-updated'); // 触发父组件更新购物车
     }
-  })
-}
+
+    // 跳转到购物车页面并高亮该商品
+    router.push({
+      path: '/cart',
+      query: {
+        highlight: props.product.id,
+        t: Date.now() // 强制刷新确保数据最新
+      }
+    });
+  } catch (error) {
+    ElMessage.error('操作失败，请重试');
+  }
+};
 </script>
 
 <template>

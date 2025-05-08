@@ -1,11 +1,15 @@
 <!-- Dashboard.vue -->
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
+import {useRouter} from 'vue-router'
 import {getUserInfo, updateUserInfo} from '../../api/user'
-import {ElMessage, ElLoading, ElDialog, type FormInstance} from 'element-plus'
+import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
 import {UserFilled} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
+import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
+import BookListItem from '../../components/BookListItem.vue'
 
+const router = useRouter()
 const userData = ref({
   username: '',
   name: '',
@@ -24,6 +28,18 @@ const tempAvatar = ref('')
 const formRef = ref<FormInstance>()
 const isChangingPassword = ref(false)
 const role = ref('')
+
+// 添加书单相关的状态
+const activeTab = ref('created')
+const createdBookLists = ref<BookListVO[]>([])
+const favouriteBookLists = ref<BookListVO[]>([])
+const loading = ref(false)
+const favouriteBookListIds = ref<Set<number>>(new Set())
+const currentUserId = ref<number | null>(null)
+
+// 书单详情相关
+const detailDialogVisible = ref(false)
+const currentBookList = ref<BookListVO | null>(null)
 
 const rules = {
   username: [
@@ -160,13 +176,112 @@ const cancelEdit = () => {
   fetchUserInfo()
 }
 
+// 获取用户创建的书单
+const fetchCreatedBookLists = async () => {
+  try {
+    const res = await getAllBookLists()
+    if (res.data.code === '200') {
+      createdBookLists.value = res.data.data.content.filter(
+        (list: BookListVO) => list.creatorId === Number(sessionStorage.getItem('userId'))
+      )
+    }
+  } catch (error) {
+    ElMessage.error('获取创建的书单失败')
+  }
+}
+
+// 获取用户收藏的书单
+const fetchFavouriteBookLists = async () => {
+  try {
+    const res = await getFavouriteBookLists()
+    if (res.data.code === '200') {
+      favouriteBookLists.value = res.data.data.content
+      // 更新收藏状态
+      favouriteBookListIds.value = new Set(favouriteBookLists.value.map(book => book.id))
+    }
+  } catch (error) {
+    ElMessage.error('获取收藏的书单失败')
+  }
+}
+
+// 处理收藏/取消收藏
+const handleCollect = async (bookList: BookListVO) => {
+  try {
+    const isCollected = favouriteBookListIds.value.has(bookList.id)
+    if (isCollected) {
+      await cancelCollectBookList({ bookListId: bookList.id })
+      bookList.favouriteCount--
+      favouriteBookListIds.value.delete(bookList.id)
+      ElMessage.success('取消收藏成功')
+    } else {
+      await collectBookList({ bookListId: bookList.id })
+      bookList.favouriteCount++
+      favouriteBookListIds.value.add(bookList.id)
+      ElMessage.success('收藏成功')
+    }
+    // 刷新书单列表
+    if (activeTab.value === 'favourite') {
+      await fetchFavouriteBookLists()
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
+
+// 处理删除书单
+const handleDelete = async (id: number) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个书单吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在删除书单...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      await deleteBookList(id)
+      ElMessage.success('删除书单成功')
+      await fetchCreatedBookLists()
+    } catch (error) {
+      ElMessage.error('删除书单失败，请重试')
+    } finally {
+      loading.close()
+    }
+  } catch {
+    // 用户取消删除操作
+  }
+}
+
+// 处理查看书单详情
+const handleView = (bookList: BookListVO) => {
+  currentBookList.value = bookList
+  detailDialogVisible.value = true
+}
+
+// 处理商品点击
+const handleProductClick = (productId: string) => {
+  router.push(`/product/${productId}`)
+}
+
 onMounted(() => {
   fetchUserInfo()
+  currentUserId.value = Number(sessionStorage.getItem('userId'))
+  fetchCreatedBookLists()
+  fetchFavouriteBookLists()
 })
 
 const handleRelogin = () => {
   sessionStorage.clear()
-  window.location.href = '/login'
+  router.push('/login')
 }
 
 const handleAvatarUpload = async (params: any) => {
@@ -196,117 +311,191 @@ const handleAvatarUpload = async (params: any) => {
 
 <template>
   <div class="dashboard-container">
-    <el-card class="profile-card">
-      <div class="avatar-section">
-        <el-upload
-            :auto-upload="true"
-            :http-request="handleAvatarUpload"
-            :show-file-list="false"
-        >
-          <el-avatar :size="120" :src="tempAvatar || userData.avatar">
-            <template #default>
-              <UserFilled style="font-size: 48px"/>
-            </template>
-          </el-avatar>
-          <template #tip>
-            <div class="upload-tip">（点击头像可更换头像）</div>
-          </template>
-        </el-upload>
+    <div class="dashboard-content">
+      <!-- 个人信息区域 -->
+      <div class="profile-section">
+        <div class="profile-header">
+          <div class="user-info">
+            <el-upload
+                :auto-upload="true"
+                :http-request="handleAvatarUpload"
+                :show-file-list="false"
+            >
+              <el-avatar :size="100" :src="tempAvatar || userData.avatar">
+                <template #default>
+                  <UserFilled style="font-size: 40px"/>
+                </template>
+              </el-avatar>
+              <template #tip>
+                <div class="upload-tip">点击更换头像</div>
+              </template>
+            </el-upload>
+            <div class="user-basic-info">
+              <h2>{{ userData.username }}</h2>
+              <p class="role-tag">{{ role }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-body">
+          <el-form
+              :model="userData"
+              :rules="rules"
+              label-width="80px"
+              class="profile-form"
+              ref="formRef"
+          >
+            <div class="form-grid">
+              <el-form-item label="姓名">
+                <el-input v-model="userData.name" :disabled="!editMode"/>
+              </el-form-item>
+
+              <el-form-item label="手机号" prop="telephone">
+                <el-input
+                    v-model="userData.telephone"
+                    :disabled="!editMode"
+                    placeholder="1xxxxxxxxxx"
+                />
+              </el-form-item>
+
+              <el-form-item label="邮箱" prop="email">
+                <el-input
+                    v-model="userData.email"
+                    :disabled="!editMode"
+                    placeholder="example@domain.com"
+                />
+              </el-form-item>
+
+              <el-form-item label="地址">
+                <el-input
+                    v-model="userData.location"
+                    :disabled="!editMode"
+                    placeholder="请输入地址"
+                />
+              </el-form-item>
+            </div>
+
+            <el-form-item label="密码" prop="password">
+              <div class="password-field">
+                <el-input
+                    v-model="userData.password"
+                    :disabled="!editMode || !isChangingPassword"
+                    type="password"
+                    show-password
+                    :placeholder="editMode ? '请输入新密码' : ''"
+                    autocomplete="new-password"
+                />
+                <el-button
+                    v-if="editMode"
+                    @click="togglePasswordChange"
+                    class="change-pwd-btn"
+                    :type="isChangingPassword ? 'danger' : 'primary'"
+                >
+                  {{ isChangingPassword ? '取消修改' : '修改密码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+
+            <el-form-item
+                v-if="isChangingPassword"
+                label="确认密码"
+                prop="confirmPassword"
+            >
+              <el-input
+                  v-model="userData.confirmPassword"
+                  type="password"
+                  show-password
+                  placeholder="请再次输入新密码"
+                  autocomplete="new-password"
+              />
+            </el-form-item>
+
+            <div class="form-actions">
+              <el-button
+                  v-if="!editMode"
+                  type="primary"
+                  @click="editMode = true"
+              >
+                编辑信息
+              </el-button>
+              <template v-else>
+                <el-button @click="cancelEdit">取消</el-button>
+                <el-button type="primary" @click="handleSubmit">保存更改</el-button>
+              </template>
+            </div>
+          </el-form>
+        </div>
       </div>
 
-      <el-form
-          :model="userData"
-          :rules="rules"
-          label-width="80px"
-          class="profile-form"
-          ref="formRef"
-      >
-        <el-form-item label="用户名">
-          <el-input v-model="userData.username" disabled/>
-        </el-form-item>
-
-        <el-form-item label="身份">
-          <el-input v-model="role" disabled/>
-        </el-form-item>
-
-        <el-form-item label="姓名">
-          <el-input v-model="userData.name" :disabled="!editMode"/>
-        </el-form-item>
-
-        <el-form-item label="手机号" prop="telephone">
-          <el-input
-              v-model="userData.telephone"
-              :disabled="!editMode"
-              placeholder="1xxxxxxxxxx"
-          />
-        </el-form-item>
-
-        <el-form-item label="密码" prop="password">
-          <div class="password-field">
-            <el-input
-                v-model="userData.password"
-                :disabled="!editMode || !isChangingPassword"
-                type="password"
-                show-password
-                :placeholder="editMode ? '请输入新密码' : ''"
-                autocomplete="new-password"
-            />
-            <el-button
-                v-if="editMode"
-                @click="togglePasswordChange"
-                class="change-pwd-btn"
-                :type="isChangingPassword ? 'danger' : 'primary'"
+      <!-- 书单展示区域 -->
+      <div class="booklists-section">
+        <div class="section-header">
+          <h2>我的书单</h2>
+          <div class="tabs">
+            <div 
+              :class="['tab-item', { active: activeTab === 'created' }]"
+              @click="activeTab = 'created'"
             >
-              {{ isChangingPassword ? '取消修改' : '修改密码' }}
-            </el-button>
+              我创建的
+            </div>
+            <div 
+              :class="['tab-item', { active: activeTab === 'favourite' }]"
+              @click="activeTab = 'favourite'"
+            >
+              我收藏的
+            </div>
           </div>
-        </el-form-item>
-
-        <el-form-item
-            v-if="isChangingPassword"
-            label="确认密码"
-            prop="confirmPassword"
-        >
-          <el-input
-              v-model="userData.confirmPassword"
-              type="password"
-              show-password
-              placeholder="请再次输入新密码"
-              autocomplete="new-password"
-          />
-        </el-form-item>
-
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-              v-model="userData.email"
-              :disabled="!editMode"
-              placeholder="example@domain.com"
-          />
-        </el-form-item>
-
-        <el-form-item label="地址">
-          <el-input
-              v-model="userData.location"
-              :disabled="!editMode"
-              placeholder="请输入地址"
-          />
-        </el-form-item>
-
-        <div class="form-actions">
-          <el-button
-              v-if="!editMode"
-              type="primary"
-              @click="editMode = true"
-          >
-            编辑信息
-          </el-button>
-          <template v-else>
-            <el-button @click="cancelEdit">取消</el-button>
-            <el-button type="primary" @click="handleSubmit">保存更改</el-button>
-          </template>
         </div>
-      </el-form>
-    </el-card>
+
+        <div class="booklists-grid" v-loading="loading">
+          <book-list-item
+            v-for="bookList in activeTab === 'created' ? createdBookLists : favouriteBookLists"
+            :key="bookList.id"
+            :book-list="bookList"
+            :is-favourite="favouriteBookListIds.has(bookList.id)"
+            :is-creator="currentUserId === bookList.creatorId"
+            @collect="handleCollect"
+            @delete="handleDelete"
+            @view="handleView"
+          />
+        </div>
+
+        <!-- 无数据提示 -->
+        <div v-if="(activeTab === 'created' ? createdBookLists : favouriteBookLists).length === 0" 
+             class="no-data">
+          暂无{{ activeTab === 'created' ? '创建' : '收藏' }}的书单
+        </div>
+      </div>
+
+      <!-- 书单详情对话框 -->
+      <el-dialog
+        v-model="detailDialogVisible"
+        title="书单详情"
+        width="800px"
+      >
+        <div v-if="currentBookList" class="booklist-detail">
+          <h2>{{ currentBookList.title }}</h2>
+          <p class="description">{{ currentBookList.description }}</p>
+          
+          <div class="products-list">
+            <div 
+              v-for="product in currentBookList.products" 
+              :key="product.id" 
+              class="product-item"
+              @click="handleProductClick(product.id)"
+            >
+              <img :src="product.cover" :alt="product.title" class="product-cover">
+              <div class="product-info">
+                <h4>{{ product.title }}</h4>
+                <p class="price">¥{{ product.price }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
+    </div>
+
+    <!-- 重新登录对话框 -->
     <el-dialog
         v-model="showReloginDialog"
         title="安全提示"
@@ -323,45 +512,80 @@ const handleAvatarUpload = async (params: any) => {
 </template>
 
 <style scoped>
-/* 保持原有样式不变 */
 .dashboard-container {
-  padding: 2rem;
-  background-color: #e3f6f5;
   min-height: 100vh;
+  background: #f5f7fa;
+  padding: 2rem;
 }
 
-.password-field {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.change-pwd-btn {
-  margin-left: 10px;
-  flex-shrink: 0;
-}
-
-.profile-card {
-  max-width: 800px;
+.dashboard-content {
+  max-width: 1200px;
   margin: 0 auto;
-  border-radius: 12px;
-  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
-.avatar-section {
-  text-align: center;
-  padding: 2rem 0;
-  border-bottom: 2px solid #bae8e8;
+/* 个人信息区域样式 */
+.profile-section {
+  background: linear-gradient(135deg, #2c698d 0%, #272643 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.profile-header {
+  padding: 2rem;
+  color: white;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.user-basic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-basic-info h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+.role-tag {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .upload-tip {
-  color: #2c698d;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.profile-body {
+  background: white;
+  padding: 2rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .profile-form {
-  padding: 2rem;
+  max-width: 100%;
 }
 
 :deep(.el-form-item__label) {
@@ -371,6 +595,16 @@ const handleAvatarUpload = async (params: any) => {
 
 :deep(.el-input__inner) {
   border-color: #bae8e8;
+}
+
+.password-field {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.change-pwd-btn {
+  flex-shrink: 0;
 }
 
 .form-actions {
@@ -392,5 +626,177 @@ const handleAvatarUpload = async (params: any) => {
 .el-button--primary:hover {
   background-color: #272643;
   border-color: #272643;
+}
+
+/* 书单区域样式 */
+.booklists-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  color: #2c698d;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.tab-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: #606266;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.tab-item:hover {
+  color: #2c698d;
+}
+
+.tab-item.active {
+  color: #2c698d;
+  font-weight: 500;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #2c698d;
+}
+
+.booklists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.booklist-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.booklist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.booklist-header {
+  margin-bottom: 1rem;
+}
+
+.booklist-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2c698d;
+  font-size: 1.1rem;
+}
+
+.creator-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #606266;
+  font-size: 0.9rem;
+}
+
+.description {
+  color: #606266;
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.booklist-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #909399;
+  font-size: 0.9rem;
+}
+
+.favourite-count {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: #909399;
+  font-size: 1rem;
+}
+
+/* 书单详情样式 */
+.booklist-detail {
+  padding: 20px;
+}
+
+.products-list {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.product-item {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.product-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-cover {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: bold;
+  margin: 4px 0;
 }
 </style>

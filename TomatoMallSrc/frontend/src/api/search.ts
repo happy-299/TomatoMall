@@ -1,5 +1,6 @@
 import { axios } from '../utils/request'
 import { API_MODULE } from './_prefix'
+import { BookListVO } from './booklist'
 
 // 搜索历史记录类型
 export interface SearchHistoryItem {
@@ -26,7 +27,7 @@ export interface SearchResult {
         detail: string
         specifications: any[] | null
     }[]
-    bookLists: any[]
+    bookLists: BookListVO[]
 }
 
 // 获取搜索历史

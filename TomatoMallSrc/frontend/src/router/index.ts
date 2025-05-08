@@ -47,6 +47,11 @@ const router = createRouter({
                 path: '/booklist',
                 component: () => import('../views/booklist/BookList.vue'),
                 meta: {title: '书单列表'}
+            },
+            {
+                path: '/booklist/:id',
+                component: () => import('../views/booklist/BookListDetail.vue'),
+                meta: {title: '书单详情'}
             }
         ]
     }, {
