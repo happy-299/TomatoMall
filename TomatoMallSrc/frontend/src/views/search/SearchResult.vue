@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox, ElLoading, ElDialog } from 'element-plus'
 import { search, type SearchResult } from '../../api/search'
 import Header from '../../components/Header.vue'
 import BookListItem from '../../components/BookListItem.vue'
-import { collectBookList, cancelCollectBookList, deleteBookList } from '../../api/booklist'
+import { collectBookList, cancelCollectBookList, deleteBookList, getAllBookLists, type BookListVO } from '../../api/booklist'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,7 +21,8 @@ const favouriteBookListIds = ref<Set<number>>(new Set())
 
 // 书单详情相关
 const detailDialogVisible = ref(false)
-const currentBookList = ref<any>(null)
+const currentBookList = ref<BookListVO | null>(null)
+const detailLoading = ref(false)
 
 const fetchSearchResults = async () => {
   const keyword = route.query.keyword as string
@@ -34,13 +35,27 @@ const fetchSearchResults = async () => {
   try {
     const res = await search(keyword)
     if (res.data.code === '200') {
-      // 确保每个书单都有 products 数组
+      // 获取完整的书单信息
+      const bookListRes = await getAllBookLists(0, 1000)
+      const fullBookLists = bookListRes.data.data.content
+
+      // 更新搜索结果中的书单信息
       searchResults.value = {
         ...res.data.data,
-        bookLists: res.data.data.bookLists.map((bookList: any) => ({
-          ...bookList,
-          products: bookList.products || []
-        }))
+        bookLists: res.data.data.bookLists.map((bookList: BookListVO) => {
+          // 查找完整的书单信息
+          const fullBookList = fullBookLists.find(list => list.id === bookList.id)
+          if (fullBookList) {
+            return {
+              ...bookList,
+              products: fullBookList.products || []
+            }
+          }
+          return {
+            ...bookList,
+            products: []
+          }
+        })
       }
     }
   } catch (error) {
@@ -115,9 +130,20 @@ const handleDelete = async (id: number) => {
 }
 
 // 处理查看书单详情
-const handleView = (bookList: any) => {
-  currentBookList.value = bookList
-  detailDialogVisible.value = true
+const handleView = async (bookList: BookListVO) => {
+  detailLoading.value = true
+  try {
+    const res = await getAllBookLists(0, 1000)
+    const fullBookList = res.data.data.content.find(list => list.id === bookList.id)
+    if (fullBookList) {
+      currentBookList.value = fullBookList
+      detailDialogVisible.value = true
+    }
+  } catch (error) {
+    ElMessage.error('获取书单详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 onMounted(async () => {
@@ -213,19 +239,43 @@ onMounted(async () => {
         title="书单详情"
         width="800px"
       >
-        <div v-if="currentBookList" class="booklist-detail">
-          <h2>{{ currentBookList.title }}</h2>
-          <p class="description">{{ currentBookList.description }}</p>
-          
-          <div class="products-list">
-            <div v-for="product in currentBookList.products" :key="product.id" class="product-item">
-              <img :src="product.cover" :alt="product.title" class="product-cover">
-              <div class="product-info">
-                <h4>{{ product.title }}</h4>
-                <p class="price">¥{{ product.price }}</p>
+        <div v-loading="detailLoading" class="booklist-detail">
+          <template v-if="currentBookList">
+            <div class="booklist-header">
+              <h2>{{ currentBookList.title }}</h2>
+              <div class="creator-info">
+                <img :src="currentBookList.creatorAvatar" :alt="currentBookList.creatorName" class="creator-avatar">
+                <span>{{ currentBookList.creatorName }}</span>
+                <span class="creation-date">{{ new Date(currentBookList.creationDate).toLocaleDateString() }}</span>
               </div>
             </div>
-          </div>
+            <p class="description">{{ currentBookList.description }}</p>
+            
+            <div class="products-list">
+              <div 
+                v-for="product in currentBookList.products" 
+                :key="product.id" 
+                class="product-item"
+                @click="handleProductClick(product.id)"
+              >
+                <img :src="product.cover" :alt="product.title" class="product-cover">
+                <div class="product-info">
+                  <h4>{{ product.title }}</h4>
+                  <p class="price">¥{{ product.price }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="booklist-footer">
+              <span class="favourite-count">
+                <el-icon><Star /></el-icon>
+                {{ currentBookList.favouriteCount }} 收藏
+              </span>
+              <span class="product-count">
+                {{ currentBookList.products.length }} 个商品
+              </span>
+            </div>
+          </template>
         </div>
       </el-dialog>
 
@@ -430,6 +480,30 @@ onMounted(async () => {
   padding: 20px;
 }
 
+.booklist-header {
+  margin-bottom: 20px;
+}
+
+.creator-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  color: #606266;
+}
+
+.creator-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.creation-date {
+  color: #909399;
+  font-size: 14px;
+}
+
 .products-list {
   margin-top: 20px;
   display: grid;
@@ -444,6 +518,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.product-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .product-cover {
@@ -467,5 +548,25 @@ onMounted(async () => {
   color: #f56c6c;
   font-weight: bold;
   margin: 4px 0;
+}
+
+.booklist-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #ebeef5;
+  display: flex;
+  justify-content: space-between;
+  color: #909399;
+  font-size: 14px;
+}
+
+.favourite-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-count {
+  color: #606266;
 }
 </style> 

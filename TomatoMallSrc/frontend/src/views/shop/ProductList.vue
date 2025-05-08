@@ -759,6 +759,11 @@ const handleViewDetail = (bookList: BookListVO) => {
   detailDialogVisible.value = true
 }
 
+// 处理商品点击
+const handleProductClick = (productId: string) => {
+  router.push(`/product/${productId}`)
+}
+
 onMounted(async () => {
   // 先获取用户信息
   try {
@@ -1167,18 +1172,23 @@ onUnmounted(() => {
         <p class="description">{{ currentBookList.description }}</p>
         
         <div class="products-list">
-          <div v-for="product in currentBookList.products" :key="product.id" class="product-item">
+          <div 
+            v-for="product in currentBookList.products" 
+            :key="product.id" 
+            class="product-item"
+            @click="handleProductClick(product.id)"
+          >
             <img :src="product.cover" :alt="product.title" class="product-cover">
             <div class="product-info">
               <h4>{{ product.title }}</h4>
               <p class="price">¥{{ product.price }}</p>
-    </div>
+            </div>
             <div class="product-actions">
               <el-button
                 v-if="currentUserId === currentBookList.creatorId"
                 type="danger"
                 circle
-                @click="handleRemoveProduct(currentBookList.id, product.id)"
+                @click.stop="handleRemoveProduct(currentBookList.id, product.id)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -1624,34 +1634,21 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
 }
 
-.product-cover {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-info h4 {
-  margin: 0;
-  font-size: 14px;
-  color: #2c3e50;
-}
-
-.price {
-  color: #f56c6c;
-  font-weight: bold;
-  margin: 4px 0;
+.product-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .product-actions {
-  display: flex;
-  justify-content: flex-end;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
 }
 
 .add-product {

@@ -267,6 +267,11 @@ const handleView = (bookList: BookListVO) => {
   detailDialogVisible.value = true
 }
 
+// 处理商品点击
+const handleProductClick = (productId: string) => {
+  router.push(`/product/${productId}`)
+}
+
 onMounted(() => {
   fetchUserInfo()
   currentUserId.value = Number(sessionStorage.getItem('userId'))
@@ -473,7 +478,12 @@ const handleAvatarUpload = async (params: any) => {
           <p class="description">{{ currentBookList.description }}</p>
           
           <div class="products-list">
-            <div v-for="product in currentBookList.products" :key="product.id" class="product-item">
+            <div 
+              v-for="product in currentBookList.products" 
+              :key="product.id" 
+              class="product-item"
+              @click="handleProductClick(product.id)"
+            >
               <img :src="product.cover" :alt="product.title" class="product-cover">
               <div class="product-info">
                 <h4>{{ product.title }}</h4>
@@ -758,6 +768,13 @@ const handleAvatarUpload = async (params: any) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.product-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .product-cover {
