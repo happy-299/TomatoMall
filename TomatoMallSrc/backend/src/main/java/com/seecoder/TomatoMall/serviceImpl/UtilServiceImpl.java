@@ -12,6 +12,7 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.seecoder.TomatoMall.util.OssUtil;
 
@@ -73,14 +74,11 @@ public class UtilServiceImpl implements UtilService
     }
 
     @Override
+    @Transactional
     public SearchResultVO searchAll(String keyword)
     {
         //save keyword to SearchHistory
-        Account account = securityUtil.getCurrentAccount();
-        SearchHistory searchHistory = new SearchHistory();
-        searchHistory.setAccount(account);
-        searchHistory.setKeyword(keyword);
-        searchHistoryRepository.save(searchHistory);
+        saveSearchHistory(keyword);
 
         List<Account> accounts = accountRepository.searchAccounts(keyword);
         List<Product> products = productRepository.searchProducts(keyword);
@@ -88,6 +86,33 @@ public class UtilServiceImpl implements UtilService
         List<Note> notes = noteRepository.searchNotes(keyword);
 
         return new SearchResultVO(accounts, products, bookLists, notes);
+    }
+
+    @Transactional
+    public void saveSearchHistory(String keyword)
+    {
+        Account account = securityUtil.getCurrentAccount();
+        List<SearchHistory> his = searchHistoryRepository.findAllByAccount_Id(account.getId());
+        //重复的关键词不再保存
+        for (SearchHistory h : his)
+        {
+            if (h.getKeyword().equals(keyword))
+            {
+                return;
+            }
+        }
+        //保存数量上限
+        final int SAVE_LIMIT = 10;
+        if (his.size() > SAVE_LIMIT)
+        {
+            //删除最早的
+            int id = his.get(0).getId();
+            searchHistoryRepository.deleteById(id);
+        }
+        SearchHistory searchHistory = new SearchHistory();
+        searchHistory.setAccount(account);
+        searchHistory.setKeyword(keyword);
+        searchHistoryRepository.save(searchHistory);
     }
 
     @Override
