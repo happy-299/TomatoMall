@@ -181,6 +181,26 @@ public class NoteServiceImpl implements NoteService
     }
 
     @Override
+    @Transactional
+    public String subLikeCnt(Integer id)
+    {
+        if (checkLiked(id))
+        {
+            throw TomatoMallException.noteLiked();
+        }
+
+        Note note = noteRepository.findById(id)
+                .orElseThrow(TomatoMallException::noteNotFound);
+        note.setLikeCnt(note.getLikeCnt() - 1);//点赞数-1
+
+        Account acc = securityUtil.getCurrentAccount();
+        note.getLikers().remove(acc);//点赞列表移除
+
+//        noteRepository.save(note);
+        return "点赞-1";
+    }
+
+    @Override
     public Boolean checkPaid(Integer id)
     {
         Account acc = securityUtil.getCurrentAccount();

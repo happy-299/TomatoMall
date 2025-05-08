@@ -74,10 +74,17 @@ public class NoteController
     }
 
     //点赞+1
-    @PostMapping("/like/{id}")
+    @PostMapping("/like/add/{id}")
     public Response<String> addLikeCnt(@PathVariable Integer id)
     {
         return Response.buildSuccess(noteService.addLikeCnt(id));
+    }
+
+    //点赞-1
+    @PostMapping("/like/sub/{id}")
+    public Response<String> subLikeCnt(@PathVariable Integer id)
+    {
+        return Response.buildSuccess(noteService.subLikeCnt(id));
     }
 
     //检查当前用户是否已经购买->true为已经购买
