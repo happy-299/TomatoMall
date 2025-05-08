@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading, ElDialog } from 'element-plus'
+import { Star } from '@element-plus/icons-vue'
 import { search, type SearchResult } from '../../api/search'
 import Header from '../../components/Header.vue'
 import BookListItem from '../../components/BookListItem.vue'

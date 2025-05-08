@@ -236,7 +236,8 @@ const handleCheckout = async () => {
         location: shippingAddress.value.location
       },
       payment_method: 'ALIPAY',
-      couponId: selectedCoupon.value?.id
+      useCoupon: !!selectedCoupon.value,
+      couponId: selectedCoupon.value?.id || -1
     };
 
     // 添加调试日志

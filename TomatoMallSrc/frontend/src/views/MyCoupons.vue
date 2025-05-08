@@ -2,7 +2,7 @@
   <div class="my-coupons">
     <div class="header">
       <h2>我的优惠券</h2>
-      <el-button type="text" @click="router.push('/coupons')">
+      <el-button link @click="router.push('/coupons')">
         返回优惠券广场
       </el-button>
     </div>

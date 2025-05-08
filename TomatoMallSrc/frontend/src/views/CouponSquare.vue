@@ -2,7 +2,7 @@
   <div class="coupon-square">
     <div class="header">
       <h2>优惠券广场</h2>
-      <el-button type="text" @click="router.push('/my-coupons')">
+      <el-button link @click="router.push('/my-coupons')">
         我的优惠券
       </el-button>
     </div>
