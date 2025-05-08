@@ -30,4 +30,8 @@ public interface NoteService
     Boolean checkPaid(Integer id);
 
     Boolean payForNote(Integer id);
+
+    List<NoteVO> getNotesPaid();
+
+    List<NoteVO> getNotesLiked();
 }

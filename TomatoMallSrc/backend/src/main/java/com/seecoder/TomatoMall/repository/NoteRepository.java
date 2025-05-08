@@ -16,4 +16,11 @@ public interface NoteRepository extends JpaRepository<Note, Integer>
 
     @Query("SELECT n FROM Note n WHERE LOWER(n.title) LIKE %:keyword% OR LOWER(n.content) LIKE %:keyword%")
     List<Note> searchNotes(@Param("keyword") String keyword);
+
+    @Query("SELECT n FROM Note n JOIN n.payers p WHERE p.id = :payerId")
+    List<Note> findNotesByPayerId(@Param("payerId") Integer payerId);
+
+    @Query("SELECT n FROM Note n JOIN n.likers l WHERE l.id = :likerId")
+    List<Note> findNotesByLikerId(@Param("likerId") Integer likerId);
+    
 }

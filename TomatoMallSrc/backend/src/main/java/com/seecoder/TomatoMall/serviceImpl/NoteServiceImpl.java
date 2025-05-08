@@ -236,4 +236,18 @@ public class NoteServiceImpl implements NoteService
 
         return true;
     }
+
+    @Override
+    public List<NoteVO> getNotesPaid()
+    {
+        return noteRepository.findNotesByPayerId(securityUtil.getCurrentAccount().getId())
+                .stream().map(Note::toVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NoteVO> getNotesLiked()
+    {
+        return noteRepository.findNotesByLikerId(securityUtil.getCurrentAccount().getId())
+                .stream().map(Note::toVO).collect(Collectors.toList());
+    }
 }

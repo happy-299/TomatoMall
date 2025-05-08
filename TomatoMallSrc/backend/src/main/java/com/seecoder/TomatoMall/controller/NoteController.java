@@ -60,6 +60,21 @@ public class NoteController
         return Response.buildSuccess(noteService.getAll());
     }
 
+    //查看已付费笔记
+    @GetMapping("/all/paid")
+    public Response<List<NoteVO>> getNotesPaid()
+    {
+        return Response.buildSuccess(noteService.getNotesPaid());
+    }
+
+    //查看已点赞笔记
+    @GetMapping("/all/liked")
+    public Response<List<NoteVO>> getNotesLiked()
+    {
+        return Response.buildSuccess(noteService.getNotesLiked());
+    }
+
+
     //浏览量+1
     @PostMapping("/view/{id}")
     public Response<String> addViewCnt(@PathVariable Integer id)
