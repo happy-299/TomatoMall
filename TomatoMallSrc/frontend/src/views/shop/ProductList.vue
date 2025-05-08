@@ -813,12 +813,12 @@ onUnmounted(() => {
         <el-button v-if="isAdmin && activeTab === 'products'" type="primary" @click="dialogVisible = true">
           新建商品
         </el-button>
-        <el-button v-if="isAdmin && activeTab === 'booklists'" type="primary" @click="createDialogVisible = true">
+        <el-button v-if="activeTab === 'booklists'" type="primary" @click="createDialogVisible = true">
           <el-icon><Plus /></el-icon>
           创建书单
         </el-button>
-            </div>
-            </div>
+      </div>
+    </div>
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
@@ -837,7 +837,7 @@ onUnmounted(() => {
           @cart-add="(id: string) => handleCart(id, 'add')"
           @cart-subtract="(id: string) => handleCart(id, 'subtract')"
       />
-          </div>
+    </div>
 
     <!-- 书单列表 -->
     <div v-else>
@@ -861,7 +861,7 @@ onUnmounted(() => {
         >
           收藏的书单
         </el-button>
-        </div>
+      </div>
 
       <div class="booklist-grid" v-loading="loading">
         <div v-for="bookList in bookLists" :key="bookList.id" class="booklist-card">
