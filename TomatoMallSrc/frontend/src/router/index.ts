@@ -1,4 +1,6 @@
 import {createRouter, createWebHashHistory} from "vue-router"
+import { RouteRecordRaw } from "vue-router"
+import SearchResult from '../views/search/SearchResult.vue'
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -64,6 +66,10 @@ const router = createRouter({
         name: '404',
         component: () => import('../views/NotFound.vue'),
         meta: {title: '404'}
+    }, {
+        path: '/search',
+        name: 'SearchResult',
+        component: SearchResult
     }, {
         path: '/:catchAll(.*)',
         redirect: '/404'

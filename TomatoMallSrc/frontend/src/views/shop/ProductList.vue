@@ -25,8 +25,7 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import { Search, Star, StarFilled, Plus, Delete, ShoppingCart, Collection } from '@element-plus/icons-vue'
-import { getSearchHistory, search, type SearchResult, type SearchHistoryItem } from '../../api/search'
+import { Star, StarFilled, Plus, Delete, ShoppingCart, Collection } from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -478,78 +477,6 @@ const handleDelete = async (id: string) => {
   }
 }
 
-// 添加搜索相关的状态
-const searchKeyword = ref('')
-const searchHistory = ref<SearchHistoryItem[]>([])
-const isSearching = ref(false)
-const showHistory = ref(false)
-
-// 获取搜索历史
-const fetchSearchHistory = async () => {
-  try {
-    const res = await getSearchHistory()
-    if (res.data.code === '200') {
-      searchHistory.value = res.data.data || []
-    }
-  } catch (error) {
-    console.error('获取搜索历史失败:', error)
-  }
-}
-
-// 处理搜索框点击
-const handleSearchFocus = () => {
-  showHistory.value = true
-}
-
-// 处理点击外部关闭历史记录
-const handleClickOutside = (event: MouseEvent) => {
-  const searchContainer = document.querySelector('.search-container')
-  if (searchContainer && !searchContainer.contains(event.target as Node)) {
-    showHistory.value = false
-  }
-}
-
-// 搜索方法
-const handleSearch = async () => {
-  if (!searchKeyword.value.trim()) {
-    await fetchProducts() // 如果搜索关键词为空，显示所有商品
-    return
-  }
-
-  isSearching.value = true
-  showHistory.value = false // 搜索时隐藏历史记录
-  try {
-    const res = await search(searchKeyword.value)
-    if (res.data.code === '200') {
-      const searchResult: SearchResult = res.data.data
-      products.value = searchResult.products || []
-      // 更新库存信息
-      await Promise.all(products.value.map(async product => {
-        try {
-          const stockRes = await getStockpile(product.id)
-          if (stockRes.data.code === '200') {
-            stockpiles.value[product.id] = stockRes.data.data
-          }
-        } catch (error) {
-          console.error(`获取商品 ${product.id} 库存失败:`, error)
-        }
-      }))
-    }
-  } catch (error) {
-    ElMessage.error('搜索失败')
-    console.error('搜索错误:', error)
-  } finally {
-    isSearching.value = false
-  }
-}
-
-// 添加返回方法
-const handleBack = async () => {
-  searchKeyword.value = ''
-  await fetchProducts()
-}
-
-
 // 书单相关状态
 const activeTab = ref('products')
 const booklistTab = ref('all')
@@ -697,7 +624,7 @@ const handleRemoveProduct = async (bookListId: number, productId: number) => {
       message: '移除商品成功',
       duration: 2000
     })
-  } catch (error) {
+        } catch (error) {
     ElMessage({
       type: 'error',
       message: '移除商品失败，请重试',
@@ -849,13 +776,12 @@ onMounted(async () => {
   await fetchProducts()
   await fetchAds();
   await fetchCart()
-  await fetchSearchHistory()
-  document.addEventListener('click', handleClickOutside)
 })
 
 // 在组件卸载时移除事件监听
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  // 删除事件监听
+  // document.removeEventListener('click', handleClickOutside)
 })
 
 </script>
@@ -883,47 +809,7 @@ onUnmounted(() => {
     <div class="header">
       <h1>{{ activeTab === 'products' ? '商品列表' : '书单列表' }}</h1>
       <div class="header-actions">
-        <!-- 添加搜索框 -->
-        <div class="search-container">
-          <el-input
-              v-model="searchKeyword"
-              placeholder="搜索商品..."
-              class="search-input"
-              :prefix-icon="Search"
-              @keyup.enter="handleSearch"
-              @focus="handleSearchFocus"
-          >
-            <template #append>
-              <el-button @click="handleSearch">搜索</el-button>
-            </template>
-          </el-input>
-          <!-- 搜索历史 -->
-          <div v-if="showHistory && searchHistory.length > 0" class="search-history">
-            <div class="history-header">
-              <span class="history-title">搜索历史</span>
-            </div>
-            <div class="history-tags">
-              <el-tag
-                  v-for="item in searchHistory"
-                  :key="item.id"
-                  class="history-tag"
-                  @click.stop="searchKeyword = item.keyword; handleSearch()"
-              >
-                {{ item.keyword }}
-              </el-tag>
-            </div>
-          </div>
-        </div>
-        <!-- 添加返回按钮 -->
-        <el-button
-            v-if="searchKeyword"
-            type="primary"
-            plain
-            class="back-button"
-            @click="handleBack"
-        >
-          返回全部商品
-        </el-button>
+        <!-- 删除搜索框相关代码 -->
         <el-button v-if="isAdmin && activeTab === 'products'" type="primary" @click="dialogVisible = true">
           新建商品
         </el-button>
@@ -931,8 +817,8 @@ onUnmounted(() => {
           <el-icon><Plus /></el-icon>
           创建书单
         </el-button>
-      </div>
-    </div>
+            </div>
+            </div>
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
@@ -951,7 +837,7 @@ onUnmounted(() => {
           @cart-add="(id: string) => handleCart(id, 'add')"
           @cart-subtract="(id: string) => handleCart(id, 'subtract')"
       />
-    </div>
+          </div>
 
     <!-- 书单列表 -->
     <div v-else>
@@ -975,23 +861,23 @@ onUnmounted(() => {
         >
           收藏的书单
         </el-button>
-      </div>
+        </div>
 
       <div class="booklist-grid" v-loading="loading">
         <div v-for="bookList in bookLists" :key="bookList.id" class="booklist-card">
           <div class="booklist-header">
             <h3 @click="handleViewDetail(bookList)" class="clickable">{{ bookList.title }}</h3>
             <div class="actions">
-              <el-button
+        <el-button
                 :type="favouriteBookListIds.has(bookList.id) ? 'warning' : 'default'"
                 circle
                 @click="handleCollect(bookList)"
-              >
+        >
                 <el-icon>
                   <StarFilled v-if="favouriteBookListIds.has(bookList.id)" />
                   <Star v-else />
                 </el-icon>
-              </el-button>
+        </el-button>
               <el-button
                 v-if="currentUserId === bookList.creatorId"
                 type="danger"
@@ -999,7 +885,7 @@ onUnmounted(() => {
                 @click="handleDeleteBookList(bookList.id)"
               >
                 <el-icon><Delete /></el-icon>
-              </el-button>
+        </el-button>
             </div>
           </div>
           <p class="description">{{ bookList.description }}</p>
@@ -1281,8 +1167,8 @@ onUnmounted(() => {
             style="width: 100%"
           >
             <el-option
-              v-for="product in products"
-              :key="product.id"
+          v-for="product in products"
+          :key="product.id"
               :label="product.title"
               :value="product.id"
             />
@@ -1311,7 +1197,7 @@ onUnmounted(() => {
             <div class="product-info">
               <h4>{{ product.title }}</h4>
               <p class="price">¥{{ product.price }}</p>
-            </div>
+    </div>
             <div class="product-actions">
               <el-button
                 v-if="currentUserId === currentBookList.creatorId"
@@ -1416,60 +1302,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-
-.search-container {
-  position: relative;
-  width: 400px;
-}
-
-.search-input {
-  width: 100%;
-}
-
-.search-history {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 12px;
-  margin-top: 5px;
-  z-index: 1000;
-}
-
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.history-title {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
-}
-
-.history-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.history-tag {
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-bottom: 4px;
-}
-
-.history-tag:hover {
-  transform: translateY(-2px);
-  background-color: #ecf5ff;
-  border-color: #409EFF;
-  color: #409EFF;
 }
 
 .grid-container {
@@ -1642,10 +1474,6 @@ onUnmounted(() => {
   width: 28px;
   height: 28px;
   padding: 0;
-}
-
-.back-button {
-  margin-right: 10px;
 }
 
 .booklist-grid {
