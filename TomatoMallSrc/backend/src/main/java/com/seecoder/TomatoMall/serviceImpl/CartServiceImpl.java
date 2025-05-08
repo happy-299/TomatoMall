@@ -6,9 +6,11 @@ import com.seecoder.TomatoMall.exception.TomatoMallException;
 import com.seecoder.TomatoMall.po.Cart;
 
 import com.seecoder.TomatoMall.po.CartsOrdersRelation;
+import com.seecoder.TomatoMall.po.Coupon;
 import com.seecoder.TomatoMall.po.Order;
 import com.seecoder.TomatoMall.repository.CartRepository;
 import com.seecoder.TomatoMall.repository.CartsOrdersRelationRepository;
+import com.seecoder.TomatoMall.repository.CouponRepository;
 import com.seecoder.TomatoMall.repository.OrderRepository;
 import com.seecoder.TomatoMall.service.CartService;
 import com.seecoder.TomatoMall.util.OssUtil;
@@ -42,6 +44,8 @@ public class CartServiceImpl implements CartService
 
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private CouponRepository couponRepository;
 
     private void setAllForRetAddProduct(Integer productId, Integer userId, CartController.RetAddProduct ret)
     {
@@ -110,6 +114,32 @@ public class CartServiceImpl implements CartService
         if (deletedRow > 0)
             return "成功删除购物车中所有商品";
         return "购物车已为空";
+    }
+
+    @Override
+    public String deleteAllByProductId(Integer id)
+    {
+        int row = cartRepository.deleteAllByProductId(id);
+        return "完成删除:" + row + "项";
+    }
+
+    @Override
+    public CartController.RetCheckout buyTomato(CartController.CheckoutRequest checkoutRequest)
+    {
+        final int RATE = 10;//1 yuan -> 10 tomato
+        int cnt = checkoutRequest.getTomato();
+        if (cnt <= 0)
+        {
+            throw TomatoMallException.tomatoIllegal();
+        }
+
+        BigDecimal totalAmount = new BigDecimal("1.00")
+                .multiply(new BigDecimal(cnt)).divide(new BigDecimal(RATE));
+
+        Order order = new Order();
+        fillOrder(checkoutRequest.getUseCoupon(), order,
+                checkoutRequest.getCouponId(), totalAmount, checkoutRequest.getPayment_method());
+        return fillRetWithOrder(order);
     }
 
     @Override
@@ -200,18 +230,16 @@ public class CartServiceImpl implements CartService
                     productService.getProductById(cart.getProductId()).getPrice()));
             amountOfThisItem = amountOfThisItem.multiply(BigDecimal.valueOf(cart.getQuantity()));
             totalAmount = totalAmount.add(amountOfThisItem);
-
-
         }
 
         //创建订单
         Order order = new Order();
-        order.setUserId(securityUtil.getCurrentAccount().getId());
-        order.setPaymentMethod(checkoutRequest.getPayment_method());
-        order.setCreateTime(LocalDateTime.now());
-        order.setTotalAmount(totalAmount);
-        order.setStringStatus("PENDING");
-        Integer orderId = orderRepository.save(order).getId();
+        int couponId = checkoutRequest.getCouponId();
+        Boolean useCoupon = checkoutRequest.getUseCoupon();
+        String paymentMethod = checkoutRequest.getPayment_method();
+        //--->> 增加优惠券部分
+        //如果使用优惠券，验证优惠券合法性，并扣减金额
+        int orderId = fillOrder(useCoupon, order, couponId, totalAmount, paymentMethod);
 
         //每一项都添加到CartsOrdersRelation中，便于回退超时订单的冻结库存
         cartItems.forEach(cart ->
@@ -225,16 +253,73 @@ public class CartServiceImpl implements CartService
         //todo 是否需要清理购物车？
 
         //填写返回表单
+
+
+        return fillRetWithOrder(order);
+
+    }
+
+    @Transactional
+    public Integer fillOrder(Boolean useCoupon, Order order,
+                             Integer couponId, BigDecimal totalAmount, String paymentMethod)
+    {
+        if (useCoupon)
+        {
+            Coupon coupon = couponRepository.findById(couponId)
+                    .orElseThrow(TomatoMallException::couponNotFound);
+
+            if (coupon.getCouponTemplate().getStringType().equals("FULL_REDUCTION"))
+            {
+                //满减类型
+
+                //检查是否达到门槛
+                if (totalAmount.compareTo(coupon.getCouponTemplate().getThreshold()) < 0)
+                {
+                    throw TomatoMallException.couponThresholdNotReach();
+                }
+                //执行金额扣减并填写字段
+                order.setBeforeAmount(totalAmount);
+                order.setReducedAmount(coupon.getCouponTemplate().getReduce());
+                order.setTotalAmount(order.getBeforeAmount().subtract(order.getReducedAmount()));
+                //删除优惠券
+                couponRepository.deleteById(couponId);
+            } else
+            {
+                //目前无其他类型优惠券
+                System.out.println("WRONG:目前没有其他优惠券类型");
+            }
+        } else
+        {
+            //未使用优惠券
+            order.setTotalAmount(totalAmount);
+            order.setReducedAmount(new BigDecimal("0.00"));
+            order.setBeforeAmount(totalAmount);
+        }
+
+        order.setUserId(securityUtil.getCurrentAccount().getId());
+        order.setPaymentMethod(paymentMethod);
+        order.setCreateTime(LocalDateTime.now());
+//        order.setTotalAmount(totalAmount);//由上面完成
+        order.setStringStatus("PENDING");
+        Integer orderId = orderRepository.save(order).getId();
+
+        return orderId;
+    }
+
+    public CartController.RetCheckout fillRetWithOrder(Order order)
+    {
         CartController.RetCheckout ret = new CartController.RetCheckout();
         ret.setUsername(securityUtil.getCurrentAccount().getUsername());
-        ret.setOrderId(String.valueOf(orderId));
+        ret.setOrderId(String.valueOf(order.getId()));
         ret.setStatus(order.getStringStatus());
         ret.setCreateTime(String.valueOf(order.getCreateTime()));
         ret.setTotalAmount(order.getTotalAmount());
         ret.setPaymentMethod(order.getPaymentMethod());
-
+        //优惠券
+        ret.setBeforeAmount(order.getBeforeAmount());
+        ret.setReducedAmount(order.getReducedAmount());
+        ret.setUseCoupon(order.getUseCoupon());
         return ret;
-
     }
 
 

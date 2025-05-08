@@ -1,5 +1,7 @@
 package com.seecoder.TomatoMall.po;
 
+import com.seecoder.TomatoMall.exception.TomatoMallException;
+import com.seecoder.TomatoMall.vo.CouponTemplateVO;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,6 +10,8 @@ import lombok.Setter;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.function.ToDoubleBiFunction;
 
 @Getter
 @Setter
@@ -54,13 +58,52 @@ public class CouponTemplate
     private BigDecimal discount;//折扣，与满减不兼容
 
     @Basic
-    private boolean isInUse = true;//默认投入使用expiryDateTime
+    private Boolean inUse = true;//默认投入使用expiryDateTime
 
     @Basic
     private Integer restCnt;//剩余数量
 
     @Column(name = "expiry_date_time")
     private LocalDateTime expiryDateTime;
+
+    public void setStringType(String type)
+    {
+        if (type.equals("FULL_REDUCTION"))
+        {
+            this.type = CouponType.FULL_REDUCTION;
+        } else
+        {
+            throw TomatoMallException.couponTypeInvaild();
+        }
+    }
+
+    public String getStringType()
+    {
+        if (this.type == CouponType.FULL_REDUCTION)
+        {
+            return "FULL_REDUCTION";
+        }
+        return "ERROR_TYPE";
+    }
+
+    public CouponTemplateVO toVO()
+    {
+        CouponTemplateVO ret = CouponTemplateVO.builder()
+                .id(id)
+                .title(title)
+                .description(description)
+                .img(img)
+                .threshold(threshold)
+                .reduce(reduce)
+                .discount(discount)
+                .inUse(inUse)
+                .restCnt(restCnt)
+                .expiryDateTime(expiryDateTime
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")))
+                .build();
+        ret.setType(this.getStringType());
+        return ret;
+    }
 
 
 }

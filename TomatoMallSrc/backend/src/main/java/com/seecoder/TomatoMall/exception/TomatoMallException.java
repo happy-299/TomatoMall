@@ -154,6 +154,36 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("用户番茄余额不足");
     }
 
+    public static TomatoMallException couponTypeInvaild()
+    {
+        return new TomatoMallException("优惠券类型无效");
+    }
+
+    public static TomatoMallException couponThresholdInvaild()
+    {
+        return new TomatoMallException("优惠券门槛应该高于扣减金额");
+    }
+
+    public static TomatoMallException couponThresholdNotReach()
+    {
+        return new TomatoMallException("总金额未达到优惠券门槛");
+    }
+
+    public static TomatoMallException couponNotFound()
+    {
+        return new TomatoMallException("优惠券不存在");
+    }
+
+    public static TomatoMallException couponTemplateNotFound()
+    {
+        return new TomatoMallException("优惠券模板不存在");
+    }
+
+    public static TomatoMallException couponUsedUp()
+    {
+        return new TomatoMallException("优惠券发完了");
+    }
+
     public String getErrCode()
     {
         return code;

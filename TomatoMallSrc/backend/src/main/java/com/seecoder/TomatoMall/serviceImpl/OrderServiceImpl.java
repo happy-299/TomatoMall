@@ -16,6 +16,7 @@ import com.seecoder.TomatoMall.repository.StockpileRepository;
 import com.seecoder.TomatoMall.service.OrderService;
 import com.seecoder.TomatoMall.util.OssUtil;
 import com.seecoder.TomatoMall.util.SecurityUtil;
+import com.seecoder.TomatoMall.vo.OrderVO;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -26,6 +27,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -137,6 +140,15 @@ public class OrderServiceImpl implements OrderService
 //        accountRepository.save(acc);
 // 无需显式 save，事务提交时自动更新
         return true;
+    }
+
+    @Override
+    @Transactional
+    public List<OrderVO> getAllOrders()
+    {
+        Account acc = securityUtil.getCurrentAccount();
+        List<Order> orders = orderRepository.findAllByUserId(acc.getId());
+        return orders.stream().map(Order::toVO).collect(Collectors.toList());
     }
 
     private BigDecimal getTotalAmountByOrderId(Integer orderId)

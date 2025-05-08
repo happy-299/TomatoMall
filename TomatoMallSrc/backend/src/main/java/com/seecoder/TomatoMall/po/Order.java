@@ -29,7 +29,7 @@ public class Order
     private Integer userId;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount;//订单总金额
+    private BigDecimal totalAmount;//订单总金额;用了优惠券后的实际支付金额
 
     @Column(name = "payment_method", nullable = false, length = 50)
     private String paymentMethod;//支付方式
@@ -40,6 +40,20 @@ public class Order
 
     @Column(name = "create_time")
     private LocalDateTime createTime;
+
+    //增加优惠券部分
+    @Basic
+    private Boolean useCoupon = false;//是否使用了优惠券
+
+    @JoinColumn(name = "coupon_id", nullable = false,
+            insertable = false, updatable = false)
+    private Integer couponId;//使用的优惠券id
+
+    @Column(name = "before_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal beforeAmount;//用优惠券前，原来的订单总金额
+
+    @Column(name = "reduced_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal reducedAmount;//用优惠券，扣减的金额
 
 //    @Column(name = "cartItemIds")
 //    private List<String> cartItemIds;// 用于返还过期订单的冻结库存
@@ -102,6 +116,11 @@ public class Order
         orderVO.setPaymentMethod(this.paymentMethod);
         orderVO.setTotalAmount(this.totalAmount);
         orderVO.setUserId(this.userId);
+        //
+        orderVO.setUseCoupon(this.useCoupon);
+        orderVO.setCouponId(this.couponId);
+        orderVO.setBeforeAmount(this.beforeAmount);
+        orderVO.setReducedAmount(this.reducedAmount);
         return orderVO;
     }
 

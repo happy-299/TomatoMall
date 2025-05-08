@@ -37,9 +37,16 @@ public class CartController
 
     //追加购物车内全部删除的方法
     @DeleteMapping
-    public Response<String> deteleAllProduct()
+    public Response<String> deleteAllProduct()
     {
         return Response.buildSuccess(cartService.deleteAllProduct());
+    }
+
+    //追加根据productId删除所有相关购物车项的方法
+    @DeleteMapping("/delete/{productId}")
+    public Response<String> deleteAllByProductId(@PathVariable Integer productId)
+    {
+        return Response.buildSuccess(cartService.deleteAllByProductId(productId));
     }
 
     //    1.3 修改购物车商品数量
@@ -64,12 +71,25 @@ public class CartController
         return Response.buildSuccess(cartService.checkout(checkoutRequest));
     }
 
+    //增加购买番茄币，生成订单
+    @PostMapping("/tomato")
+    public Response<RetCheckout> buyTomato(@RequestBody CheckoutRequest checkoutRequest)
+    {
+        return Response.buildSuccess(cartService.buyTomato(checkoutRequest));
+    }
+
     @Data
     public static class CheckoutRequest
     {
         private List<String> cartItemIds;
         private ShippingAddress shipping_address;
         private String payment_method;
+
+        //优惠券相关追加字段
+        private Boolean useCoupon = false;//是否使用了优惠券，默认为false
+        private Integer couponId = -1;
+        //购买番茄数量，除了购买番茄外不用填写
+        private Integer tomato = 0;
 
         @Data
         public static class ShippingAddress
@@ -90,6 +110,10 @@ public class CartController
         private String paymentMethod = "ALIPAY";
         private String createTime;
         private String status = "PENDING";
+        //优惠券
+        private Boolean useCoupon = false;
+        private BigDecimal beforeAmount;
+        private BigDecimal reducedAmount;
     }
 
 

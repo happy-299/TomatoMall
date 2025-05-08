@@ -4,6 +4,7 @@ import com.alipay.api.AlipayApiException;
 import com.alipay.api.internal.util.AlipaySignature;
 import com.seecoder.TomatoMall.exception.TomatoMallException;
 import com.seecoder.TomatoMall.service.OrderService;
+import com.seecoder.TomatoMall.vo.OrderVO;
 import com.seecoder.TomatoMall.vo.Response;
 import lombok.Data;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -82,4 +84,13 @@ public class OrderController
         System.out.println("=======================================");
         return "支付成功";
     }
+
+    //增加返回当前用户所有订单
+    @GetMapping("/all")
+    public Response<List<OrderVO>> getAllOrders()
+    {
+        return Response.buildSuccess(orderService.getAllOrders());
+    }
+
+
 }

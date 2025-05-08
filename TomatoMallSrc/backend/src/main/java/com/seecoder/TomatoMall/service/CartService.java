@@ -19,4 +19,8 @@ public interface CartService
     CartController.RetCheckout checkout(CartController.CheckoutRequest checkoutRequest);
 
     String deleteAllProduct();
+
+    String deleteAllByProductId(Integer id);
+
+    CartController.RetCheckout buyTomato(CartController.CheckoutRequest checkoutRequest);
 }

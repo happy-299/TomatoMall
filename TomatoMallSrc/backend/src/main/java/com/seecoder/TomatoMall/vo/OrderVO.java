@@ -19,6 +19,11 @@ public class OrderVO
     private String paymentMethod;
     private Order.OrderStatus status;
     private LocalDateTime createTime;
+    //优惠券
+    private Boolean useCoupon;
+    private Integer couponId;
+    private BigDecimal beforeAmount;
+    private BigDecimal reducedAmount;
 
 
     public Order toPO()
@@ -31,6 +36,11 @@ public class OrderVO
         newOrder.setPaymentMethod(this.paymentMethod);
         newOrder.setStatus(this.status);
         newOrder.setCreateTime(this.createTime);
+        //
+        newOrder.setUseCoupon(useCoupon);
+        newOrder.setCouponId(couponId);
+        newOrder.setBeforeAmount(beforeAmount);
+        newOrder.setReducedAmount(reducedAmount);
         return newOrder;
     }
 }
