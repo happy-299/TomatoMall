@@ -21,6 +21,8 @@ public interface NoteService
 
     String addViewCnt(Integer id);
 
+    Boolean checkLiked(Integer id);
+
     String addLikeCnt(Integer id);
 
     Boolean checkPaid(Integer id);

@@ -20,7 +20,7 @@ public class NoteVO
     private String img;
     private Integer price;
     private Integer creatorId;
-    private List<Integer> payersId;
+    //    private List<Integer> payersId;
     private LocalDateTime createTime;
     private Integer viewCnt;
     private Integer likeCnt;

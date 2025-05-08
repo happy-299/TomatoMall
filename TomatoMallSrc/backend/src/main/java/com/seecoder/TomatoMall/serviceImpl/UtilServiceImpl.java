@@ -2,14 +2,8 @@ package com.seecoder.TomatoMall.serviceImpl;
 
 import com.alipay.api.domain.SeatInfo;
 import com.seecoder.TomatoMall.controller.UtilController;
-import com.seecoder.TomatoMall.po.Account;
-import com.seecoder.TomatoMall.po.BookList;
-import com.seecoder.TomatoMall.po.Product;
-import com.seecoder.TomatoMall.po.SearchHistory;
-import com.seecoder.TomatoMall.repository.AccountRepository;
-import com.seecoder.TomatoMall.repository.BookListRepository;
-import com.seecoder.TomatoMall.repository.ProductRepository;
-import com.seecoder.TomatoMall.repository.SearchHistoryRepository;
+import com.seecoder.TomatoMall.po.*;
+import com.seecoder.TomatoMall.repository.*;
 import com.seecoder.TomatoMall.service.UtilService;
 import com.seecoder.TomatoMall.util.SecurityUtil;
 import com.seecoder.TomatoMall.vo.SearchHistoryVO;
@@ -45,6 +39,8 @@ public class UtilServiceImpl implements UtilService
     private SearchHistoryRepository searchHistoryRepository;
     @Autowired
     private AccountServiceImpl accountServiceImpl;
+    @Autowired
+    private NoteRepository noteRepository;
 
     @Override
     public String upload(MultipartFile rawFileContent)
@@ -89,8 +85,9 @@ public class UtilServiceImpl implements UtilService
         List<Account> accounts = accountRepository.searchAccounts(keyword);
         List<Product> products = productRepository.searchProducts(keyword);
         List<BookList> bookLists = bookListRepository.searchBookLists(keyword);
+        List<Note> notes = noteRepository.searchNotes(keyword);
 
-        return new SearchResultVO(accounts, products, bookLists);
+        return new SearchResultVO(accounts, products, bookLists, notes);
     }
 
     @Override

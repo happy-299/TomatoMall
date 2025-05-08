@@ -58,6 +58,14 @@ public class Note
     @Basic
     private Integer likeCnt = 0;
 
+    @ManyToMany
+    @JoinTable(
+            name = "note_liker", // 自动生成中间表
+            joinColumns = @JoinColumn(name = "note_id"),
+            inverseJoinColumns = @JoinColumn(name = "liker_id")
+    )
+    private List<Account> likers = new ArrayList<>();
+
     public NoteVO toVO()
     {
         return NoteVO.builder()
@@ -69,9 +77,9 @@ public class Note
                 .creatorId(creator.getId())
                 .createTime(createTime)
                 .likeCnt(likeCnt)
-                .payersId(payers.stream()
-                        .map(Account::getId)
-                        .collect(Collectors.toList()))
+//                .payersId(payers.stream()
+//                        .map(Account::getId)
+//                        .collect(Collectors.toList()))
                 .viewCnt(viewCnt)
                 .build();
     }

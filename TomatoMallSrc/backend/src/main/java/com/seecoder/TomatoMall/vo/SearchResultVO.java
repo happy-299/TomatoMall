@@ -2,6 +2,7 @@ package com.seecoder.TomatoMall.vo;
 
 import com.seecoder.TomatoMall.po.Account;
 import com.seecoder.TomatoMall.po.BookList;
+import com.seecoder.TomatoMall.po.Note;
 import com.seecoder.TomatoMall.po.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,8 +22,10 @@ public class SearchResultVO
     private List<partAccount> accounts;
     private List<ProductVO> products;
     private List<partBookList> bookLists;
+    private List<NoteVO> notes;
 
-    public SearchResultVO(List<Account> account, List<Product> product, List<BookList> bookList)
+    public SearchResultVO(List<Account> account,
+                          List<Product> product, List<BookList> bookList, List<Note> note)
     {
         this.products = product.stream().map(Product::toVO).collect(Collectors.toList());
 
@@ -53,6 +56,7 @@ public class SearchResultVO
                     .build());
         });
 
+        this.notes = note.stream().map(Note::toVO).collect(Collectors.toList());
 
     }
 

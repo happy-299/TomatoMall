@@ -62,9 +62,13 @@ public class NoteServiceImpl implements NoteService
         note.setLikeCnt(0);
         note.setViewCnt(0);
         note.setCreateTime(LocalDateTime.now());
+
         List<Account> payers = new ArrayList<>();
         payers.add(creator);//作者默认付费，可以访问自己的内容
         note.setPayers(payers);
+
+        note.setImg(noteVO.getImg());
+        note.setLikers(new ArrayList<>());
         return noteRepository.save(note).toVO();
     }
 
@@ -90,7 +94,8 @@ public class NoteServiceImpl implements NoteService
                 .orElseThrow(TomatoMallException::noteNotFound);
         //检验，不应该包含除了id title,content,price img以外的其他字段
         if (noteVO.getCreateTime() != null || noteVO.getLikeCnt() != null
-                || noteVO.getPayersId() != null || noteVO.getCreatorId() != null)
+//                || noteVO.getPayersId() != null
+                || noteVO.getCreatorId() != null)
         {
             throw TomatoMallException.noteUpdateError();
         }
@@ -139,12 +144,39 @@ public class NoteServiceImpl implements NoteService
 
     @Override
     @Transactional
-    public String addLikeCnt(Integer id)
+    public Boolean checkLiked(Integer id)
     {
+        Account acc = securityUtil.getCurrentAccount();
         Note note = noteRepository.findById(id)
                 .orElseThrow(TomatoMallException::noteNotFound);
-        note.setLikeCnt(note.getLikeCnt() + 1);
-        noteRepository.save(note);
+        List<Account> likers = note.getLikers();
+        for (Account a : likers)
+        {
+            if (a.getId().equals(acc.getId()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional
+    public String addLikeCnt(Integer id)
+    {
+        if (checkLiked(id))
+        {
+            throw TomatoMallException.noteLiked();
+        }
+
+        Note note = noteRepository.findById(id)
+                .orElseThrow(TomatoMallException::noteNotFound);
+        note.setLikeCnt(note.getLikeCnt() + 1);//点赞数+1
+
+        Account acc = securityUtil.getCurrentAccount();
+        note.getLikers().add(acc);//点赞列表增加
+
+//        noteRepository.save(note);
         return "点赞成功+1";
     }
 
