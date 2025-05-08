@@ -67,6 +67,12 @@ public class NoteController
         return Response.buildSuccess(noteService.addViewCnt(id));
     }
 
+    @GetMapping("/like/{id}")
+    public Response<Boolean> checkLiked(@PathVariable Integer id)
+    {
+        return Response.buildSuccess(noteService.checkLiked(id));
+    }
+
     //点赞+1
     @PostMapping("/like/{id}")
     public Response<String> addLikeCnt(@PathVariable Integer id)

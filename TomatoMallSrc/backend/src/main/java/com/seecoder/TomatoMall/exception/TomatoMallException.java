@@ -134,6 +134,11 @@ public class TomatoMallException extends RuntimeException
         return new TomatoMallException("笔记更新错误，不应该包含除了id,title,content,price以外的字段");
     }
 
+    public static TomatoMallException noteLiked()
+    {
+        return new TomatoMallException("已经赞过此笔记");
+    }
+
     public static TomatoMallException notePaid()
     {
         return new TomatoMallException("已经购买此笔记");
