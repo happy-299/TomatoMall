@@ -39,6 +39,7 @@ import {
   removeItemFromBookList,
   type BookListCreateDTO
 } from '../../api/booklist'
+import BookListItem from '../../components/BookListItem.vue'
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -817,8 +818,8 @@ onUnmounted(() => {
           <el-icon><Plus /></el-icon>
           创建书单
         </el-button>
-      </div>
-    </div>
+            </div>
+            </div>
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
@@ -837,7 +838,7 @@ onUnmounted(() => {
           @cart-add="(id: string) => handleCart(id, 'add')"
           @cart-subtract="(id: string) => handleCart(id, 'subtract')"
       />
-    </div>
+          </div>
 
     <!-- 书单列表 -->
     <div v-else>
@@ -861,45 +862,19 @@ onUnmounted(() => {
         >
           收藏的书单
         </el-button>
-      </div>
+        </div>
 
       <div class="booklist-grid" v-loading="loading">
-        <div v-for="bookList in bookLists" :key="bookList.id" class="booklist-card">
-          <div class="booklist-header">
-            <h3 @click="handleViewDetail(bookList)" class="clickable">{{ bookList.title }}</h3>
-            <div class="actions">
-        <el-button
-                :type="favouriteBookListIds.has(bookList.id) ? 'warning' : 'default'"
-                circle
-                @click="handleCollect(bookList)"
-        >
-                <el-icon>
-                  <StarFilled v-if="favouriteBookListIds.has(bookList.id)" />
-                  <Star v-else />
-                </el-icon>
-        </el-button>
-              <el-button
-                v-if="currentUserId === bookList.creatorId"
-                type="danger"
-                circle
-                @click="handleDeleteBookList(bookList.id)"
-              >
-                <el-icon><Delete /></el-icon>
-        </el-button>
-            </div>
-          </div>
-          <p class="description">{{ bookList.description }}</p>
-          <div class="booklist-footer">
-            <div class="creator">
-              <el-avatar :size="24" :src="bookList.creatorAvatar" />
-              <span>{{ bookList.creatorName }}</span>
-            </div>
-            <div class="stats">
-              <span>{{ bookList.products.length }} 本书</span>
-              <span>{{ bookList.favouriteCount }} 收藏</span>
-            </div>
-          </div>
-        </div>
+        <book-list-item
+          v-for="bookList in bookLists"
+          :key="bookList.id"
+          :book-list="bookList"
+          :is-favourite="favouriteBookListIds.has(bookList.id)"
+          :is-creator="currentUserId === bookList.creatorId"
+          @collect="handleCollect"
+          @delete="handleDeleteBookList"
+          @view="handleViewDetail"
+        />
       </div>
     </div>
 
