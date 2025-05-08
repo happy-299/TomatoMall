@@ -95,6 +95,10 @@ const fetchAds = async () => {
   }
 }
 
+const handleCartUpdated = async () => {
+  await fetchCart(); // 重新获取购物车数据
+};
+
 // 修改handleAdClick方法，添加loading状态和错误处理
 const handleAdClick = async (productId: string) => {
   const loading = ElLoading.service({fullscreen: true})
@@ -290,6 +294,10 @@ const fetchCart = async () => {
 const handleCart = async (productId: string, type: 'add' | 'subtract') => {
   try {
     const currentItem = cartItems.value[productId]
+    if (type === 'add' && !currentItem) {
+      await addToCart(productId, 1)
+      await fetchCart()
+    }
     if (!currentItem) {
       // 如果商品不在购物车中，尝试添加
       if (type === 'add') {
@@ -577,7 +585,7 @@ const handleAddProduct = async (bookListId: number) => {
 
   try {
     await addItemToBookList(bookListId, selectedProduct.value)
-    
+
     // 更新当前书单的商品列表
     if (currentBookList.value) {
       const addedProduct = products.value.find(p => p.id === selectedProduct.value)
@@ -591,7 +599,7 @@ const handleAddProduct = async (bookListId: number) => {
       message: '添加商品成功',
       duration: 2000
     })
-    
+
     selectedProduct.value = null // 清空选择
   } catch (error) {
     ElMessage({
@@ -614,7 +622,7 @@ const handleRemoveProduct = async (bookListId: number, productId: number) => {
 
   try {
     await removeItemFromBookList(bookListId, productId)
-    
+
     // 更新当前书单的商品列表
     if (currentBookList.value) {
       currentBookList.value.products = currentBookList.value.products.filter(p => p.id !== productId)
@@ -625,7 +633,7 @@ const handleRemoveProduct = async (bookListId: number, productId: number) => {
       message: '移除商品成功',
       duration: 2000
     })
-        } catch (error) {
+  } catch (error) {
     ElMessage({
       type: 'error',
       message: '移除商品失败，请重试',
@@ -681,13 +689,13 @@ const handleCreate = async () => {
 const handleDeleteBookList = async (id: number) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个书单吗？',
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+        '确定要删除这个书单吗？',
+        '删除确认',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
     )
 
     const loading = ElLoading.service({
@@ -798,14 +806,14 @@ onUnmounted(() => {
     <!-- 导航栏 -->
     <div class="nav-tabs">
       <el-button
-        :type="activeTab === 'products' ? 'primary' : 'default'"
-        @click="handleTabChange('products')"
+          :type="activeTab === 'products' ? 'primary' : 'default'"
+          @click="handleTabChange('products')"
       >
         商品列表
       </el-button>
       <el-button
-        :type="activeTab === 'booklists' ? 'primary' : 'default'"
-        @click="handleTabChange('booklists')"
+          :type="activeTab === 'booklists' ? 'primary' : 'default'"
+          @click="handleTabChange('booklists')"
       >
         书单列表
       </el-button>
@@ -823,8 +831,8 @@ onUnmounted(() => {
           <el-icon><Plus /></el-icon>
           创建书单
         </el-button>
-            </div>
-            </div>
+      </div>
+    </div>
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
@@ -842,43 +850,44 @@ onUnmounted(() => {
           @stock-update="openStockDialog"
           @cart-add="(id: string) => handleCart(id, 'add')"
           @cart-subtract="(id: string) => handleCart(id, 'subtract')"
+          @cart-updated="handleCartUpdated"
       />
-          </div>
+    </div>
 
     <!-- 书单列表 -->
     <div v-else>
       <!-- 书单子导航栏 -->
       <div class="booklist-sub-tabs">
         <el-button
-          :type="booklistTab === 'all' ? 'primary' : 'default'"
-          @click="handleBooklistTabChange('all')"
+            :type="booklistTab === 'all' ? 'primary' : 'default'"
+            @click="handleBooklistTabChange('all')"
         >
           全部书单
         </el-button>
         <el-button
-          :type="booklistTab === 'mine' ? 'primary' : 'default'"
-          @click="handleBooklistTabChange('mine')"
+            :type="booklistTab === 'mine' ? 'primary' : 'default'"
+            @click="handleBooklistTabChange('mine')"
         >
           我的书单
         </el-button>
         <el-button
-          :type="booklistTab === 'favourites' ? 'primary' : 'default'"
-          @click="handleBooklistTabChange('favourites')"
+            :type="booklistTab === 'favourites' ? 'primary' : 'default'"
+            @click="handleBooklistTabChange('favourites')"
         >
           收藏的书单
         </el-button>
-        </div>
+      </div>
 
       <div class="booklist-grid" v-loading="loading">
         <book-list-item
-          v-for="bookList in bookLists"
-          :key="bookList.id"
-          :book-list="bookList"
-          :is-favourite="favouriteBookListIds.has(bookList.id)"
-          :is-creator="currentUserId === bookList.creatorId"
-          @collect="handleCollect"
-          @delete="handleDeleteBookList"
-          @view="handleViewDetail"
+            v-for="bookList in bookLists"
+            :key="bookList.id"
+            :book-list="bookList"
+            :is-favourite="favouriteBookListIds.has(bookList.id)"
+            :is-creator="currentUserId === bookList.creatorId"
+            @collect="handleCollect"
+            @delete="handleDeleteBookList"
+            @view="handleViewDetail"
         />
       </div>
     </div>
@@ -886,13 +895,13 @@ onUnmounted(() => {
     <!-- 分页 -->
     <div class="pagination" v-if="total > 0 && activeTab === 'booklists'">
       <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
       />
     </div>
 
@@ -1122,9 +1131,9 @@ onUnmounted(() => {
 
     <!-- 创建书单对话框 -->
     <el-dialog
-      v-model="createDialogVisible"
-      title="创建书单"
-      width="500px"
+        v-model="createDialogVisible"
+        title="创建书单"
+        width="500px"
     >
       <el-form :model="createForm" label-width="80px">
         <el-form-item label="标题" required>
@@ -1132,25 +1141,25 @@ onUnmounted(() => {
         </el-form-item>
         <el-form-item label="描述">
           <el-input
-            v-model="createForm.description"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入书单描述"
+              v-model="createForm.description"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入书单描述"
           />
         </el-form-item>
         <el-form-item label="商品">
           <el-select
-            v-model="createForm.productIds"
-            multiple
-            filterable
-            placeholder="请选择商品"
-            style="width: 100%"
+              v-model="createForm.productIds"
+              multiple
+              filterable
+              placeholder="请选择商品"
+              style="width: 100%"
           >
             <el-option
-          v-for="product in products"
-          :key="product.id"
-              :label="product.title"
-              :value="product.id"
+                v-for="product in products"
+                :key="product.id"
+                :label="product.title"
+                :value="product.id"
             />
           </el-select>
         </el-form-item>
@@ -1163,20 +1172,20 @@ onUnmounted(() => {
 
     <!-- 书单详情对话框 -->
     <el-dialog
-      v-model="detailDialogVisible"
-      title="书单详情"
-      width="800px"
+        v-model="detailDialogVisible"
+        title="书单详情"
+        width="800px"
     >
       <div v-if="currentBookList" class="booklist-detail">
         <h2>{{ currentBookList.title }}</h2>
         <p class="description">{{ currentBookList.description }}</p>
-        
+
         <div class="products-list">
-          <div 
-            v-for="product in currentBookList.products" 
-            :key="product.id" 
-            class="product-item"
-            @click="handleProductClick(product.id)"
+          <div
+              v-for="product in currentBookList.products"
+              :key="product.id"
+              class="product-item"
+              @click="handleProductClick(product.id)"
           >
             <img :src="product.cover" :alt="product.title" class="product-cover">
             <div class="product-info">
@@ -1185,10 +1194,10 @@ onUnmounted(() => {
             </div>
             <div class="product-actions">
               <el-button
-                v-if="currentUserId === currentBookList.creatorId"
-                type="danger"
-                circle
-                @click.stop="handleRemoveProduct(currentBookList.id, product.id)"
+                  v-if="currentUserId === currentBookList.creatorId"
+                  type="danger"
+                  circle
+                  @click.stop="handleRemoveProduct(currentBookList.id, product.id)"
               >
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -1198,22 +1207,22 @@ onUnmounted(() => {
 
         <div v-if="currentUserId === currentBookList.creatorId" class="add-product">
           <el-select
-            v-model="selectedProduct"
-            filterable
-            placeholder="添加商品到书单"
-            style="width: 100%"
+              v-model="selectedProduct"
+              filterable
+              placeholder="添加商品到书单"
+              style="width: 100%"
           >
             <el-option
-              v-for="product in products"
-              :key="product.id"
-              :label="product.title"
-              :value="product.id"
+                v-for="product in products"
+                :key="product.id"
+                :label="product.title"
+                :value="product.id"
             />
           </el-select>
-          <el-button 
-            type="primary" 
-            @click="handleAddProduct(currentBookList.id)"
-            :disabled="!selectedProduct"
+          <el-button
+              type="primary"
+              @click="handleAddProduct(currentBookList.id)"
+              :disabled="!selectedProduct"
           >
             添加商品
           </el-button>

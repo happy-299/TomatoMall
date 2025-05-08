@@ -12,6 +12,7 @@ import { ShoppingCart } from '@element-plus/icons-vue'
 import { getCart, addToCart, updateCartItemQuantity, deleteCartItem, type CartItem } from '../../api/cart'
 import { getStockpile } from '../../api/product'
 import ProductReview from '../../components/ProductReview.vue'
+import { getAdvertisements, deleteAdvertisement } from '../../api/advertisement'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,24 +57,40 @@ const handleCart = async (type: 'add' | 'subtract') => {
   if (!product.value) return
   const productId = product.value.id
   const currentItem = cartItems.value[productId]
+  const currentQuantity = currentItem?.quantity || 0
 
   try {
-    let newQuantity = currentItem?.quantity || 0
+    // 处理增加操作时的库存验证
+    if (type === 'add') {
+      if (stock.value <= 0) {
+        ElMessage.warning('商品库存不足')
+        return
+      }
+      if (currentQuantity >= stock.value) {
+        ElMessage.warning('已达到最大库存数量')
+        return
+      }
+    }
+
+    let newQuantity = currentQuantity
 
     if (type === 'add') {
-      if (newQuantity >= stock.value) return ElMessage.warning('库存不足')
       newQuantity++
     } else {
-      newQuantity = Math.max(0, newQuantity - 1)
+      newQuantity = Math.max(0, currentQuantity - 1)
     }
+
+    // 处理数量变化
     if (newQuantity === 0) {
-      await deleteCartItem(currentItem.cartItemId)
-      delete cartItems.value[productId]
+      if (currentItem) {
+        await deleteCartItem(currentItem.cartItemId)
+        delete cartItems.value[productId]
+      }
     } else if (currentItem) {
       await updateCartItemQuantity(currentItem.cartItemId, newQuantity)
       cartItems.value[productId].quantity = newQuantity
     } else {
-      await addToCart(productId, 1)
+      await addToCart(productId, newQuantity)
       await fetchCart()
     }
   } catch (error) {
@@ -97,14 +114,35 @@ const handleCoverUpload = async (params: any) => {
 
 
 
-const handleBuyNow = () => {
-  console.log(product.value)
-  router.push({
-    path: '/cart',
-    query: {
-      highlight: product.value?.id // 携带商品ID用于高亮
+const handleBuyNow = async () => {
+  if (!product.value) return
+
+  // 检查库存
+  if (stock.value <= 0) {
+    ElMessage.warning('商品库存不足')
+    return
+  }
+
+  try {
+    const currentQuantity = cartItems.value[product.value.id]?.quantity || 0
+
+    // 如果购物车中没有该商品，先添加到购物车
+    if (currentQuantity === 0) {
+      await addToCart(product.value.id, 1)
+      // 更新本地购物车状态
+      await fetchCart()
     }
-  })
+
+    // 跳转到购物车页面
+    router.push({
+      path: '/cart',
+      query: {
+        highlight: product.value.id
+      }
+    })
+  } catch (error) {
+    ElMessage.error('操作失败，请重试')
+  }
 }
 
 // 验证规则
@@ -225,12 +263,28 @@ const handleDelete = async () => {
       type: 'warning'
     })
 
+    // 获取关联广告并删除
+    const adsRes = await getAdvertisements()
+    const relatedAds = adsRes.data.data.filter((ad: any) =>
+        ad.productId === route.params.id
+    )
+
+    // 并行删除所有关联广告
+    await Promise.all(
+        relatedAds.map(async (ad: any) => {
+          await deleteAdvertisement(ad.id)
+        })
+    )
+
+    // 删除商品
     await deleteProduct(route.params.id as string)
-    ElMessage.success('删除成功')
+
+    ElMessage.success('商品及关联广告删除成功')
     router.push('/productList')
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败: ' + (error as Error).message)
     }
   }
 }
