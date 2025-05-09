@@ -8,6 +8,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AdCarousel: typeof import('./src/components/AdCarousel.vue')['default']
+    AiChatBall: typeof import('./src/components/AiChatBall.vue')['default']
+    AiChatWindow: typeof import('./src/components/AiChatWindow.vue')['default']
+    AIChatWindow: typeof import('./src/components/AIChatWindow.vue')['default']
     BookListItem: typeof import('./src/components/BookListItem.vue')['default']
     CartCard: typeof import('./src/components/CartCard.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
@@ -26,11 +29,9 @@ declare module 'vue' {
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
-    ElLink: typeof import('element-plus/es')['ElLink']
     ElMain: typeof import('element-plus/es')['ElMain']
     ElOption: typeof import('element-plus/es')['ElOption']
     ElPagination: typeof import('element-plus/es')['ElPagination']
-    ElResult: typeof import('element-plus/es')['ElResult']
     ElSelect: typeof import('element-plus/es')['ElSelect']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
@@ -38,6 +39,7 @@ declare module 'vue' {
     Header: typeof import('./src/components/Header.vue')['default']
     ProductCard: typeof import('./src/components/ProductCard.vue')['default']
     ProductReview: typeof import('./src/components/ProductReview.vue')['default']
+    ReadingNote: typeof import('./src/components/ReadingNote.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

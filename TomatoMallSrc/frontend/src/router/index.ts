@@ -3,6 +3,7 @@ import { RouteRecordRaw } from "vue-router"
 import SearchResult from '../views/search/SearchResult.vue'
 import CouponSquare from '../views/CouponSquare.vue'
 import MyCoupons from '../views/MyCoupons.vue'
+import AiChat from "../views/AiChat.vue";
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,6 +66,12 @@ const router = createRouter({
                 path: '/my-coupons',
                 name: 'my-coupons',
                 component: MyCoupons,
+                meta: {title: '我的优惠券'}
+            },
+            {
+                path: '/ai-chat',
+                name: 'ai-chat',
+                component: AiChat,
                 meta: {title: '我的优惠券'}
             }
         ]

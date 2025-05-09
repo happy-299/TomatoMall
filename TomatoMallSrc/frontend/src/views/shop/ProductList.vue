@@ -25,7 +25,7 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import { Star, StarFilled, Plus, Delete, ShoppingCart, Collection } from '@element-plus/icons-vue'
+import {Star, StarFilled, Plus, Delete, ShoppingCart, Collection} from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -40,6 +40,24 @@ import {
   type BookListCreateDTO
 } from '../../api/booklist'
 import BookListItem from '../../components/BookListItem.vue'
+
+import ReadingNote from '../../components/ReadingNote.vue'
+import {
+  createNote,
+  deleteNote,
+  updateNote,
+  getAllNotes,
+  getUserNotes,
+  getPaidNotes,
+  getLikedNotes,
+  getNoteLikeStatus,
+  likeNote,
+  unlikeNote,
+  payNote,
+  getNotePayStatus,
+  type NoteVO,
+  type CreateNoteInfo
+} from '../../api/note'
 
 const router = useRouter()
 const products = ref<Product[]>([])
@@ -196,9 +214,9 @@ const updateAd = async () => {
 }
 
 const handleEditAdImageUpload = async (params: any) => {
-  const loading = ElLoading.service({ fullscreen: false })
+  const loading = ElLoading.service({fullscreen: false})
   try {
-    const { file } = params
+    const {file} = params
     const response = await uploadUserImage(file)
     editAdForm.imgUrl = response.data.data  // 更新到编辑表单
     ElMessage.success('图片上传成功')
@@ -211,7 +229,7 @@ const handleEditAdImageUpload = async (params: any) => {
 
 // 新增规格操作方法
 const addSpecification = () => {
-  form.specifications.push({item: '', value: '',id:'',productId:''});
+  form.specifications.push({item: '', value: '', id: '', productId: ''});
 }
 
 const removeSpecification = (index: number) => {
@@ -456,7 +474,7 @@ const submitForm = async () => {
 
 // 商品删除
 const handleDelete = async (id: string) => {
-  const loading = ElLoading.service({ fullscreen: true })
+  const loading = ElLoading.service({fullscreen: true})
   try {
     // 1. 删除关联广告
     const relatedAds = ads.value.filter(ad => ad.productId === id)
@@ -517,6 +535,8 @@ const handleTabChange = async (tab: string) => {
   activeTab.value = tab
   if (tab === 'booklists') {
     await fetchBookLists()
+  } else if (tab === 'notes') {
+    await fetchNotes()
   } else {
     await fetchProducts()
   }
@@ -731,12 +751,12 @@ const handleCollect = async (bookList: BookListVO) => {
   try {
     const isCollected = favouriteBookListIds.value.has(bookList.id)
     if (isCollected) {
-      await cancelCollectBookList({ bookListId: bookList.id })
+      await cancelCollectBookList({bookListId: bookList.id})
       bookList.favouriteCount--
       favouriteBookListIds.value.delete(bookList.id)
       ElMessage.success('取消收藏成功')
     } else {
-      await collectBookList({ bookListId: bookList.id })
+      await collectBookList({bookListId: bookList.id})
       bookList.favouriteCount++
       favouriteBookListIds.value.add(bookList.id)
       ElMessage.success('收藏成功')
@@ -772,6 +792,152 @@ const handleProductClick = (productId: string) => {
   router.push(`/product/${productId}`)
 }
 
+const noteTab = ref('all')
+const notes = ref<NoteVO[]>([])
+const likedNoteIds = ref<Set<number>>(new Set())
+const paidNoteIds = ref<Set<number>>(new Set())
+const createNoteDialogVisible = ref(false)
+const noteForm = reactive<CreateNoteInfo>({
+  title: '',
+  content: '',
+  price: 0,
+  img: ''
+})
+
+// 获取笔记列表
+const fetchNotes = async () => {
+  try {
+    let res
+    switch (noteTab.value) {
+      case 'all':
+        res = await getAllNotes()
+        break
+      case 'mine':
+        const userId = currentUserId.value
+        if (userId) res = await getUserNotes(userId)
+        break
+      case 'liked':
+        res = await getLikedNotes()
+        break
+      case 'paid':
+        res = await getPaidNotes()
+        break
+    }
+    if (res?.data?.data) {
+      notes.value = res.data.data
+      await checkLikeStatuses()
+      await checkPayStatuses()
+    }
+  } catch (error) {
+    ElMessage.error('获取笔记失败')
+  }
+}
+
+// 检查点赞状态
+const checkLikeStatuses = async () => {
+  for (const note of notes.value) {
+    try {
+      const res = await getNoteLikeStatus(note.id)
+      if (res.data.data) {
+        likedNoteIds.value.add(note.id)
+      }
+    } catch (error) {
+      console.error('检查点赞状态失败:', error)
+    }
+  }
+}
+
+// 检查购买状态
+const checkPayStatuses = async () => {
+  for (const note of notes.value) {
+    if (note.price <= 0) continue
+    try {
+      const res = await getNotePayStatus(note.id)
+      if (res.data.data) {
+        paidNoteIds.value.add(note.id)
+      }
+    } catch (error) {
+      console.error('检查购买状态失败:', error)
+    }
+  }
+}
+
+// 处理笔记图片上传
+const handleNoteImageUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false})
+  try {
+    const {file} = params
+    const response = await uploadUserImage(file)
+    noteForm.img = response.data.data
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 创建新笔记
+const createNewNote = async () => {
+  try {
+    await createNote(noteForm)
+    ElMessage.success('笔记创建成功')
+    createNoteDialogVisible.value = false
+    Object.assign(noteForm, {
+      title: '',
+      content: '',
+      price: 0,
+      img: ''
+    })
+    await fetchNotes()
+  } catch (error) {
+    ElMessage.error('创建笔记失败')
+  }
+}
+
+// 删除笔记
+const handleDeleteNote = async (id: number) => {
+  try {
+    await deleteNote(id)
+    ElMessage.success('笔记删除成功')
+    notes.value = notes.value.filter(n => n.id !== id)
+  } catch (error) {
+    ElMessage.error('删除笔记失败')
+  }
+}
+
+// 点赞/取消点赞
+const handleLikeNote = async (note: NoteVO) => {
+  try {
+    await likeNote(note.id)
+    note.likeCnt++
+    likedNoteIds.value.add(note.id)
+  } catch (error) {
+    ElMessage.error('点赞失败')
+  }
+}
+
+const handleUnlikeNote = async (note: NoteVO) => {
+  try {
+    await unlikeNote(note.id)
+    note.likeCnt--
+    likedNoteIds.value.delete(note.id)
+  } catch (error) {
+    ElMessage.error('取消点赞失败')
+  }
+}
+
+// 购买笔记
+const handlePurchaseNote = async (note: NoteVO) => {
+  try {
+    await payNote(note.id)
+    ElMessage.success('购买成功')
+    paidNoteIds.value.add(note.id)
+  } catch (error) {
+    ElMessage.error('购买失败')
+  }
+}
+
 onMounted(async () => {
   // 先获取用户信息
   try {
@@ -790,6 +956,9 @@ onMounted(async () => {
   await fetchProducts()
   await fetchAds();
   await fetchCart()
+  if (activeTab.value === 'notes') {
+    await fetchNotes()
+  }
 })
 
 // 在组件卸载时移除事件监听
@@ -817,19 +986,85 @@ onUnmounted(() => {
       >
         书单列表
       </el-button>
+      <el-button
+          :type="activeTab === 'notes' ? 'primary' : 'default'"
+          @click="handleTabChange('notes')"
+      >
+        读书笔记
+      </el-button>
     </div>
+
+    <!-- 新建笔记对话框 -->
+    <el-dialog
+        v-model="createNoteDialogVisible"
+        title="新建笔记"
+        width="600px"
+    >
+      <el-form :model="noteForm" label-width="80px">
+        <el-form-item label="标题" required>
+          <el-input v-model="noteForm.title"/>
+        </el-form-item>
+        <el-form-item label="内容" required>
+          <el-input v-model="noteForm.content" type="textarea" :rows="4"/>
+        </el-form-item>
+        <el-form-item label="价格">
+          <el-input-number
+              v-model="noteForm.price"
+              :min="0"
+              :precision="2"
+          />
+        </el-form-item>
+        <el-form-item label="封面图">
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleNoteImageUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">上传图片</el-button>
+            </template>
+            <img
+                v-if="noteForm.img"
+                :src="noteForm.img"
+                class="preview-image"
+                style="max-width: 200px; margin-top: 10px;"
+            />
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createNoteDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="createNewNote">创建</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 头部 -->
     <div class="header">
-      <h1>{{ activeTab === 'products' ? '商品列表' : '书单列表' }}</h1>
+      <h1>        {{
+          activeTab === 'products'
+              ? '商品列表'
+              : activeTab === 'booklists'
+                  ? '书单列表'
+                  : '读书笔记'
+        }}</h1>
       <div class="header-actions">
         <!-- 删除搜索框相关代码 -->
         <el-button v-if="isAdmin && activeTab === 'products'" type="primary" @click="dialogVisible = true">
           新建商品
         </el-button>
         <el-button v-if="activeTab === 'booklists'" type="primary" @click="createDialogVisible = true">
-          <el-icon><Plus /></el-icon>
+          <el-icon>
+            <Plus/>
+          </el-icon>
           创建书单
+        </el-button>
+        <el-button
+            v-if="activeTab === 'notes'"
+            type="primary"
+            @click="createNoteDialogVisible = true"
+        >
+          <el-icon><Plus /></el-icon>
+          发布笔记
         </el-button>
       </div>
     </div>
@@ -855,7 +1090,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 书单列表 -->
-    <div v-else>
+    <div v-else-if="activeTab === 'booklists'">
       <!-- 书单子导航栏 -->
       <div class="booklist-sub-tabs">
         <el-button
@@ -888,6 +1123,52 @@ onUnmounted(() => {
             @collect="handleCollect"
             @delete="handleDeleteBookList"
             @view="handleViewDetail"
+        />
+      </div>
+    </div>
+
+    <!-- 读书笔记部分 -->
+    <div v-else-if="activeTab === 'notes'">
+      <!-- 子导航栏 -->
+      <div class="note-sub-tabs">
+        <el-button
+            :type="noteTab === 'all' ? 'primary' : 'default'"
+            @click="noteTab = 'all'; fetchNotes()"
+        >
+          所有笔记
+        </el-button>
+        <el-button
+            :type="noteTab === 'mine' ? 'primary' : 'default'"
+            @click="noteTab = 'mine'; fetchNotes()"
+        >
+          我的笔记
+        </el-button>
+        <el-button
+            :type="noteTab === 'liked' ? 'primary' : 'default'"
+            @click="noteTab = 'liked'; fetchNotes()"
+        >
+          赞过的笔记
+        </el-button>
+        <el-button
+            :type="noteTab === 'paid' ? 'primary' : 'default'"
+            @click="noteTab = 'paid'; fetchNotes()"
+        >
+          购买的笔记
+        </el-button>
+      </div>
+
+      <div class="note-grid">
+        <ReadingNote
+            v-for="note in notes"
+            :key="note.id"
+            :note="note"
+            :is-liked="likedNoteIds.has(note.id)"
+            :is-creator="currentUserId === note.creatorId"
+            :is-paid="paidNoteIds.has(note.id)"
+            @like="handleLikeNote"
+            @unlike="handleUnlikeNote"
+            @delete="handleDeleteNote"
+            @purchase="handlePurchaseNote"
         />
       </div>
     </div>
@@ -1137,7 +1418,7 @@ onUnmounted(() => {
     >
       <el-form :model="createForm" label-width="80px">
         <el-form-item label="标题" required>
-          <el-input v-model="createForm.title" placeholder="请输入书单标题" />
+          <el-input v-model="createForm.title" placeholder="请输入书单标题"/>
         </el-form-item>
         <el-form-item label="描述">
           <el-input
@@ -1199,7 +1480,9 @@ onUnmounted(() => {
                   circle
                   @click.stop="handleRemoveProduct(currentBookList.id, product.id)"
               >
-                <el-icon><Delete /></el-icon>
+                <el-icon>
+                  <Delete/>
+                </el-icon>
               </el-button>
             </div>
           </div>
@@ -1709,5 +1992,80 @@ onUnmounted(() => {
   background-color: #1a4b6e;
   transition: all 0.3s;
   border-radius: 2px 2px 0 0;
+}
+
+.note-sub-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+
+.note-sub-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding: 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.note-sub-tabs .el-button {
+  border: none;
+  background: none;
+  font-size: 16px;
+  padding: 12px 0;
+  position: relative;
+  color: #606266;
+  transition: all 0.3s;
+  font-weight: 400;
+}
+
+.note-sub-tabs .el-button:hover {
+  color: #2c698d;
+  transform: none;
+  box-shadow: none;
+}
+
+.note-sub-tabs .el-button.is-primary {
+  color: #1a4b6e;
+  background: none;
+  border: none;
+  font-weight: 600;
+}
+
+.note-sub-tabs .el-button.is-primary::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #1a4b6e;
+  transition: all 0.3s;
+  border-radius: 2px 2px 0 0;
+}
+
+/* 统一新建按钮样式 */
+.new-note-btn {
+  height: 200px;
+  border: 2px dashed #dcdfe6;
+  background-color: #f8f9fa;
+  color: #606266;
+  transition: all 0.3s;
+}
+
+.new-note-btn:hover {
+  border-color: #2c698d;
+  color: #2c698d;
+  transform: translateY(-3px);
 }
 </style>
