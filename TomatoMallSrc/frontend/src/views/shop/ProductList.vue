@@ -59,6 +59,8 @@ import {
   type CreateNoteInfo
 } from '../../api/note'
 
+import FullscreenEditor from '../../components/FullscreenEditor.vue'
+
 const router = useRouter()
 const products = ref<Product[]>([])
 const stockpiles = ref<Record<string, Stockpile>>({})
@@ -792,11 +794,41 @@ const handleProductClick = (productId: string) => {
   router.push(`/product/${productId}`)
 }
 
+//笔记
 const noteTab = ref('all')
 const notes = ref<NoteVO[]>([])
 const likedNoteIds = ref<Set<number>>(new Set())
 const paidNoteIds = ref<Set<number>>(new Set())
 const createNoteDialogVisible = ref(false)
+
+const detailNoteDialogVisible = ref(false);
+const editNoteDialogVisible = ref(false);
+const currentNote = ref<NoteVO | null>(null);
+const editNoteForm = reactive({
+  id: -1,
+  title: '',
+  content: '',
+  price: 0,
+  img: ''
+});
+
+// 查看笔记详情
+const handleViewNote = (note: NoteVO) => {
+  currentNote.value = note;
+  detailNoteDialogVisible.value = true;
+};
+
+// 打开编辑弹窗
+const openEditNote = (note: NoteVO) => {
+  detailNoteDialogVisible.value = false;
+  editNoteForm.id = note.id;
+  editNoteForm.title = note.title;
+  editNoteForm.content = note.content;
+  editNoteForm.price = note.price;
+  editNoteForm.img = note.img;
+  editNoteDialogVisible.value = true;
+};
+
 const noteForm = reactive<CreateNoteInfo>({
   title: '',
   content: '',
@@ -832,6 +864,43 @@ const fetchNotes = async () => {
     ElMessage.error('获取笔记失败')
   }
 }
+
+// 处理笔记图片上传（编辑时）
+const handleEditNoteImageUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false });
+  try {
+    const { file } = params;
+    const response = await uploadUserImage(file);
+    editNoteForm.img = response.data.data;
+    ElMessage.success('图片上传成功');
+  } catch (error) {
+    ElMessage.error('图片上传失败');
+  } finally {
+    loading.close();
+  }
+};
+
+// 更新笔记
+const updateNoteHandler = async () => {
+  try {
+    // 构造符合UpdateNoteInfo接口的对象
+    const updateData = {
+      id: editNoteForm.id,
+      title: editNoteForm.title,
+      content: editNoteForm.content,
+      price: editNoteForm.price,
+      img: editNoteForm.img
+    };
+
+    await updateNote(updateData);  // 传递完整的更新对象
+    ElMessage.success('笔记更新成功');
+    editNoteDialogVisible.value = false;
+    await fetchNotes();
+  } catch (error) {
+    ElMessage.error('更新失败');
+    console.error('更新笔记错误:', error);
+  }
+};
 
 // 检查点赞状态
 const checkLikeStatuses = async () => {
@@ -938,6 +1007,31 @@ const handlePurchaseNote = async (note: NoteVO) => {
   }
 }
 
+// 全屏编辑相关状态
+const fullscreenEditor = reactive({
+  visible: false,
+  content: '',
+  mode: 'create', // 'create' | 'edit'
+  title: '全屏编辑'
+})
+
+// 打开全屏编辑器
+const openFullscreenEditor = (mode: 'create' | 'edit') => {
+  fullscreenEditor.mode = mode
+  fullscreenEditor.title = mode === 'create' ? '新建笔记-全屏编辑' : '编辑笔记-全屏编辑'
+  fullscreenEditor.content = mode === 'create' ? noteForm.content : editNoteForm.content
+  fullscreenEditor.visible = true
+}
+
+// 处理全屏编辑器内容更新
+const handleFullscreenUpdate = (content: string) => {
+  if (fullscreenEditor.mode === 'create') {
+    noteForm.content = content
+  } else {
+    editNoteForm.content = content
+  }
+}
+
 onMounted(async () => {
   // 先获取用户信息
   try {
@@ -994,6 +1088,96 @@ onUnmounted(() => {
       </el-button>
     </div>
 
+    <!-- 笔记详情弹窗 -->
+    <el-dialog
+        v-model="detailNoteDialogVisible"
+        title="笔记详情"
+        width="600px"
+    >
+      <div v-if="currentNote" class="note-detail">
+        <div class="detail-header">
+          <h2>{{ currentNote.title }}</h2>
+          <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
+            <template v-if="currentNote.price > 0">
+              ¥{{ currentNote.price }}
+              <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
+            </template>
+            <span v-else class="free">免费</span>
+          </div>
+        </div>
+
+        <el-image
+            v-if="currentNote.img"
+            :src="currentNote.img"
+            class="note-image"
+            style="max-width: 100%; margin: 10px 0;"
+        />
+        <div class="note-content" style="white-space: pre-wrap;">{{ currentNote.content }}</div>
+        <div class="actions" v-if="currentUserId === currentNote.creatorId" style="margin-top: 20px;">
+          <el-button type="primary" @click="openEditNote(currentNote)">编辑笔记</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 编辑笔记弹窗 -->
+    <el-dialog
+        v-model="editNoteDialogVisible"
+        title="编辑笔记"
+        width="600px"
+    >
+      <el-form :model="editNoteForm" label-width="80px">
+        <el-form-item label="标题" required>
+          <el-input v-model="editNoteForm.title" />
+        </el-form-item>
+        <el-form-item label="内容" required>
+          <div class="content-editor">
+            <el-input
+                v-model="editNoteForm.content"
+                type="textarea"
+                :rows="4"
+                resize="none"
+            />
+            <el-button
+                type="primary"
+                plain
+                @click="openFullscreenEditor('edit')"
+                class="fullscreen-btn"
+            >
+              全屏模式
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="价格">
+          <el-input-number
+              v-model="editNoteForm.price"
+              :min="0"
+              :precision="2"
+          />
+        </el-form-item>
+        <el-form-item label="封面图">
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleEditNoteImageUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">上传新图片</el-button>
+            </template>
+            <img
+                v-if="editNoteForm.img"
+                :src="editNoteForm.img"
+                class="preview-image"
+                style="max-width: 200px; margin-top: 10px;"
+            />
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editNoteDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="updateNoteHandler">保存修改</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 新建笔记对话框 -->
     <el-dialog
         v-model="createNoteDialogVisible"
@@ -1005,7 +1189,22 @@ onUnmounted(() => {
           <el-input v-model="noteForm.title"/>
         </el-form-item>
         <el-form-item label="内容" required>
-          <el-input v-model="noteForm.content" type="textarea" :rows="4"/>
+          <div class="content-editor">
+            <el-input
+                v-model="noteForm.content"
+                type="textarea"
+                :rows="4"
+                resize="none"
+            />
+            <el-button
+                type="primary"
+                plain
+                @click="openFullscreenEditor('create')"
+                class="fullscreen-btn"
+            >
+              全屏模式
+            </el-button>
+          </div>
         </el-form-item>
         <el-form-item label="价格">
           <el-input-number
@@ -1169,6 +1368,7 @@ onUnmounted(() => {
             @unlike="handleUnlikeNote"
             @delete="handleDeleteNote"
             @purchase="handlePurchaseNote"
+            @view="handleViewNote"
         />
       </div>
     </div>
@@ -1513,6 +1713,12 @@ onUnmounted(() => {
       </div>
     </el-dialog>
   </div>
+  <FullscreenEditor
+      v-model="fullscreenEditor.visible"
+      v-model:content="fullscreenEditor.content"
+      :title="fullscreenEditor.title"
+      @update:content="handleFullscreenUpdate"
+  />
 </template>
 
 <style scoped>
@@ -2068,4 +2274,41 @@ onUnmounted(() => {
   color: #2c698d;
   transform: translateY(-3px);
 }
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-header h2 {
+  font-size: 24px;
+  color: #303133;
+  margin: 0;
+}
+
+.detail-price {
+  font-size: 18px;
+  color: #e6a23c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-price .paid {
+  color: #67c23a;
+}
+
+.detail-price .paid-badge {
+  background: #f0f9eb;
+  color: #67c23a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.detail-price .free {
+  color: #909399;
+}
+
 </style>

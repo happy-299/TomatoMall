@@ -15,11 +15,17 @@ const emit = defineEmits<{
   (e: 'unlike', note: NoteVO): void
   (e: 'delete', id: number): void
   (e: 'purchase', note: NoteVO): void
+  (e: 'view', note: NoteVO): void
 }>()
 
 const handleLike = () => {
   emit('like', props.note)
 }
+
+const handleTitleClick = () => {
+  emit('view', props.note)
+}
+
 
 const handleUnlike = () => {
   emit('unlike', props.note)
@@ -37,7 +43,14 @@ const handlePurchase = () => {
 <template>
   <div class="note-card">
     <div class="note-header">
-      <h3>{{ note.title }}</h3>
+      <el-link
+          type="primary"
+          :underline="false"
+          class="note-title"
+          @click="handleTitleClick"
+      >
+        {{ note.title }}
+      </el-link>
       <div class="actions">
         <el-button
             v-if="!isPaid && note.price > 0"
@@ -67,9 +80,17 @@ const handlePurchase = () => {
         </el-button>
       </div>
     </div>
+    <!-- 新增价格显示 -->
+    <div class="note-price" :class="{ 'paid': isPaid }">
+      <template v-if="note.price > 0">
+        ¥{{ note.price }}
+        <span v-if="isPaid" class="paid-badge">已购买</span>
+      </template>
+      <span v-else class="free">免费</span>
+    </div>
+
     <div class="note-content">
       <img v-if="note.img" :src="note.img" class="note-image" alt="笔记封面" />
-      <p>{{ note.content }}</p>
     </div>
     <div class="note-footer">
       <span>浏览量: {{ note.viewCnt }}</span>
@@ -134,5 +155,40 @@ const handlePurchase = () => {
   margin-top: 12px;
   font-size: 12px;
   color: #666;
+}
+
+.note-title {
+  font-size: 18px;  /* 放大标题 */
+  color: #333;      /* 默认黑色 */
+  transition: color 0.3s;
+}
+
+.note-title:hover {
+  color: #409EFF;   /* 悬停蓝色 */
+}
+
+.note-price {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #e6a23c;   /* 价格橙色 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-price .paid {
+  color: #67c23a;   /* 已购买绿色 */
+}
+
+.paid-badge {
+  background: #f0f9eb;
+  color: #67c23a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.free {
+  color: #909399;
 }
 </style>

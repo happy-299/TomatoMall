@@ -12,10 +12,12 @@ const router = createRouter({
         redirect: '/login',
     }, {
         path: '/login',
+        name: 'Login',
         component: () => import('../views/user/Login.vue'),
         meta: {title: '用户登录'}
     }, {
         path: '/register',
+        name: 'Register',
         component: () => import('../views/user/Register.vue'),
         meta: {title: '用户注册'}
     }, {
