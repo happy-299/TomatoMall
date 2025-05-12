@@ -35,7 +35,7 @@ public class Product
     private Double rate;
 
     @Basic
-    @Column(length = 255)
+    @Column(length = 2000)
     private String description;
 
     @Basic
@@ -43,7 +43,7 @@ public class Product
     private String cover;
 
     @Basic
-    @Column(length = 500)
+    @Column(length = 2000)
     private String detail;
 
     @OneToMany(mappedBy = "product")

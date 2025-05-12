@@ -29,6 +29,7 @@ public class Note
     private String title;
 
     @Basic
+    @Column(length = 2000)
     private String content;
 
     @Basic
