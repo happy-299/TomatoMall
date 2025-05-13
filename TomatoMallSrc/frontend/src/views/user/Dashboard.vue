@@ -1,12 +1,13 @@
 <!-- Dashboard.vue -->
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {getUserInfo, updateUserInfo} from '../../api/user'
 import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
-import {UserFilled} from '@element-plus/icons-vue'
+import {UserFilled, Food, Money} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
+import {submitTomatoRecharge, payOrder, alipayHelper} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
 import { applyVerification } from '../../api/verification'
 import { ElTag } from 'element-plus'
@@ -40,7 +41,8 @@ const userData = ref({
   confirmPassword: '',
   isVerified: false,
   followingCount: 0,
-  followerCount: 0
+  followerCount: 0,
+  tomato: 0
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -61,6 +63,17 @@ const currentUserId = ref<number | null>(null)
 // 书单详情相关
 const detailDialogVisible = ref(false)
 const currentBookList = ref<BookListVO | null>(null)
+
+// 圣女果充值相关
+const showRechargeDialog = ref(false)
+const rechargeAmount = ref(0)
+const rechargeFormRef = ref<FormInstance>()
+const rechargeRules = {
+  amount: [
+    { required: true, message: '请输入充值数量', trigger: 'blur' },
+    { type: 'number', min: 1, message: '充值数量必须大于0', trigger: 'blur' }
+  ]
+}
 
 const rules = {
   username: [
@@ -148,7 +161,8 @@ const fetchUserInfo = async () => {
       confirmPassword: '',
       isVerified: res.data.data.isVerified,
       followingCount: res.data.data.followingCount,
-      followerCount: res.data.data.followerCount
+      followerCount: res.data.data.followerCount,
+      tomato: res.data.data.tomato || 0
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
@@ -381,6 +395,73 @@ const handleAvatarUpload = async (params: any) => {
     loading.close();
   }
 };
+
+// 处理圣女果充值
+const handleRecharge = async () => {
+  if (!rechargeFormRef.value) return
+
+  try {
+    await rechargeFormRef.value.validate()
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在创建充值订单...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      // 计算实际支付金额（1元=10个圣女果）
+      const actualAmount = rechargeAmount.value / 10;
+
+      // 提交充值订单
+      const rechargeData = {
+        tomato: rechargeAmount.value,
+        payment_method: 'ALIPAY',
+        shipping_address: {
+          recipientName: "系统充值",
+          telephone: "00000000000",
+          zipCode: "000000",
+          location: "系统充值"
+        }
+      };
+
+      console.log('=== 充值调试信息 ===');
+      console.log('1. 充值请求数据:', rechargeData);
+      console.log('   实际支付金额:', actualAmount, '元');
+
+      const response = await submitTomatoRecharge(rechargeData)
+      console.log('2. 充值订单响应:', response);
+
+      if (response.data.code === '200') {
+        console.log('3. 订单创建成功，准备调用支付接口');
+        // 调用支付接口
+        const payResponse = await payOrder(response.data.data.orderId)
+        console.log('4. 支付接口响应:', payResponse);
+
+        // 渲染支付表单
+        console.log('5. 准备渲染支付表单');
+        alipayHelper.renderPaymentForm(payResponse.paymentForm)
+
+        showRechargeDialog.value = false
+        rechargeAmount.value = 0
+        console.log('6. 充值流程完成，等待支付结果');
+      } else {
+        console.error('充值订单创建失败:', response.data.msg);
+        throw new Error(response.data.msg || '创建充值订单失败')
+      }
+    } finally {
+      loading.close()
+    }
+  } catch (error) {
+    console.error('充值失败:', error)
+    ElMessage.error('充值失败，请重试')
+  }
+}
+
+// 修改充值对话框中的金额显示
+const calculateTotalAmount = computed(() => {
+  return (rechargeAmount.value / 10).toFixed(2);
+});
 </script>
 
 <template>
@@ -427,6 +508,20 @@ const handleAvatarUpload = async (params: any) => {
               <div class="social-stats">
                 <span>关注 {{ userData.followingCount }}</span>
                 <span>粉丝 {{ userData.followerCount }}</span>
+              </div>
+              <h2>{{ userData.username }}</h2>
+              <p class="role-tag">{{ role }}</p>
+              <div class="tomato-info">
+                <el-icon><Food /></el-icon>
+                <span>{{ userData.tomato }} 圣女果</span>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="showRechargeDialog = true"
+                  class="recharge-btn"
+                >
+                  充值
+                </el-button>
               </div>
             </div>
           </div>
@@ -636,6 +731,85 @@ const handleAvatarUpload = async (params: any) => {
         <el-button type="primary" @click="handleApplyVerification">提交申请</el-button>
       </template>
     </el-dialog>
+
+    <!-- 圣女果充值对话框 -->
+    <el-dialog
+      v-model="showRechargeDialog"
+      title="圣女果充值"
+      width="500px"
+      class="recharge-dialog"
+    >
+      <div class="recharge-content">
+        <div class="recharge-header">
+          <el-icon class="tomato-icon"><Food /></el-icon>
+          <h3>圣女果充值</h3>
+          <p class="current-balance">当前余额：{{ userData.tomato }} 圣女果</p>
+        </div>
+
+        <el-form
+          ref="rechargeFormRef"
+          :model="{ amount: rechargeAmount }"
+          :rules="rechargeRules"
+          label-width="0"
+          class="recharge-form"
+        >
+          <el-form-item prop="amount">
+            <div class="amount-input-wrapper">
+              <span class="amount-label">充值数量</span>
+              <el-input-number
+                v-model="rechargeAmount"
+                :min="1"
+                :step="1"
+                :precision="0"
+                size="large"
+                class="amount-input"
+                placeholder="请输入充值数量"
+              />
+            </div>
+          </el-form-item>
+
+          <div class="quick-amounts">
+            <el-button
+              v-for="amount in [10, 50, 100, 200]"
+              :key="amount"
+              :class="['quick-amount-btn', { active: rechargeAmount === amount }]"
+              @click="rechargeAmount = amount"
+            >
+              {{ amount }}个
+            </el-button>
+          </div>
+
+          <div class="payment-method">
+            <span class="method-label">支付方式</span>
+            <div class="method-options">
+              <div class="method-option active">
+                <el-icon><Money /></el-icon>
+                <span>支付宝</span>
+              </div>
+            </div>
+          </div>
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <div class="total-amount">
+            <span>总计：</span>
+            <span class="amount">¥{{ calculateTotalAmount }}</span>
+          </div>
+          <div class="action-buttons">
+            <el-button @click="showRechargeDialog = false">取消</el-button>
+            <el-button
+              type="primary"
+              @click="handleRecharge"
+              :disabled="!rechargeAmount"
+            >
+              立即充值
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -691,6 +865,22 @@ const handleAvatarUpload = async (params: any) => {
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0;
+}
+
+.tomato-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: #ff6b6b;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.tomato-info .el-icon {
+  font-size: 1.4rem;
+  color: #ff6b6b;
+  transform: rotate(-15deg);
 }
 
 .upload-tip {
@@ -1148,5 +1338,206 @@ const handleAvatarUpload = async (params: any) => {
     order: 3;
     width: 100%;
   }
+}
+
+.recharge-btn {
+  margin-left: 1rem;
+  background-color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+.recharge-btn:hover {
+  background-color: #ff5252;
+  border-color: #ff5252;
+}
+
+.recharge-dialog :deep(.el-dialog__header) {
+  margin: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.recharge-dialog :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.recharge-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.recharge-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #ebeef5;
+}
+
+.recharge-content {
+  padding: 24px;
+}
+
+.recharge-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.tomato-icon {
+  font-size: 48px;
+  color: #ff6b6b;
+  margin-bottom: 16px;
+  transform: rotate(-15deg);
+}
+
+.recharge-header h3 {
+  font-size: 20px;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.current-balance {
+  color: #606266;
+  font-size: 14px;
+  margin: 0;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.amount-label {
+  font-size: 16px;
+  color: #2c3e50;
+  font-weight: 500;
+  min-width: 70px;
+}
+
+.amount-input {
+  flex: 1;
+}
+
+.amount-input :deep(.el-input-number__decrease),
+.amount-input :deep(.el-input-number__increase) {
+  background-color: #f5f7fa;
+}
+
+.amount-input :deep(.el-input__inner) {
+  text-align: center;
+  font-size: 16px;
+}
+
+.quick-amounts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.quick-amount-btn {
+  height: 40px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #606266;
+  background-color: #fff;
+  transition: all 0.3s;
+}
+
+.quick-amount-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.quick-amount-btn.active {
+  background-color: #ff6b6b;
+  border-color: #ff6b6b;
+  color: #fff;
+}
+
+.payment-method {
+  margin-top: 24px;
+}
+
+.method-label {
+  display: block;
+  font-size: 16px;
+  color: #2c3e50;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.method-options {
+  display: flex;
+  gap: 16px;
+}
+
+.method-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.method-option:hover {
+  border-color: #ff6b6b;
+}
+
+.method-option.active {
+  border-color: #ff6b6b;
+  background-color: #fff5f5;
+}
+
+.method-option .el-icon {
+  font-size: 20px;
+  color: #ff6b6b;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-amount {
+  font-size: 16px;
+  color: #606266;
+}
+
+.total-amount .amount {
+  font-size: 24px;
+  color: #ff6b6b;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.action-buttons .el-button {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.action-buttons .el-button--primary {
+  background-color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+.action-buttons .el-button--primary:hover {
+  background-color: #ff5252;
+  border-color: #ff5252;
+}
+
+.action-buttons .el-button--primary:disabled {
+  background-color: #ffb3b3;
+  border-color: #ffb3b3;
 }
 </style>

@@ -25,6 +25,8 @@ type UpdateInfo = {
     telephone?: string
     email?: string
     location?: string
+    role?: string
+    tomato?: number
 }
 
 // 用户登录
@@ -58,12 +60,33 @@ export const getUserInfo = (username: string) => {
 // 更新用户信息
 export const updateUserInfo = (updateInfo: UpdateInfo) => {
     const token = sessionStorage.getItem('token');
-    return axios.put(USER_MODULE, updateInfo, {
+    console.log('发送更新用户信息请求:', {
+        url: USER_MODULE,
+        data: updateInfo,
         headers: {
             'Content-Type': 'application/json',
             'token': token
         }
-    })
+    });
+
+    // 确保所有字段都被正确传递
+    const updateData = {
+        ...updateInfo,
+        tomato: updateInfo.tomato !== undefined ? updateInfo.tomato : undefined
+    };
+
+    return axios.put(USER_MODULE, updateData, {
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token
+        }
+    }).then(res => {
+        console.log('更新用户信息响应:', res.data);
+        return res;
+    }).catch(error => {
+        console.error('更新用户信息失败:', error);
+        throw error;
+    });
 }
 
 /* 新增关注相关接口 */
