@@ -55,6 +55,9 @@ public class Order
     @Column(name = "reduced_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal reducedAmount;//用优惠券，扣减的金额
 
+    @Column(name = "buy_tomato_cnt")
+    private Integer buyTomatoCnt = 0;//如果是购买番茄的订单，需要填写此字段
+
 //    @Column(name = "cartItemIds")
 //    private List<String> cartItemIds;// 用于返还过期订单的冻结库存
 
