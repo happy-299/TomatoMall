@@ -60,35 +60,34 @@ const handleLogin = async () => {
             });
             
             try {
+              // 只发送必要的字段
               const updateResponse = await updateUserInfo({
                 username: username.value,
-                name: userData.name,
-                avatar: userData.avatar,
-                telephone: userData.telephone,
-                email: userData.email,
-                location: userData.location,
-                role: userData.role,
                 tomato: newTomatoCount
               });
               console.log('更新圣女果响应:', updateResponse.data);
               
-              // 更新本地存储的最后登录日期
-              localStorage.setItem(`lastLogin_${username.value}`, today);
-              
-              // 重新获取用户信息以更新圣女果数量
-              const updatedUserInfo = await getUserInfo(username.value);
-              console.log('更新后的用户信息:', updatedUserInfo.data);
-              
-              if (updatedUserInfo.data.code === '200') {
-                userData = updatedUserInfo.data.data;
-                console.log('更新后的用户数据:', userData);
+              if (updateResponse.data.code === '200') {
+                // 更新本地存储的最后登录日期
+                localStorage.setItem(`lastLogin_${username.value}`, today);
+                
+                // 重新获取用户信息以更新圣女果数量
+                const updatedUserInfo = await getUserInfo(username.value);
+                console.log('更新后的用户信息:', updatedUserInfo.data);
+                
+                if (updatedUserInfo.data.code === '200') {
+                  userData = updatedUserInfo.data.data;
+                  console.log('更新后的用户数据:', userData);
+                  
+                  ElMessage({
+                    message: "每日登录奖励：获得2个圣女果！",
+                    type: 'success',
+                    center: true,
+                  });
+                }
+              } else {
+                throw new Error(updateResponse.data.msg || '更新失败');
               }
-              
-              ElMessage({
-                message: "每日登录奖励：获得2个圣女果！",
-                type: 'success',
-                center: true,
-              });
             } catch (error) {
               console.error('更新圣女果数量失败:', error);
               ElMessage.error('更新圣女果数量失败');

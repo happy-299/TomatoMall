@@ -1,6 +1,6 @@
 // src/api/order.ts
 import request from '../utils/request'
-import type { OrderSubmitData } from '../types/order'
+//import type { OrderSubmitData } from '../types/order'
 
 export interface Order {
     orderId: number; // 改为字符串类型
@@ -37,7 +37,41 @@ export interface OrderSubmitData {
         location: string;
     };
     payment_method: string;
-    couponId?: number; // 添加优惠券ID参数
+    couponId?: number;
+    tomato?: number; // 添加圣女果数量字段
+}
+
+// 圣女果充值请求数据
+export interface TomatoRechargeData {
+    tomato: number;
+    payment_method: string;
+    shipping_address: {
+        recipientName: string;
+        telephone: string;
+        zipCode: string;
+        location: string;
+    };
+}
+
+// 提交圣女果充值订单
+export function submitTomatoRecharge(data: TomatoRechargeData) {
+    return request({
+        url: '/api/cart/tomato',
+        method: 'post',
+        data: {
+            tomato: data.tomato, // 确保包含tomato字段
+            payment_method: data.payment_method,
+            cartItemIds: [], // 充值订单不需要购物车商品
+            useCoupon: false, // 充值订单不使用优惠券
+            couponId: -1,
+            shipping_address: {
+                recipientName: "系统充值",
+                telephone: "00000000000",
+                zipCode: "000000",
+                location: "系统充值"
+            }
+        }
+    });
 }
 
 // 修正点1：参数对象语法修复
@@ -118,6 +152,19 @@ export const alipayHelper = {
         const urlParams = new URLSearchParams(window.location.search)
         if (urlParams.get('success') === 'true') {
             console.log('前端回调处理：支付成功')
+            // 支付成功后刷新用户信息
+            const event = new CustomEvent('payment-success')
+            window.dispatchEvent(event)
         }
     }
+}
+
+// 添加支付状态检查函数
+export function checkPaymentStatus(orderId: string): Promise<boolean> {
+    return request({
+        url: `/api/orders/${orderId}/status`,
+        method: 'GET'
+    }).then(response => {
+        return response.data.data.status === 'PAID'
+    })
 }
