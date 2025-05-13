@@ -2,9 +2,7 @@ package com.seecoder.TomatoMall.controller;
 
 import com.seecoder.TomatoMall.service.AccountService;
 import com.seecoder.TomatoMall.service.ChatService;
-import com.seecoder.TomatoMall.vo.ChatMessageVO;
-import com.seecoder.TomatoMall.vo.ChatSessionMetaVO;
-import com.seecoder.TomatoMall.vo.Response;
+import com.seecoder.TomatoMall.vo.*;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +26,11 @@ public class ChatController {
         private String content;
     }
 
+    @PostMapping("/talk")
+    public Response<ChatReplyVO> talk(@RequestBody ChatTalkDTO dto) {
+        Integer uid = accountService.getInformation().getId();
+        return Response.buildSuccess(chatService.talkWithAi(uid, dto));
+    }
 
 
     /** 前端把 USER / AI 消息都回传此接口保存 */
