@@ -47,13 +47,14 @@ public class BookListServiceImpl implements BookListService {
     @Transactional
     public BookListVO create(
             Integer creatorId,
-            String title, String description, List<Integer> productIds
+            String title, String description, String picture, List<Integer> productIds
             ) {
         Account creator = accountRepo.getOne(creatorId);
 
         BookList list = new BookList();
         list.setTitle(title);
         list.setDescription(description);
+        list.setPicture(picture);
         list.setCreator(creator);
         list = listRepo.save(list);
 

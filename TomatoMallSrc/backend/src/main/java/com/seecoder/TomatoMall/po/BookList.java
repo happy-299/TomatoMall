@@ -28,6 +28,9 @@ public class BookList {
     @Basic
     private String description;
 
+    @Basic
+    private String picture;
+
     @OneToMany(mappedBy = "bookList",
             cascade = CascadeType.ALL,
             orphanRemoval = true)

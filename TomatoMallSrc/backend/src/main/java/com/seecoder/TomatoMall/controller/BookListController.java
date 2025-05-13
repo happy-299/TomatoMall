@@ -24,6 +24,7 @@ public class BookListController {
     public static class BookListCreateDTO {
         private String title;
         private String description;
+        private String picture;
         private List<Integer> productIds;         // Product.id 列表
     }
 
@@ -38,14 +39,12 @@ public class BookListController {
         private Integer productId;    // 要添加/删除的图书
     }
 
-
-
     /** 创建书单 */
     @PostMapping
     public Response<BookListVO> create(@RequestBody BookListCreateDTO dto) {
         Integer uid = accountService.getInformation().getId();
         return Response.buildSuccess(bookListService.create(
-                uid, dto.getTitle(), dto.getDescription(), dto.getProductIds()
+                uid, dto.getTitle(), dto.getDescription(), dto.getPicture(), dto.getProductIds()
                 ));
     }
 

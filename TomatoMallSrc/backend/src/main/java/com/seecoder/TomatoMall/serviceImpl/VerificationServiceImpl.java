@@ -30,7 +30,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     @Transactional
-    public void apply(Integer accountId, String reason, List<String> imgUrls) {
+    public void apply(Integer accountId, String verifiedName, String reason, List<String> imgUrls) {
         Account acc = accountRepo.findById(accountId)
                 .orElseThrow(() -> new TomatoMallException("账号不存在"));
 
@@ -42,6 +42,7 @@ public class VerificationServiceImpl implements VerificationService {
         app.setAccount(acc);
         app.setReasonText(reason);
         app.setProofImgs(imgUrls);
+        app.setVerifiedName(verifiedName);
         verRepo.save(app);
     }
 
@@ -66,6 +67,7 @@ public class VerificationServiceImpl implements VerificationService {
         if (pass) {
             Account acc = app.getAccount();
             acc.setIsVerified(true);
+            acc.setVerifiedName(app.getVerifiedName());
             accountRepo.save(acc);
         } else {
             app.setRejectReason(rejectReason);

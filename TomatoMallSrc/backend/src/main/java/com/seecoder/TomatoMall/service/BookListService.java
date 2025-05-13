@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface BookListService {
 
-    BookListVO create(Integer creatorId, String title, String description, List<Integer> productIds);
+    BookListVO create(Integer creatorId, String title, String description, String picture, List<Integer> productIds);
 
     void delete(Integer creatorId, Integer bookListId);        // 只能删自己的
 

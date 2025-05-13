@@ -15,6 +15,7 @@ public class VerificationVO {
     private String username;          // 方便前端直接显示昵称 / 用户名
 
     /** 申请内容 */
+    private String verifiedName;
     private String reasonText;
     private List<String> proofImgs;
 
