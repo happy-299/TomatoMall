@@ -1,7 +1,7 @@
 <!-- Header.vue -->
 <script setup lang="ts">
 import { router } from '../router'
-import { User, ShoppingCart, SwitchButton, Menu, Search, Tickets } from '@element-plus/icons-vue'
+import { User, ShoppingCart, SwitchButton, Menu, Search, Tickets, Medal } from '@element-plus/icons-vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getSearchHistory, type SearchHistoryItem } from '../api/search'
@@ -119,6 +119,11 @@ function logout() {
       </div>
 
       <div class="right-section">
+        <el-tooltip content="官方认证大师榜" placement="bottom">
+          <el-icon :size="24" class="header-icon" @click="router.push('/verification-list')">
+            <Medal />
+          </el-icon>
+        </el-tooltip>
         <el-tooltip content="优惠券" placement="bottom">
           <el-icon :size="24" class="header-icon" @click="router.push('/coupons')">
             <Tickets />

@@ -2,7 +2,7 @@
 <template>
   <div class="ai-chat-window" :style="windowStyle">
     <div class="chat-header">
-      <h3>AI小助手</h3>
+      <h3>AI导购</h3>
       <el-button
           circle
           @click="close"

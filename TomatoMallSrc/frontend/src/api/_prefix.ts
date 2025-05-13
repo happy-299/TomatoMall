@@ -12,4 +12,5 @@ export const UTIL_MODULE = `${API_MODULE}/utils`
 export const ADVERTISEMENT_MODULE = `${API_MODULE}/advertisements`
 //笔记模块
 export const NOTE_MODULE= `${API_MODULE}/notes`
-
+//认证模块
+export const VERIFICATION_MODULE= `${API_MODULE}/verification`
