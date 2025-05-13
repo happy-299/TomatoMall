@@ -139,6 +139,7 @@ public class CartServiceImpl implements CartService
         Order order = new Order();
         fillOrder(checkoutRequest.getUseCoupon(), order,
                 checkoutRequest.getCouponId(), totalAmount, checkoutRequest.getPayment_method());
+        order.setBuyTomatoCnt(cnt);//注意设置，最后需要支付成功后增加tomato数量
         return fillRetWithOrder(order);
     }
 

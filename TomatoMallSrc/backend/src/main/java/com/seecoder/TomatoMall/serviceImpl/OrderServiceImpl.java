@@ -16,9 +16,11 @@ import com.seecoder.TomatoMall.repository.StockpileRepository;
 import com.seecoder.TomatoMall.service.OrderService;
 import com.seecoder.TomatoMall.util.OssUtil;
 import com.seecoder.TomatoMall.util.SecurityUtil;
+import com.seecoder.TomatoMall.vo.AccountVO;
 import com.seecoder.TomatoMall.vo.OrderVO;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,9 @@ import java.util.stream.Collectors;
 @Setter
 public class OrderServiceImpl implements OrderService
 {
+    @Autowired
+    AccountServiceImpl accountServiceImpl;
+
     private final OssUtil ossUtil;
     private final OrderRepository orderRepository;
     private final SecurityUtil securityUtil;
@@ -57,7 +62,7 @@ public class OrderServiceImpl implements OrderService
 
     private static final String FORMAT = "JSON";
 
-    public OrderServiceImpl(OssUtil ossUtil, OrderRepository orderRepository, SecurityUtil securityUtil, UtilServiceImpl utilServiceImpl, StockpileRepository stockpileRepository, ProductServiceImpl productServiceImpl, AccountRepository accountRepository)
+    public OrderServiceImpl(OssUtil ossUtil, OrderRepository orderRepository, SecurityUtil securityUtil, UtilServiceImpl utilServiceImpl, StockpileRepository stockpileRepository, ProductServiceImpl productServiceImpl, AccountRepository accountRepository, AccountServiceImpl accountServiceImpl)
     {
         this.ossUtil = ossUtil;
         this.orderRepository = orderRepository;
@@ -68,7 +73,7 @@ public class OrderServiceImpl implements OrderService
         this.accountRepository = accountRepository;
     }
 
-
+    @Transactional
     public void handleAlipayNotify(HttpServletRequest request, HttpServletResponse response) throws IOException
     {
         System.out.println("触发支付宝回调函数handleAlipayNotify");
@@ -104,6 +109,9 @@ public class OrderServiceImpl implements OrderService
 
             // 扣减库存（建议加锁或乐观锁）
             productServiceImpl.reduceStock(orderId);
+
+            //购买番茄-> handle in updateOrderStatus
+
         }
 
         // 4. 必须返回纯文本的 "success"（支付宝要求）
@@ -228,6 +236,16 @@ public class OrderServiceImpl implements OrderService
             {
                 paidOrder.setStringStatus("SUCCESS");
                 orderRepository.save(paidOrder);
+
+                //add番茄
+                if (paidOrder.getBuyTomatoCnt() > 0)
+                {
+                    Integer beforeCnt = securityUtil.getCurrentAccount().getTomato();
+                    Integer afterCnt = beforeCnt + paidOrder.getBuyTomatoCnt();
+                    AccountVO toUpdate = new AccountVO();
+                    toUpdate.setTomato(afterCnt);
+                    accountServiceImpl.updateInformation(toUpdate);
+                }
                 return;
             }
             throw TomatoMallException.alipayUnknownError();//支付金额不等，或者对非进行中的订单进行支付
