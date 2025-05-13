@@ -27,6 +27,9 @@ public class VerificationApplication {
     @Basic
     private String reasonText;
 
+    @Basic
+    private String verifiedName;
+
     @ElementCollection
     @CollectionTable(
             name = "verification_application_img",
@@ -38,7 +41,6 @@ public class VerificationApplication {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private VerificationStatus status = VerificationStatus.PENDING;
-
 
 
     @ManyToOne(fetch = FetchType.LAZY)

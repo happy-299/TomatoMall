@@ -68,6 +68,9 @@ public class Account
     @Basic
     private Boolean isVerified = false;
 
+    @Basic
+    private String verifiedName = null;
+
     // 粉丝数量
     @Basic
     private Integer followerCount = 0;

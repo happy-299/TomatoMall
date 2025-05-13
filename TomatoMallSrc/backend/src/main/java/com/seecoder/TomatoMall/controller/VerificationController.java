@@ -32,7 +32,7 @@ public class VerificationController {
     public Response<String> apply(@RequestBody VerificationApplyDTO request) {
         AccountVO accountVO = accountService.getInformation();
         verificationService.apply(
-                accountVO.getId(), request.reasonText, request.proofImgs
+                accountVO.getId(), request.getVerifiedName(), request.reasonText, request.proofImgs
         );
         return Response.buildSuccess("申请成功");
     }
@@ -97,6 +97,7 @@ public class VerificationController {
 
     @Data
     public static class VerificationApplyDTO {
+        private String verifiedName;
         private String reasonText;
         private List<String> proofImgs;
     }

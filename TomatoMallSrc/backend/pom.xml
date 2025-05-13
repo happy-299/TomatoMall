@@ -82,6 +82,12 @@
             <version>1.3.3</version>
         </dependency>
 
+<!--        openai-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
 
     </dependencies>
 
