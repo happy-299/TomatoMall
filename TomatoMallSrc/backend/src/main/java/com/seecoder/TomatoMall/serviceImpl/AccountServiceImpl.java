@@ -117,6 +117,10 @@ public class AccountServiceImpl implements AccountService
             account.setRole(accountVO.getRole());
         }
         //todo:may wrong--是否更新后来添加的字段？
+        if (accountVO.getTomato() != null)
+        {
+            account.setTomato(accountVO.getTomato());
+        }
         accountRepository.save(account);
         return true;
     }
