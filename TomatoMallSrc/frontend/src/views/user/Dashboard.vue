@@ -4,7 +4,7 @@ import {ref, onMounted} from 'vue'
 import {useRouter} from 'vue-router'
 import {getUserInfo, updateUserInfo} from '../../api/user'
 import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
-import {UserFilled} from '@element-plus/icons-vue'
+import {UserFilled, Food} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
 import BookListItem from '../../components/BookListItem.vue'
@@ -19,7 +19,8 @@ const userData = ref({
   location: '',
   role: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  tomato: 0
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -116,7 +117,8 @@ const fetchUserInfo = async () => {
       location: res.data.data.location || '',
       role: res.data.data.role,
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      tomato: res.data.data.tomato || 0
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
@@ -333,6 +335,10 @@ const handleAvatarUpload = async (params: any) => {
             <div class="user-basic-info">
               <h2>{{ userData.username }}</h2>
               <p class="role-tag">{{ role }}</p>
+              <div class="tomato-info">
+                <el-icon><Food /></el-icon>
+                <span>{{ userData.tomato }} 圣女果</span>
+              </div>
             </div>
           </div>
         </div>
@@ -563,6 +569,22 @@ const handleAvatarUpload = async (params: any) => {
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0;
+}
+
+.tomato-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: #ff6b6b;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.tomato-info .el-icon {
+  font-size: 1.4rem;
+  color: #ff6b6b;
+  transform: rotate(-15deg);
 }
 
 .upload-tip {

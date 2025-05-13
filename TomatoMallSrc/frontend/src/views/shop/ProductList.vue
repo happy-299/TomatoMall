@@ -522,7 +522,8 @@ const createDialogVisible = ref(false)
 const createForm = ref<BookListCreateDTO>({
   title: '',
   description: '',
-  productIds: []
+  productIds: [],
+  img: ''
 })
 
 // 书单详情相关
@@ -690,7 +691,8 @@ const handleCreate = async () => {
     createForm.value = {
       title: '',
       description: '',
-      productIds: []
+      productIds: [],
+      img: ''
     }
     // 如果当前在书单标签页，刷新书单列表
     if (activeTab.value === 'booklists') {
@@ -1029,6 +1031,21 @@ const handleFullscreenUpdate = (content: string) => {
     noteForm.content = content
   } else {
     editNoteForm.content = content
+  }
+}
+
+// 处理书单图片上传
+const handleBookListImageUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false})
+  try {
+    const {file} = params
+    const response = await uploadUserImage(file)
+    createForm.value.img = response.data.data
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
   }
 }
 
@@ -1627,6 +1644,28 @@ onUnmounted(() => {
               :rows="4"
               placeholder="请输入书单描述"
           />
+        </el-form-item>
+        <el-form-item label="封面图">
+          <el-upload
+              :auto-upload="true"
+              :http-request="handleBookListImageUpload"
+              :show-file-list="false"
+          >
+            <template #trigger>
+              <el-button type="primary">上传图片</el-button>
+            </template>
+            <div class="cover-preview" v-if="createForm.img">
+              <img
+                  :src="createForm.img"
+                  class="preview-image"
+                  alt="书单封面预览"
+              />
+              <div class="preview-tip">（点击上方按钮重新上传）</div>
+            </div>
+            <template #tip>
+              <div class="upload-tip">支持JPG/PNG格式，建议尺寸800x800px</div>
+            </template>
+          </el-upload>
         </el-form-item>
         <el-form-item label="商品">
           <el-select

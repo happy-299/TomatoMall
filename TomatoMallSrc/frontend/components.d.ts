@@ -10,7 +10,6 @@ declare module 'vue' {
     AdCarousel: typeof import('./src/components/AdCarousel.vue')['default']
     AiChatBall: typeof import('./src/components/AiChatBall.vue')['default']
     AiChatWindow: typeof import('./src/components/AiChatWindow.vue')['default']
-    AIChatWindow: typeof import('./src/components/AIChatWindow.vue')['default']
     BookListItem: typeof import('./src/components/BookListItem.vue')['default']
     CartCard: typeof import('./src/components/CartCard.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
