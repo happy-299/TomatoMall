@@ -167,27 +167,17 @@ const fetchUserInfo = async () => {
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
     tempAvatar.value = res.data.data.avatar || ''
-    // 强制刷新审核状态
-    const pendingRes = await getVerificationListByStatus('PENDING', 0, 1)
-    hasPendingVerification.value = pendingRes.data.data?.content?.length > 0 || false
-    applyButtonText.value = hasPendingVerification.value ? '认证审核中' : '发起大师认证申请'
-    isApplying.value = hasPendingVerification.value
+
+    // 如果已经认证，不需要检查审核状态
+    if (!userData.value.isVerified) {
+      const pendingRes = await getVerificationListByStatus('PENDING', 0, 1)
+      hasPendingVerification.value = pendingRes.data.data?.content?.length > 0 || false
+    } else {
+      hasPendingVerification.value = false
+    }
 
   } catch (error) {
     ElMessage.error('获取用户信息失败')
-  }
-  // 检查审核状态
-  try {
-    const pendingRes = await getVerificationListByStatus('PENDING', 0, 1)
-    if (pendingRes.data.code === '200') {
-      hasPendingVerification.value = pendingRes.data.data.content.length > 0
-      applyButtonText.value = hasPendingVerification.value
-          ? '认证审核中'
-          : '发起大师认证申请'
-      isApplying.value = hasPendingVerification.value
-    }
-  } catch (error) {
-    console.error('检查审核状态失败:', error)
   }
 }
 
@@ -496,11 +486,17 @@ const calculateTotalAmount = computed(() => {
                 <div class="auth-button-container">
                   <el-button
                       class="auth-apply-btn"
-                      :disabled="isApplying"
+                      :disabled="userData.isVerified || hasPendingVerification"
                       @click="applyDialogVisible = true"
                   >
-                    {{ applyButtonText }}
-                    <div v-if="!isApplying" class="glow-effect"></div>
+                    {{
+                      userData.isVerified
+                          ? '已认证'
+                          : hasPendingVerification
+                              ? '审核中'
+                              : '发起大师认证申请'
+                    }}
+                    <div v-if="!userData.isVerified && !hasPendingVerification" class="glow-effect"></div>
                   </el-button>
                 </div>
               </h2>
@@ -509,7 +505,6 @@ const calculateTotalAmount = computed(() => {
                 <span>关注 {{ userData.followingCount }}</span>
                 <span>粉丝 {{ userData.followerCount }}</span>
               </div>
-              <h2>{{ userData.username }}</h2>
               <p class="role-tag">{{ role }}</p>
               <div class="tomato-info">
                 <el-icon><Food /></el-icon>
@@ -865,6 +860,7 @@ const calculateTotalAmount = computed(() => {
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0;
+  width: 50px
 }
 
 .tomato-info {

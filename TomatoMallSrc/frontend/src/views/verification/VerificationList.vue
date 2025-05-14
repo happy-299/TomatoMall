@@ -45,7 +45,7 @@ const loadVerifiedUsers = async () => {
     const users = await Promise.all(
         applications.map(async (app: any) => {
           try {
-            const userRes = await getUserInfo(app.userId)
+            const userRes = await getUserInfo(app.username)
             console.log('用户详情响应:', userRes.data) // [!code ++]
 
             // 合并数据时显式设置 isVerified
@@ -55,7 +55,7 @@ const loadVerifiedUsers = async () => {
               verificationInfo: app
             }
           } catch (error) {
-            console.error('获取用户失败:', app.userId, error)
+            console.error('获取用户失败:', app.username, error)
             return null
           }
         })

@@ -1,6 +1,6 @@
 <template>
   <div class="user-detail">
-    <el-skeleton v-if="loading" :rows="6" animated />
+    <el-skeleton v-if="loading" :rows="6" animated/>
 
     <template v-else>
       <!-- 用户信息 -->
@@ -12,12 +12,14 @@
         >
           <template #error>
             <div class="avatar-error">
-              <el-icon :size="40"><User /></el-icon>
+              <el-icon :size="40">
+                <User/>
+              </el-icon>
             </div>
           </template>
         </el-image>
         <h1>{{ user.username }}</h1>
-        <UserBadge :is-verified="user.isVerified" />
+        <UserBadge :is-verified="user.isVerified"/>
       </div>
 
       <!-- 内容切换 -->
@@ -25,42 +27,44 @@
         <!-- 书单列表（使用新组件） -->
         <el-tab-pane label="创建的书单" name="booklists">
           <div v-if="booklists.length === 0" class="empty-tip">
-            <el-empty description="该用户暂未创建书单" />
+            <el-empty description="该用户暂未创建书单"/>
           </div>
           <div class="horizontal-list">
-          <BookListItem
-              v-for="list in booklists"
-              :key="list.id"
-              :book-list="list"
-              :is-favourite="list.isFavourite"
-              :is-creator="list.creatorId === currentUserId"
-              @collect="handleCollectBookList"
-              @delete="handleDeleteBookList"
-              @view="handleViewBookList"
-          />
+            <BookListItem
+                v-for="list in booklists"
+                :key="list.id"
+                :book-list="list"
+                :is-favourite="list.isFavourite"
+                :is-creator="list.creatorId === currentUserId"
+                @collect="handleCollectBookList"
+                @delete="handleDeleteBookList"
+                @view="handleViewBookList"
+                class="list-item"
+            />
           </div>
         </el-tab-pane>
 
         <!-- 笔记列表（使用新组件） -->
         <el-tab-pane label="读书笔记" name="notes">
           <div v-if="notes.length === 0" class="empty-tip">
-            <el-empty description="该用户暂未发布笔记" />
-          </div >
+            <el-empty description="该用户暂未发布笔记"/>
+          </div>
           <div class="horizontal-list">
-          <ReadingNote
-              v-for="note in notes"
-              :key="note.id"
-              :note="note"
-              :is-liked="note.isLiked"
-              :is-creator="note.creatorId === currentUserId"
-              :is-paid="note.isPaid"
-              @like="handleLike"
-              @unlike="handleUnlike"
-              @delete="handleDeleteNote"
-              @purchase="handlePurchaseNote"
-              @view="handleViewNote"
-          />
-          </div >
+            <ReadingNote
+                v-for="note in notes"
+                :key="note.id"
+                :note="note"
+                :is-liked="note.isLiked"
+                :is-creator="note.creatorId === currentUserId"
+                :is-paid="note.isPaid"
+                @like="handleLike"
+                @unlike="handleUnlike"
+                @delete="handleDeleteNote"
+                @purchase="handlePurchaseNote"
+                @view="handleViewNote"
+                class="list-item"
+            />
+          </div>
         </el-tab-pane>
       </el-tabs>
     </template>
@@ -68,10 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { User } from '@element-plus/icons-vue'
+import {ref, computed, onMounted} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {ElMessage} from 'element-plus'
+import {User} from '@element-plus/icons-vue'
 import {
   getUserBookLists,
   collectBookList,
@@ -85,7 +89,7 @@ import {
   deleteNote,
   payNote
 } from '../../api/note.ts'
-import { getUserInfo } from '../../api/user.ts'
+import {getUserInfo} from '../../api/user.ts'
 import UserBadge from '../../components/UserBadge.vue'
 import ReadingNote from '../../components/ReadingNote.vue'
 import BookListItem from '../../components/BookListItem.vue'
@@ -131,10 +135,10 @@ const fetchBookListStatus = async (bookListId: number) => {
 const handleCollectBookList = async (bookList: any) => {
   try {
     if (bookList.isFavourite) {
-      await cancelCollectBookList({ bookListId: bookList.id })
+      await cancelCollectBookList({bookListId: bookList.id})
       ElMessage.success('已取消收藏')
     } else {
-      await collectBookList({ bookListId: bookList.id })
+      await collectBookList({bookListId: bookList.id})
       ElMessage.success('收藏成功')
     }
     bookList.isFavourite = !bookList.isFavourite
@@ -172,7 +176,7 @@ const fetchNoteStatus = async (noteId: number) => {
     }
   } catch (error) {
     console.error('获取笔记状态失败:', error)
-    return { isLiked: false, isPaid: false }
+    return {isLiked: false, isPaid: false}
   }
 }
 
@@ -250,7 +254,7 @@ const handleViewNote = (note: any) => {
 </script>
 
 <style scoped>
-/* 保持原有样式 */
+/* 保持原有用户信息样式 */
 .profile {
   text-align: center;
   padding: 20px 0;
@@ -266,6 +270,50 @@ const handleViewNote = (note: any) => {
     margin: 10px 0;
     font-size: 24px;
   }
+}
+
+/* 横向排列容器 */
+.horizontal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  width: 100%;
+  padding: 12px 0;
+}
+
+/* 列表项通用样式 */
+.horizontal-list > .list-item {
+  flex: 0 0 calc(33.333% - 16px); /* 三列布局，计算方式：(24px间隙 * 2)/3 = 16px */
+  min-width: 280px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 1200px) {
+  .horizontal-list > .list-item {
+    flex: 0 0 calc(50% - 12px); /* 两列布局，计算方式：24px间隙 / 2 = 12px */
+  }
+}
+
+@media (max-width: 768px) {
+  .horizontal-list {
+    gap: 16px;
+  }
+
+  .horizontal-list > .list-item {
+    flex: 0 0 100%; /* 单列布局 */
+  }
+}
+
+/* 保持原有其他样式 */
+.empty-tip {
+  padding: 40px 0;
+}
+
+.el-tabs__content {
+  overflow: visible !important;
+  position: static !important;
 }
 
 .booklist-item {
@@ -289,97 +337,29 @@ const handleViewNote = (note: any) => {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-.empty-tip {
-  padding: 40px 0;
-}
-
-/* 新增笔记列表间距 */
-.el-tab-pane > div:not(.empty-tip) {
-  display: block !important;
-  gap: 16px;
-}
-
-
-/* 调整书单卡片样式 */
-.booklist-card {
-  margin-bottom: 16px;
-}
-
-/* 统一调整卡片间距 */
-.el-tab-pane > div:not(.empty-tip) {
-  gap: 12px; /* 原16px */
-}
-
-/* 调整卡片最小宽度 */
-.booklist-card, .note-card {
-  min-width: 280px; /* 原320px */
-  max-width: 320px;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .booklist-card, .note-card {
-    min-width: 100%;
-  }
-
-  .el-tabs__content {
-    padding: 8px; /* 原12px */
-  }
-}
-
-/* 统一标签尺寸 */
-.el-tag {
-  height: 24px;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-/* 横向排列容器 */
-.horizontal-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px; /* 项目间距 */
-  padding: 12px 0;
-}
-
-/* 列表项通用样式 */
-.list-item {
-  flex: 0 0 calc(33.333% - 16px); /* 三列布局，留出间距 */
-  min-width: 280px;
-  max-width: 320px;
-  transition: all 0.3s ease;
-}
-
-/* 响应式调整 */
-@media (max-width: 1200px) {
-  .list-item {
-    flex: 0 0 calc(50% - 12px);  /* 中屏幕两列 */
-  }
-}
-
-@media (max-width: 768px) {
-  .list-item {
-    flex: 0 0 100%;  /* 小屏幕单列 */
-  }
-}
-
-/* 组件内部微调 */
+/* 调整卡片内部样式 */
 .booklist-card,
 .note-card {
   width: 100%;
   height: 100%;
-  padding: 12px; /* 缩小内边距 */
+  padding: 12px;
 }
 
 .booklist-header h3 {
-  font-size: 15px; /* 缩小标题 */
+  font-size: 15px;
 }
 
 .description {
-  font-size: 13px; /* 缩小描述文字 */
+  font-size: 13px;
+}
+
+.el-tag {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 </style>

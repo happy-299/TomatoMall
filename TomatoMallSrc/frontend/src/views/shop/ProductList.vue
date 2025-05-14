@@ -61,6 +61,9 @@ import {
 
 import FullscreenEditor from '../../components/FullscreenEditor.vue'
 
+const showPurchaseDialog = ref(false)
+const selectedNote = ref<NoteVO | null>(null)
+
 const router = useRouter()
 const products = ref<Product[]>([])
 const stockpiles = ref<Record<string, Stockpile>>({})
@@ -999,13 +1002,52 @@ const handleUnlikeNote = async (note: NoteVO) => {
 }
 
 // 购买笔记
-const handlePurchaseNote = async (note: NoteVO) => {
+const handlePurchaseNote = (note: NoteVO) => {
+  selectedNote.value = note
+  showPurchaseDialog.value = true
+}
+
+// 确认购买
+const confirmPurchase = async () => {
+  if (!selectedNote.value) return
+
   try {
-    await payNote(note.id)
-    ElMessage.success('购买成功')
-    paidNoteIds.value.add(note.id)
-  } catch (error) {
-    ElMessage.error('购买失败')
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在购买...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      const res = await payNote(selectedNote.value.id)
+
+      // 增加业务状态码检查
+      if (res.data.code !== '200') {
+        throw new Error(res.data.msg || '购买失败')
+      }
+
+      ElMessage.success('购买成功')
+      paidNoteIds.value.add(selectedNote.value.id)
+      showPurchaseDialog.value = false
+    } finally {
+      loading.close()
+    }
+  } catch (error: any) {
+    // 增强错误处理逻辑
+    const errorMessage = error.response?.data?.msg ||
+        error.message ||
+        '购买失败，请检查网络连接或账户余额'
+
+    // 特殊处理余额不足情况
+    if (errorMessage.includes('余额不足')) {
+      ElMessage.error({
+        message: errorMessage,
+        duration: 5000,
+        showClose: true
+      })
+    } else {
+      ElMessage.error(errorMessage)
+    }
   }
 }
 
@@ -1116,7 +1158,7 @@ onUnmounted(() => {
           <h2>{{ currentNote.title }}</h2>
           <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
             <template v-if="currentNote.price > 0">
-              ¥{{ currentNote.price }}
+              {{ currentNote.price }} 🍅
               <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
             </template>
             <span v-else class="free">免费</span>
@@ -1223,11 +1265,11 @@ onUnmounted(() => {
             </el-button>
           </div>
         </el-form-item>
-        <el-form-item label="价格">
+        <el-form-item label="价格 🍅">
           <el-input-number
               v-model="noteForm.price"
               :min="0"
-              :precision="2"
+              :precision="0"
           />
         </el-form-item>
         <el-form-item label="封面图">
@@ -1750,6 +1792,36 @@ onUnmounted(() => {
           </el-button>
         </div>
       </div>
+    </el-dialog>
+    <!-- 购买确认弹窗 -->
+    <el-dialog
+        v-model="showPurchaseDialog"
+        title="确认购买"
+        width="500px"
+        class="purchase-confirm-dialog"
+    >
+      <div v-if="selectedNote" class="confirm-purchase">
+        <img
+            :src="selectedNote.img || '/default-note-cover.png'"
+            class="note-cover"
+            alt="笔记封面"
+        />
+        <div class="content">
+          <h3>是否确认购买《{{ selectedNote.title }}》？</h3>
+          <p class="price">价格：{{ selectedNote.price }} 🍅</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showPurchaseDialog = false">取消</el-button>
+        <el-button
+            type="primary"
+            @click="confirmPurchase"
+            :loading="confirmLoading"
+        >
+          确认购买
+        </el-button>
+      </template>
     </el-dialog>
   </div>
   <FullscreenEditor
@@ -2350,4 +2422,63 @@ onUnmounted(() => {
   color: #909399;
 }
 
+.confirm-purchase {
+  text-align: center;
+
+  .note-cover {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 4px;
+    margin: 10px 0;
+  }
+
+  .price {
+    color: #e6a23c;
+    font-weight: bold;
+    margin: 8px 0;
+  }
+}
+
+.confirm-purchase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+
+  .note-cover {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .content {
+    text-align: center;
+
+    h3 {
+      margin: 0 0 12px 0;
+      color: #303133;
+      font-size: 16px;
+    }
+
+    .price {
+      color: #e6a23c;
+      font-weight: bold;
+      font-size: 14px;
+    }
+  }
+}
+
+:deep(.purchase-confirm-dialog) {
+  .el-dialog__header {
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  .el-dialog__footer {
+    border-top: 1px solid #ebeef5;
+    padding: 16px 20px;
+  }
+}
 </style>
