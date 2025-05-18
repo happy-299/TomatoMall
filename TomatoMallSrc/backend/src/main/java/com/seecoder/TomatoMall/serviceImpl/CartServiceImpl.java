@@ -124,8 +124,11 @@ public class CartServiceImpl implements CartService
     }
 
     @Override
+    @Transactional
     public CartController.RetCheckout buyTomato(CartController.CheckoutRequest checkoutRequest)
     {
+        System.out.println("====tomato:" + checkoutRequest.getTomato());
+
         final int RATE = 10;//1 yuan -> 10 tomato
         int cnt = checkoutRequest.getTomato();
         if (cnt <= 0)
