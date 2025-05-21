@@ -168,3 +168,26 @@ export function checkPaymentStatus(orderId: string): Promise<boolean> {
         return response.data.data.status === 'PAID'
     })
 }
+
+export interface OrderVO {
+    id: number;
+    userId: number;
+    totalAmount: number;
+    paymentMethod: string;
+    status: 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED';
+    createTime: string;
+    useCoupon: boolean;
+    couponId: number | null;
+    beforeAmount: number;
+    reducedAmount: number;
+}
+
+// 获取用户所有订单
+export function getAllOrders(): Promise<OrderVO[]> {
+    return request({
+        url: '/api/orders/all',
+        method: 'GET'
+    }).then(response => {
+        return response.data.data;
+    });
+}

@@ -7,7 +7,7 @@ import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'e
 import {UserFilled, Food, Money} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
-import {submitTomatoRecharge, payOrder, alipayHelper} from '../../api/order'
+import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
 import { applyVerification } from '../../api/verification'
 import { ElTag } from 'element-plus'
@@ -138,6 +138,9 @@ const applyForm = ref({
   reasonText: '',
   proofImgs: [] as string[]
 })
+
+const orders = ref<OrderVO[]>([])
+const loadingOrders = ref(false)
 
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
@@ -355,6 +358,7 @@ onMounted(() => {
   currentUserId.value = Number(sessionStorage.getItem('userId'))
   fetchCreatedBookLists()
   fetchFavouriteBookLists()
+  fetchOrders()
 })
 
 const handleRelogin = () => {
@@ -452,6 +456,50 @@ const handleRecharge = async () => {
 const calculateTotalAmount = computed(() => {
   return (rechargeAmount.value / 10).toFixed(2);
 });
+
+// 添加获取订单的方法
+const fetchOrders = async () => {
+  loadingOrders.value = true
+  try {
+    const response = await getAllOrders()
+    orders.value = response
+  } catch (error) {
+    ElMessage.error('获取订单历史失败')
+  } finally {
+    loadingOrders.value = false
+  }
+}
+
+// 格式化订单状态
+const formatOrderStatus = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'PENDING': '待支付',
+    'PAID': '已支付',
+    'CANCELLED': '已取消',
+    'FAILED': '已失败'
+  }
+  return statusMap[status] || status
+}
+
+// 格式化支付方式
+const formatPaymentMethod = (method: string) => {
+  const methodMap: Record<string, string> = {
+    'ALIPAY': '支付宝',
+    'WECHAT': '微信支付'
+  }
+  return methodMap[method] || method
+}
+
+// 获取订单状态对应的标签类型
+const getStatusType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    'PENDING': 'warning',
+    'PAID': 'success',
+    'CANCELLED': 'info',
+    'FAILED': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
 </script>
 
 <template>
@@ -656,6 +704,51 @@ const calculateTotalAmount = computed(() => {
         <div v-if="(activeTab === 'created' ? createdBookLists : favouriteBookLists).length === 0"
              class="no-data">
           暂无{{ activeTab === 'created' ? '创建' : '收藏' }}的书单
+        </div>
+      </div>
+
+      <!-- 订单历史区域 -->
+      <div class="orders-section">
+        <div class="section-header">
+          <h2>订单历史</h2>
+        </div>
+
+        <div class="orders-list" v-loading="loadingOrders">
+          <div class="orders-scroll-container" v-if="orders.length > 0">
+            <div v-for="order in orders" :key="order.id" class="order-card">
+              <div class="order-header">
+                <span class="order-id">订单号：{{ order.id }}</span>
+                <el-tag :type="getStatusType(order.status)" size="small">
+                  {{ formatOrderStatus(order.status) }}
+                </el-tag>
+              </div>
+              
+              <div class="order-content">
+                <div class="order-info-item">
+                  <span class="label">订单金额</span>
+                  <span class="amount">¥{{ order.totalAmount.toFixed(2) }}</span>
+                  <span v-if="order.useCoupon" class="discount-info">
+                    (优惠: ¥{{ order.reducedAmount.toFixed(2) }})
+                  </span>
+                </div>
+                
+                <div class="order-info-item">
+                  <span class="label">支付方式</span>
+                  <span class="value">{{ formatPaymentMethod(order.paymentMethod) }}</span>
+                </div>
+                
+                <div class="order-info-item">
+                  <span class="label">创建时间</span>
+                  <span class="value">{{ new Date(order.createTime).toLocaleString() }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 无数据提示 -->
+          <div v-if="orders.length === 0" class="no-data">
+            暂无订单记录
+          </div>
         </div>
       </div>
 
@@ -1535,5 +1628,137 @@ const calculateTotalAmount = computed(() => {
 .action-buttons .el-button--primary:disabled {
   background-color: #ffb3b3;
   border-color: #ffb3b3;
+}
+
+/* 订单历史区域样式 */
+.orders-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+}
+
+.orders-list {
+  margin-top: 1rem;
+  position: relative;
+}
+
+.orders-scroll-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+.orders-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+}
+
+.order-card {
+  flex: 0 0 300px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid #ebeef5;
+}
+
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.order-id {
+  font-size: 0.9rem;
+  color: #606266;
+  font-weight: 500;
+}
+
+.order-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.order-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.order-info-item .label {
+  font-size: 0.85rem;
+  color: #909399;
+}
+
+.order-info-item .value {
+  font-size: 0.95rem;
+  color: #606266;
+}
+
+.order-info-item .amount {
+  font-size: 1.1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.order-info-item .discount-info {
+  font-size: 0.85rem;
+  color: #909399;
+  margin-top: 0.2rem;
+}
+
+:deep(.el-tag) {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
+}
+
+:deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  border-color: #e1f3d8;
+  color: #67c23a;
+}
+
+:deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  border-color: #faecd8;
+  color: #e6a23c;
+}
+
+:deep(.el-tag--danger) {
+  background-color: #fef0f0;
+  border-color: #fde2e2;
+  color: #f56c6c;
+}
+
+:deep(.el-tag--info) {
+  background-color: #f4f4f5;
+  border-color: #e9e9eb;
+  color: #909399;
 }
 </style>
