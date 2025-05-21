@@ -35,6 +35,8 @@ public class AccountVO
 
     private Boolean isVerified;
 
+    private String verifiedName;
+
     private Integer followerCount;
 
     private Integer followingCount;
@@ -60,6 +62,18 @@ public class AccountVO
         // don't set following, follower, isverified here!!!
         account.setTomato(this.tomato);
         return account;
+    }
+
+    public PartAccountVO toPart() {
+        return PartAccountVO.builder()
+                .id(this.id)
+                .avatar(this.avatar)
+                .username(this.username)
+                .followerCount(this.followerCount)
+                .followingCount(this.followingCount)
+                .verifiedName(this.verifiedName)
+                .isVerified(this.isVerified)
+                .build();
     }
 }
 

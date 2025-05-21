@@ -20,4 +20,6 @@ public interface AccountService {
     List<AccountVO> getFollowingList(Integer userId);
 
     List<AccountVO> getFollowerList(Integer userId);
+
+    List<AccountVO> getUserByVerifiedName(String verifiedName);
 }
