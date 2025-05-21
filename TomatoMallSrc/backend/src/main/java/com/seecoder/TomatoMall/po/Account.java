@@ -104,6 +104,7 @@ public class Account
         accountVO.setCreateTime(this.createTime);
         accountVO.setRole(this.role);
         accountVO.setIsVerified(this.isVerified);
+        accountVO.setVerifiedName(this.verifiedName);
         accountVO.setFollowerCount(this.followerCount);
         accountVO.setFollowingCount(this.followingCount);
 

@@ -41,4 +41,9 @@ public interface AccountRepository extends JpaRepository<Account, Integer>
     @Query("SELECT a FROM Account a WHERE LOWER(a.username) LIKE %:keyword%")
     List<Account> searchAccounts(@Param("keyword") String keyword);
 
+    // 按用户verifiedName搜索
+    //按用户认证名搜索
+    @Query("SELECT a FROM Account a WHERE LOWER(a.verifiedName) LIKE %:keyword%")
+    List<Account> searchAccountsByVerifiedName(@Param("keyword") String keyword);
+
 }

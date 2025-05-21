@@ -187,4 +187,10 @@ public class AccountServiceImpl implements AccountService
         List<Account> users = accountRepository.findAllById(ids);
         return users.stream().map(u -> u.toVO()).collect(Collectors.toList());
     }
+
+    @Override
+    public List<AccountVO> getUserByVerifiedName(String verifiedName) {
+        List<Account> accounts = accountRepository.searchAccountsByVerifiedName(verifiedName);
+        return accounts.stream().map(u -> u.toVO()).collect(Collectors.toList());
+    }
 }
