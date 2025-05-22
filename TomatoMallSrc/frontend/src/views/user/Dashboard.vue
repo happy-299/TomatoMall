@@ -7,9 +7,9 @@ import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'e
 import {UserFilled, Food, Money} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
-import {submitTomatoRecharge, payOrder, alipayHelper} from '../../api/order'
+import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
-import { applyVerification } from '../../api/verification'
+import { applyVerification, type ApplyVerificationRequest  } from '../../api/verification'
 import { ElTag } from 'element-plus'
 import axios from "axios";
 const sparkle = ref(false)
@@ -28,6 +28,12 @@ interface UploadResponse {
   data: string
 }
 
+interface UploadFile {
+  url: string
+  name?: string
+  status?: string
+}
+const proofFiles = ref<UploadFile[]>([])
 const router = useRouter()
 const userData = ref({
   username: '',
@@ -42,7 +48,8 @@ const userData = ref({
   isVerified: false,
   followingCount: 0,
   followerCount: 0,
-  tomato: 0
+  tomato: 0,
+  verifiedName: ''
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -136,8 +143,22 @@ const rules = {
 const applyDialogVisible = ref(false)
 const applyForm = ref({
   reasonText: '',
-  proofImgs: [] as string[]
+  proofImgs: [] as string[],
+  verifiedName: ''
 })
+
+const applyRules = {
+  reasonText: [
+    { required: true, message: '请输入申请理由', trigger: 'blur' },
+    { min: 20, message: '申请理由至少20字', trigger: 'blur' }
+  ],
+  verifiedName: [
+    { required: true, message: '请选择认证名号', trigger: 'change' }
+  ]
+}
+
+const orders = ref<OrderVO[]>([])
+const loadingOrders = ref(false)
 
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
@@ -162,7 +183,8 @@ const fetchUserInfo = async () => {
       isVerified: res.data.data.isVerified,
       followingCount: res.data.data.followingCount,
       followerCount: res.data.data.followerCount,
-      tomato: res.data.data.tomato || 0
+      tomato: res.data.data.tomato || 0,
+      verifiedName: res.data.data.verifiedName || ''
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
@@ -181,18 +203,75 @@ const fetchUserInfo = async () => {
   }
 }
 
+// 新增认证名号选项
+const verifiedNameOptions = [
+  '墨香雅士',
+  '当代鲁迅',
+  '读书达人',
+  '藏书阁主',
+  '笔记大师'
+]
+
+// 处理证明材料上传
+const handleProofUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false })
+  try {
+    const { file } = params
+    const response = await uploadUserImage(file)
+    applyForm.value.proofImgs.push(response.data.data)
+    proofFiles.value = applyForm.value.proofImgs.map(url => ({ url }))
+    ElMessage.success('上传成功')
+  } catch (error) {
+    ElMessage.error('证明材料上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 处理文件移除
+const handleProofRemove = (file: UploadFile) => {
+  const index = applyForm.value.proofImgs.indexOf(file.url)
+  if (index !== -1) {
+    applyForm.value.proofImgs.splice(index, 1)
+  }
+  proofFiles.value = proofFiles.value.filter(f => f.url !== file.url)
+}
+
+// 上传前校验
+const beforeProofUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过5MB')
+    return false
+  }
+  return true
+}
+
 // 新增认证申请方法
 const handleApplyVerification = async () => {
   try {
+    // 验证表单
+    await formRef.value?.validate()
+
     ElLoading.service()
-    await applyVerification({
+    const request: ApplyVerificationRequest = {
       reasonText: applyForm.value.reasonText,
-      proofImgs: applyForm.value.proofImgs
-    })
+      proofImgs: applyForm.value.proofImgs,
+      verifiedName: applyForm.value.verifiedName
+    }
+
+    await applyVerification(request)
+
     await fetchUserInfo()
     ElMessage.success('申请已提交，请等待审核')
     applyDialogVisible.value = false
-    applyForm.value = { reasonText: '', proofImgs: [] }
+    applyForm.value = { reasonText: '', proofImgs: [], verifiedName: '' }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       ElMessage.error(error.response?.data?.msg || '提交申请失败')
@@ -355,6 +434,7 @@ onMounted(() => {
   currentUserId.value = Number(sessionStorage.getItem('userId'))
   fetchCreatedBookLists()
   fetchFavouriteBookLists()
+  fetchOrders()
 })
 
 const handleRelogin = () => {
@@ -452,6 +532,50 @@ const handleRecharge = async () => {
 const calculateTotalAmount = computed(() => {
   return (rechargeAmount.value / 10).toFixed(2);
 });
+
+// 添加获取订单的方法
+const fetchOrders = async () => {
+  loadingOrders.value = true
+  try {
+    const response = await getAllOrders()
+    orders.value = response
+  } catch (error) {
+    ElMessage.error('获取订单历史失败')
+  } finally {
+    loadingOrders.value = false
+  }
+}
+
+// 格式化订单状态
+const formatOrderStatus = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'PENDING': '待支付',
+    'PAID': '已支付',
+    'CANCELLED': '已取消',
+    'FAILED': '已失败'
+  }
+  return statusMap[status] || status
+}
+
+// 格式化支付方式
+const formatPaymentMethod = (method: string) => {
+  const methodMap: Record<string, string> = {
+    'ALIPAY': '支付宝',
+    'WECHAT': '微信支付'
+  }
+  return methodMap[method] || method
+}
+
+// 获取订单状态对应的标签类型
+const getStatusType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    'PENDING': 'warning',
+    'PAID': 'success',
+    'CANCELLED': 'info',
+    'FAILED': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
 </script>
 
 <template>
@@ -480,7 +604,7 @@ const calculateTotalAmount = computed(() => {
                 <span>{{ userData.username }}</span>
 
                 <!-- 认证标识 -->
-                <user-badge :is-verified="userData.isVerified" />
+                <user-badge :is-verified="userData.isVerified" :verified-name="userData.verifiedName"/>
 
                 <!-- 申请按钮 -->
                 <div class="auth-button-container">
@@ -659,6 +783,51 @@ const calculateTotalAmount = computed(() => {
         </div>
       </div>
 
+      <!-- 订单历史区域 -->
+      <div class="orders-section">
+        <div class="section-header">
+          <h2>订单历史</h2>
+        </div>
+
+        <div class="orders-list" v-loading="loadingOrders">
+          <div class="orders-scroll-container" v-if="orders.length > 0">
+            <div v-for="order in orders" :key="order.id" class="order-card">
+              <div class="order-header">
+                <span class="order-id">订单号：{{ order.id }}</span>
+                <el-tag :type="getStatusType(order.status)" size="small">
+                  {{ formatOrderStatus(order.status) }}
+                </el-tag>
+              </div>
+
+              <div class="order-content">
+                <div class="order-info-item">
+                  <span class="label">订单金额</span>
+                  <span class="amount">¥{{ order.totalAmount.toFixed(2) }}</span>
+                  <span v-if="order.useCoupon" class="discount-info">
+                    (优惠: ¥{{ order.reducedAmount.toFixed(2) }})
+                  </span>
+                </div>
+
+                <div class="order-info-item">
+                  <span class="label">支付方式</span>
+                  <span class="value">{{ formatPaymentMethod(order.paymentMethod) }}</span>
+                </div>
+
+                <div class="order-info-item">
+                  <span class="label">创建时间</span>
+                  <span class="value">{{ new Date(order.createTime).toLocaleString() }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 无数据提示 -->
+          <div v-if="orders.length === 0" class="no-data">
+            暂无订单记录
+          </div>
+        </div>
+      </div>
+
       <!-- 书单详情对话框 -->
       <el-dialog
           v-model="detailDialogVisible"
@@ -702,20 +871,42 @@ const calculateTotalAmount = computed(() => {
     </el-dialog>
     <!-- 添加认证申请对话框 -->
     <el-dialog v-model="applyDialogVisible" title="大师认证申请">
-      <el-form :model="applyForm" label-width="100px">
+      <el-form
+          :model="applyForm"
+          :rules="applyRules"
+          ref="formRef"
+          label-width="100px">
+        <!-- 新增认证名号选择 -->
+        <el-form-item label="认证名号" prop="verifiedName">
+          <el-select
+              v-model="applyForm.verifiedName"
+              placeholder="请选择认证名号"
+              class="full-width"
+          >
+            <el-option
+                v-for="name in verifiedNameOptions"
+                :key="name"
+                :label="name"
+                :value="name"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="申请理由" required>
           <el-input
               v-model="applyForm.reasonText"
               type="textarea"
               :rows="4"
-              placeholder="请说明申请理由（至少100字）"
+              placeholder="请说明申请理由（至少20字）"
           />
         </el-form-item>
         <el-form-item label="证明材料">
           <el-upload
-              action="/api/upload"
               list-type="picture-card"
-              :on-success="(res: UploadResponse) => applyForm.proofImgs.push(res.data)"
+              :auto-upload="true"
+              :http-request="handleProofUpload"
+              :on-remove="handleProofRemove"
+              :file-list="proofFiles"
+              :before-upload="beforeProofUpload"
           >
             <el-icon><Plus /></el-icon>
           </el-upload>
@@ -1535,5 +1726,137 @@ const calculateTotalAmount = computed(() => {
 .action-buttons .el-button--primary:disabled {
   background-color: #ffb3b3;
   border-color: #ffb3b3;
+}
+
+/* 订单历史区域样式 */
+.orders-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+}
+
+.orders-list {
+  margin-top: 1rem;
+  position: relative;
+}
+
+.orders-scroll-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+.orders-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+}
+
+.order-card {
+  flex: 0 0 300px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid #ebeef5;
+}
+
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.order-id {
+  font-size: 0.9rem;
+  color: #606266;
+  font-weight: 500;
+}
+
+.order-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.order-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.order-info-item .label {
+  font-size: 0.85rem;
+  color: #909399;
+}
+
+.order-info-item .value {
+  font-size: 0.95rem;
+  color: #606266;
+}
+
+.order-info-item .amount {
+  font-size: 1.1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.order-info-item .discount-info {
+  font-size: 0.85rem;
+  color: #909399;
+  margin-top: 0.2rem;
+}
+
+:deep(.el-tag) {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
+}
+
+:deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  border-color: #e1f3d8;
+  color: #67c23a;
+}
+
+:deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  border-color: #faecd8;
+  color: #e6a23c;
+}
+
+:deep(.el-tag--danger) {
+  background-color: #fef0f0;
+  border-color: #fde2e2;
+  color: #f56c6c;
+}
+
+:deep(.el-tag--info) {
+  background-color: #f4f4f5;
+  border-color: #e9e9eb;
+  color: #909399;
 }
 </style>

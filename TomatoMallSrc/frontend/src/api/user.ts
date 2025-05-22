@@ -89,6 +89,16 @@ export const updateUserInfo = (updateInfo: UpdateInfo) => {
     });
 }
 
+export const getUsersByVerifiedName = (verifiedName: string) => {
+    const token = sessionStorage.getItem('token');
+    return axios.post(`${USER_MODULE}/verified`, { verifiedName }, {
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token
+        }
+    })
+}
+
 /* 新增关注相关接口 */
 // 关注用户
 export const followUser = (targetId: number) => {

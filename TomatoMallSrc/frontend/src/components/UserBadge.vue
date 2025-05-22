@@ -6,6 +6,10 @@ const props = defineProps({
   isVerified: {
     type: Boolean,
     required: true
+  },
+  verifiedName: {
+    type: String,
+    default: ''
   }
 })
 
@@ -28,7 +32,7 @@ const startSparkle = () => {
       <svg class="v-icon" viewBox="0 0 24 24">
         <path fill="currentColor" d="M12 25L3 12h18z"/>
       </svg>
-      <span class="badge-text">官方大师认证</span>
+      <span class="badge-text">{{ verifiedName }}</span>
     </el-tag>
     <el-tag v-else class="reader-badge" effect="plain">读者</el-tag>
   </transition>

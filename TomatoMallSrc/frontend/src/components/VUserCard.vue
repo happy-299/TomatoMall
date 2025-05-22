@@ -24,7 +24,7 @@
     <div class="info">
       <div class="name-wrapper">
         <h3 class="username">{{ user.username || '未命名用户' }}</h3>
-        <UserBadge :is-verified="user.isVerified" />
+        <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
       </div>
 
       <!-- 附加信息 -->
@@ -48,7 +48,8 @@ const props = defineProps({
       username: '',
       avatar: '',
       isVerified: false,
-      bio: ''
+      bio: '',
+      verifiedName: ''
     })
   }
 })
