@@ -107,7 +107,7 @@ public class AccountController {
     }
 
 
-    @GetMapping("/verified")
+    @PostMapping("/verified")
     public Response<List<PartAccountVO>> getVerified(@RequestBody VerifyRequest verifiedReq) {
         List<AccountVO> accountVOList =  accountService.getUserByVerifiedName(verifiedReq.getVerifiedName());
         List<PartAccountVO> part =  accountVOList.stream().map(vo -> vo.toPart()).collect(Collectors.toList());
