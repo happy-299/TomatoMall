@@ -62,6 +62,7 @@ public class VerificationApplication {
         vo.setProofImgs(this.proofImgs);
         vo.setStatus(this.status);
         vo.setRejectReason(this.rejectReason);
+        vo.setVerifiedName(this.verifiedName);
         vo.setCreateTime(this.createTime);
         vo.setReviewTime(this.reviewTime);
         return vo;
