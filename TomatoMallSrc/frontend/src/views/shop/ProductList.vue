@@ -24,8 +24,8 @@ import {
   deleteAdvertisement,
   getAdvertisements
 } from '../../api/advertisement'
-import {getCart, addToCart, updateCartItemQuantity, type CartItem, deleteCartItem} from '../../api/cart'
-import {Star, StarFilled, Plus, Delete, ShoppingCart, Collection} from '@element-plus/icons-vue'
+import {getCart, addToCart, updateCartItemQuantity,  deleteCartItem} from '../../api/cart'
+import {Plus, Delete} from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -526,7 +526,6 @@ const createForm = ref<BookListCreateDTO>({
   title: '',
   description: '',
   productIds: [],
-  img: ''
 })
 
 // 书单详情相关
