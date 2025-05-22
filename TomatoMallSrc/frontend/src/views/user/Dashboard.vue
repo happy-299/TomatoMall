@@ -9,7 +9,7 @@ import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
 import {submitTomatoRecharge, payOrder, alipayHelper} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
-import { applyVerification } from '../../api/verification'
+import { applyVerification, type ApplyVerificationRequest  } from '../../api/verification'
 import { ElTag } from 'element-plus'
 import axios from "axios";
 const sparkle = ref(false)
@@ -28,6 +28,12 @@ interface UploadResponse {
   data: string
 }
 
+interface UploadFile {
+  url: string
+  name?: string
+  status?: string
+}
+const proofFiles = ref<UploadFile[]>([])
 const router = useRouter()
 const userData = ref({
   username: '',
@@ -42,7 +48,8 @@ const userData = ref({
   isVerified: false,
   followingCount: 0,
   followerCount: 0,
-  tomato: 0
+  tomato: 0,
+  verifiedName: ''
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -136,8 +143,19 @@ const rules = {
 const applyDialogVisible = ref(false)
 const applyForm = ref({
   reasonText: '',
-  proofImgs: [] as string[]
+  proofImgs: [] as string[],
+  verifiedName: ''
 })
+
+const applyRules = {
+  reasonText: [
+    { required: true, message: '请输入申请理由', trigger: 'blur' },
+    { min: 20, message: '申请理由至少20字', trigger: 'blur' }
+  ],
+  verifiedName: [
+    { required: true, message: '请选择认证名号', trigger: 'change' }
+  ]
+}
 
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
@@ -162,7 +180,8 @@ const fetchUserInfo = async () => {
       isVerified: res.data.data.isVerified,
       followingCount: res.data.data.followingCount,
       followerCount: res.data.data.followerCount,
-      tomato: res.data.data.tomato || 0
+      tomato: res.data.data.tomato || 0,
+      verifiedName: res.data.data.verifiedName || ''
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
@@ -181,18 +200,75 @@ const fetchUserInfo = async () => {
   }
 }
 
+// 新增认证名号选项
+const verifiedNameOptions = [
+  '墨香雅士',
+  '当代鲁迅',
+  '读书达人',
+  '藏书阁主',
+  '笔记大师'
+]
+
+// 处理证明材料上传
+const handleProofUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false })
+  try {
+    const { file } = params
+    const response = await uploadUserImage(file)
+    applyForm.value.proofImgs.push(response.data.data)
+    proofFiles.value = applyForm.value.proofImgs.map(url => ({ url }))
+    ElMessage.success('上传成功')
+  } catch (error) {
+    ElMessage.error('证明材料上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 处理文件移除
+const handleProofRemove = (file: UploadFile) => {
+  const index = applyForm.value.proofImgs.indexOf(file.url)
+  if (index !== -1) {
+    applyForm.value.proofImgs.splice(index, 1)
+  }
+  proofFiles.value = proofFiles.value.filter(f => f.url !== file.url)
+}
+
+// 上传前校验
+const beforeProofUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过5MB')
+    return false
+  }
+  return true
+}
+
 // 新增认证申请方法
 const handleApplyVerification = async () => {
   try {
+    // 验证表单
+    await formRef.value?.validate()
+
     ElLoading.service()
-    await applyVerification({
+    const request: ApplyVerificationRequest = {
       reasonText: applyForm.value.reasonText,
-      proofImgs: applyForm.value.proofImgs
-    })
+      proofImgs: applyForm.value.proofImgs,
+      verifiedName: applyForm.value.verifiedName
+    }
+
+    await applyVerification(request)
+
     await fetchUserInfo()
     ElMessage.success('申请已提交，请等待审核')
     applyDialogVisible.value = false
-    applyForm.value = { reasonText: '', proofImgs: [] }
+    applyForm.value = { reasonText: '', proofImgs: [], verifiedName: '' }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       ElMessage.error(error.response?.data?.msg || '提交申请失败')
@@ -480,7 +556,7 @@ const calculateTotalAmount = computed(() => {
                 <span>{{ userData.username }}</span>
 
                 <!-- 认证标识 -->
-                <user-badge :is-verified="userData.isVerified" />
+                <user-badge :is-verified="userData.isVerified" :verified-name="userData.verifiedName"/>
 
                 <!-- 申请按钮 -->
                 <div class="auth-button-container">
@@ -702,20 +778,42 @@ const calculateTotalAmount = computed(() => {
     </el-dialog>
     <!-- 添加认证申请对话框 -->
     <el-dialog v-model="applyDialogVisible" title="大师认证申请">
-      <el-form :model="applyForm" label-width="100px">
+      <el-form
+          :model="applyForm"
+          :rules="applyRules"
+          ref="formRef"
+          label-width="100px">
+        <!-- 新增认证名号选择 -->
+        <el-form-item label="认证名号" prop="verifiedName">
+          <el-select
+              v-model="applyForm.verifiedName"
+              placeholder="请选择认证名号"
+              class="full-width"
+          >
+            <el-option
+                v-for="name in verifiedNameOptions"
+                :key="name"
+                :label="name"
+                :value="name"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="申请理由" required>
           <el-input
               v-model="applyForm.reasonText"
               type="textarea"
               :rows="4"
-              placeholder="请说明申请理由（至少100字）"
+              placeholder="请说明申请理由（至少20字）"
           />
         </el-form-item>
         <el-form-item label="证明材料">
           <el-upload
-              action="/api/upload"
               list-type="picture-card"
-              :on-success="(res: UploadResponse) => applyForm.proofImgs.push(res.data)"
+              :auto-upload="true"
+              :http-request="handleProofUpload"
+              :on-remove="handleProofRemove"
+              :file-list="proofFiles"
+              :before-upload="beforeProofUpload"
           >
             <el-icon><Plus /></el-icon>
           </el-upload>

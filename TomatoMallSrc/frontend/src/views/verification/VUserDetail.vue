@@ -19,7 +19,7 @@
           </template>
         </el-image>
         <h1>{{ user.username }}</h1>
-        <UserBadge :is-verified="user.isVerified"/>
+        <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
       </div>
 
       <!-- 内容切换 -->
@@ -185,6 +185,7 @@ onMounted(async () => {
   try {
     // 用户信息
     const userRes = await getUserInfo(userId.value)
+    console.log(userRes)
     user.value = userRes.data.data || {}
 
     // 书单数据（含收藏状态）
