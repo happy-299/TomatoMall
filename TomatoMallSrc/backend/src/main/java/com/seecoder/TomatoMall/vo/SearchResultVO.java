@@ -53,6 +53,7 @@ public class SearchResultVO
                     .avatar(acc.getAvatar())
                     .followerCount(acc.getFollowerCount())
                     .followingCount(acc.getFollowingCount())
+                    .verifiedName(acc.getVerifiedName())
                     .build());
         });
 
@@ -70,6 +71,7 @@ public class SearchResultVO
         private String avatar;
         private Integer followerCount;
         private Integer followingCount;
+        private String verifiedName;
     }
 
     @Setter
