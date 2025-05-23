@@ -29,6 +29,9 @@ const handleView = () => {
 
 <template>
   <div class="booklist-card">
+    <div class="booklist-cover" v-if="bookList.products.length > 0">
+      <img :src="bookList.products[0].cover" :alt="bookList.title" class="cover-image" />
+    </div>
     <div class="booklist-header">
       <h3 @click="handleView" class="clickable">{{ bookList.title }}</h3>
       <div class="actions">
@@ -73,10 +76,32 @@ const handleView = () => {
   padding: 16px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   transition: transform 0.3s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .booklist-card:hover {
   transform: translateY(-5px);
+}
+
+.booklist-cover {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f7fa;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.cover-image:hover {
+  transform: scale(1.05);
 }
 
 .booklist-header {

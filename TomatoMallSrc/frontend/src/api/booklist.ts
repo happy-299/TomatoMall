@@ -8,6 +8,7 @@ export interface BookListVO {
     title: string
     creatorId: number
     description: string
+    picture: string  // 添加图片字段
     products: Product[]
     creatorName: string
     creatorAvatar: string
@@ -28,6 +29,7 @@ export interface BookListCreateDTO {
     title: string
     description: string
     productIds: number[]
+    picture: string  // 修改字段名从img为picture
 }
 
 // 收藏书单的请求参数

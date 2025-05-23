@@ -52,6 +52,13 @@ onMounted(() => {
       <div v-if="bookList" class="booklist-content">
         <!-- 书单头部信息 -->
         <div class="booklist-header">
+          <div class="booklist-cover">
+            <img 
+              :src="bookList.picture || '/default-booklist-cover.png'" 
+              :alt="bookList.title" 
+              class="cover-image"
+            >
+          </div>
           <h1>{{ bookList.title }}</h1>
           <div class="booklist-meta">
             <div class="creator-info" @click="handleCreatorClick(bookList.creatorId)">
@@ -256,5 +263,26 @@ onMounted(() => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.booklist-cover {
+  margin-bottom: 2rem;
+  width: 100%;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #f5f7fa;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.booklist-cover:hover .cover-image {
+  transform: scale(1.05);
 }
 </style> 

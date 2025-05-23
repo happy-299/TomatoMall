@@ -526,6 +526,7 @@ const createForm = ref<BookListCreateDTO>({
   title: '',
   description: '',
   productIds: [],
+  picture: '' // 修改字段名从img为picture
 })
 
 // 书单详情相关
@@ -694,7 +695,7 @@ const handleCreate = async () => {
       title: '',
       description: '',
       productIds: [],
-      img: ''
+      picture: ''
     }
     // 如果当前在书单标签页，刷新书单列表
     if (activeTab.value === 'booklists') {
@@ -1087,7 +1088,7 @@ const handleBookListImageUpload = async (params: any) => {
   try {
     const {file} = params
     const response = await uploadUserImage(file)
-    createForm.value.img = response.data.data
+    createForm.value.picture = response.data.data // 修改字段名从img为picture
     ElMessage.success('图片上传成功')
   } catch (error) {
     ElMessage.error('图片上传失败')
@@ -1406,15 +1407,15 @@ onUnmounted(() => {
       </div>
 
       <div class="booklist-grid" v-loading="loading">
-        <book-list-item
-            v-for="bookList in bookLists"
-            :key="bookList.id"
-            :book-list="bookList"
-            :is-favourite="favouriteBookListIds.has(bookList.id)"
-            :is-creator="currentUserId === bookList.creatorId"
-            @collect="handleCollect"
-            @delete="handleDeleteBookList"
-            @view="handleViewDetail"
+        <BookListItem
+          v-for="bookList in bookLists"
+          :key="bookList.id"
+          :book-list="bookList"
+          :is-favourite="favouriteBookListIds.has(bookList.id)"
+          :is-creator="currentUserId === bookList.creatorId"
+          @collect="handleCollect"
+          @delete="handleDeleteBookList"
+          @view="handleViewDetail"
         />
       </div>
     </div>
@@ -1730,9 +1731,9 @@ onUnmounted(() => {
             <template #trigger>
               <el-button type="primary">上传图片</el-button>
             </template>
-            <div class="cover-preview" v-if="createForm.img">
+            <div class="cover-preview" v-if="createForm.picture">
               <img
-                  :src="createForm.img"
+                  :src="createForm.picture"
                   class="preview-image"
                   alt="书单封面预览"
               />
@@ -2113,60 +2114,91 @@ onUnmounted(() => {
 
 .booklist-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
 }
 
 .booklist-card:hover {
   transform: translateY(-5px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.booklist-card:hover .cover-image {
+  transform: scale(1.05);
+}
+
+.booklist-cover {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #f5f7fa;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
 }
 
 .booklist-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
 }
 
 .booklist-header h3 {
   margin: 0;
   font-size: 18px;
   color: #2c3e50;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
+  flex: 1;
+  margin-right: 12px;
 }
 
 .description {
   color: #666;
-  margin-bottom: 16px;
+  margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.4;
+  height: 40px;
 }
 
 .booklist-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: #666;
+  margin-top: auto;
 }
 
 .creator {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #606266;
+  font-size: 14px;
 }
 
 .stats {
   display: flex;
   gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #909399;
+  font-size: 14px;
 }
 
 .pagination {
