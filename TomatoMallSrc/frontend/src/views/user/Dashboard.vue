@@ -7,9 +7,33 @@ import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'e
 import {UserFilled, Food, Money} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
-import {submitTomatoRecharge, payOrder, alipayHelper} from '../../api/order'
+import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
+import { applyVerification, type ApplyVerificationRequest  } from '../../api/verification'
+import { ElTag } from 'element-plus'
+import axios from "axios";
+const sparkle = ref(false)
+import { getVerificationListByStatus } from '../../api/verification'
+import UserBadge from '../../components/UserBadge.vue'
 
+const hasPendingVerification = ref(false)
+const applyButtonText = ref('发起大师认证申请')
+const isApplying = ref(false)
+const startSparkle = () => {
+  sparkle.value = true
+  setTimeout(() => sparkle.value = false, 1000)
+}
+
+interface UploadResponse {
+  data: string
+}
+
+interface UploadFile {
+  url: string
+  name?: string
+  status?: string
+}
+const proofFiles = ref<UploadFile[]>([])
 const router = useRouter()
 const userData = ref({
   username: '',
@@ -21,7 +45,11 @@ const userData = ref({
   role: '',
   password: '',
   confirmPassword: '',
-  tomato: 0
+  isVerified: false,
+  followingCount: 0,
+  followerCount: 0,
+  tomato: 0,
+  verifiedName: ''
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -110,6 +138,28 @@ const rules = {
   ]
 }
 
+//大V认证
+// 新增认证申请对话框相关状态
+const applyDialogVisible = ref(false)
+const applyForm = ref({
+  reasonText: '',
+  proofImgs: [] as string[],
+  verifiedName: ''
+})
+
+const applyRules = {
+  reasonText: [
+    { required: true, message: '请输入申请理由', trigger: 'blur' },
+    { min: 20, message: '申请理由至少20字', trigger: 'blur' }
+  ],
+  verifiedName: [
+    { required: true, message: '请选择认证名号', trigger: 'change' }
+  ]
+}
+
+const orders = ref<OrderVO[]>([])
+const loadingOrders = ref(false)
+
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
   if (!username) {
@@ -130,13 +180,106 @@ const fetchUserInfo = async () => {
       role: res.data.data.role,
       password: '',
       confirmPassword: '',
-      tomato: res.data.data.tomato || 0
+      isVerified: res.data.data.isVerified,
+      followingCount: res.data.data.followingCount,
+      followerCount: res.data.data.followerCount,
+      tomato: res.data.data.tomato || 0,
+      verifiedName: res.data.data.verifiedName || ''
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
     tempAvatar.value = res.data.data.avatar || ''
+
+    // 如果已经认证，不需要检查审核状态
+    if (!userData.value.isVerified) {
+      const pendingRes = await getVerificationListByStatus('PENDING', 0, 1)
+      hasPendingVerification.value = pendingRes.data.data?.content?.length > 0 || false
+    } else {
+      hasPendingVerification.value = false
+    }
+
   } catch (error) {
     ElMessage.error('获取用户信息失败')
+  }
+}
+
+// 新增认证名号选项
+const verifiedNameOptions = [
+  '墨香雅士',
+  '当代鲁迅',
+  '读书达人',
+  '藏书阁主',
+  '笔记大师'
+]
+
+// 处理证明材料上传
+const handleProofUpload = async (params: any) => {
+  const loading = ElLoading.service({ fullscreen: false })
+  try {
+    const { file } = params
+    const response = await uploadUserImage(file)
+    applyForm.value.proofImgs.push(response.data.data)
+    proofFiles.value = applyForm.value.proofImgs.map(url => ({ url }))
+    ElMessage.success('上传成功')
+  } catch (error) {
+    ElMessage.error('证明材料上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 处理文件移除
+const handleProofRemove = (file: UploadFile) => {
+  const index = applyForm.value.proofImgs.indexOf(file.url)
+  if (index !== -1) {
+    applyForm.value.proofImgs.splice(index, 1)
+  }
+  proofFiles.value = proofFiles.value.filter(f => f.url !== file.url)
+}
+
+// 上传前校验
+const beforeProofUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过5MB')
+    return false
+  }
+  return true
+}
+
+// 新增认证申请方法
+const handleApplyVerification = async () => {
+  try {
+    // 验证表单
+    await formRef.value?.validate()
+
+    ElLoading.service()
+    const request: ApplyVerificationRequest = {
+      reasonText: applyForm.value.reasonText,
+      proofImgs: applyForm.value.proofImgs,
+      verifiedName: applyForm.value.verifiedName
+    }
+
+    await applyVerification(request)
+
+    await fetchUserInfo()
+    ElMessage.success('申请已提交，请等待审核')
+    applyDialogVisible.value = false
+    applyForm.value = { reasonText: '', proofImgs: [], verifiedName: '' }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      ElMessage.error(error.response?.data?.msg || '提交申请失败')
+    } else {
+      ElMessage.error('提交申请失败')
+    }
+  } finally {
+    ElLoading.service().close()
   }
 }
 
@@ -196,7 +339,7 @@ const fetchCreatedBookLists = async () => {
     const res = await getAllBookLists()
     if (res.data.code === '200') {
       createdBookLists.value = res.data.data.content.filter(
-        (list: BookListVO) => list.creatorId === Number(sessionStorage.getItem('userId'))
+          (list: BookListVO) => list.creatorId === Number(sessionStorage.getItem('userId'))
       )
     }
   } catch (error) {
@@ -246,13 +389,13 @@ const handleCollect = async (bookList: BookListVO) => {
 const handleDelete = async (id: number) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个书单吗？',
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+        '确定要删除这个书单吗？',
+        '删除确认',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
     )
 
     const loading = ElLoading.service({
@@ -291,6 +434,7 @@ onMounted(() => {
   currentUserId.value = Number(sessionStorage.getItem('userId'))
   fetchCreatedBookLists()
   fetchFavouriteBookLists()
+  fetchOrders()
 })
 
 const handleRelogin = () => {
@@ -325,20 +469,20 @@ const handleAvatarUpload = async (params: any) => {
 // 处理圣女果充值
 const handleRecharge = async () => {
   if (!rechargeFormRef.value) return
-  
+
   try {
     await rechargeFormRef.value.validate()
-    
+
     const loading = ElLoading.service({
       lock: true,
       text: '正在创建充值订单...',
       background: 'rgba(0, 0, 0, 0.7)'
     })
-    
+
     try {
       // 计算实际支付金额（1元=10个圣女果）
       const actualAmount = rechargeAmount.value / 10;
-      
+
       // 提交充值订单
       const rechargeData = {
         tomato: rechargeAmount.value,
@@ -354,20 +498,20 @@ const handleRecharge = async () => {
       console.log('=== 充值调试信息 ===');
       console.log('1. 充值请求数据:', rechargeData);
       console.log('   实际支付金额:', actualAmount, '元');
-      
+
       const response = await submitTomatoRecharge(rechargeData)
       console.log('2. 充值订单响应:', response);
-      
+
       if (response.data.code === '200') {
         console.log('3. 订单创建成功，准备调用支付接口');
         // 调用支付接口
         const payResponse = await payOrder(response.data.data.orderId)
         console.log('4. 支付接口响应:', payResponse);
-        
+
         // 渲染支付表单
         console.log('5. 准备渲染支付表单');
         alipayHelper.renderPaymentForm(payResponse.paymentForm)
-        
+
         showRechargeDialog.value = false
         rechargeAmount.value = 0
         console.log('6. 充值流程完成，等待支付结果');
@@ -388,6 +532,50 @@ const handleRecharge = async () => {
 const calculateTotalAmount = computed(() => {
   return (rechargeAmount.value / 10).toFixed(2);
 });
+
+// 添加获取订单的方法
+const fetchOrders = async () => {
+  loadingOrders.value = true
+  try {
+    const response = await getAllOrders()
+    orders.value = response
+  } catch (error) {
+    ElMessage.error('获取订单历史失败')
+  } finally {
+    loadingOrders.value = false
+  }
+}
+
+// 格式化订单状态
+const formatOrderStatus = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'PENDING': '待支付',
+    'PAID': '已支付',
+    'CANCELLED': '已取消',
+    'FAILED': '已失败'
+  }
+  return statusMap[status] || status
+}
+
+// 格式化支付方式
+const formatPaymentMethod = (method: string) => {
+  const methodMap: Record<string, string> = {
+    'ALIPAY': '支付宝',
+    'WECHAT': '微信支付'
+  }
+  return methodMap[method] || method
+}
+
+// 获取订单状态对应的标签类型
+const getStatusType = (status: string) => {
+  const typeMap: Record<string, string> = {
+    'PENDING': 'warning',
+    'PAID': 'success',
+    'CANCELLED': 'info',
+    'FAILED': 'danger'
+  }
+  return typeMap[status] || 'info'
+}
 </script>
 
 <template>
@@ -412,14 +600,42 @@ const calculateTotalAmount = computed(() => {
               </template>
             </el-upload>
             <div class="user-basic-info">
-              <h2>{{ userData.username }}</h2>
+              <h2 class="user-title">
+                <span>{{ userData.username }}</span>
+
+                <!-- 认证标识 -->
+                <user-badge :is-verified="userData.isVerified" :verified-name="userData.verifiedName"/>
+
+                <!-- 申请按钮 -->
+                <div class="auth-button-container">
+                  <el-button
+                      class="auth-apply-btn"
+                      :disabled="userData.isVerified || hasPendingVerification"
+                      @click="applyDialogVisible = true"
+                  >
+                    {{
+                      userData.isVerified
+                          ? '已认证'
+                          : hasPendingVerification
+                              ? '审核中'
+                              : '发起大师认证申请'
+                    }}
+                    <div v-if="!userData.isVerified && !hasPendingVerification" class="glow-effect"></div>
+                  </el-button>
+                </div>
+              </h2>
+
+              <div class="social-stats">
+                <span>关注 {{ userData.followingCount }}</span>
+                <span>粉丝 {{ userData.followerCount }}</span>
+              </div>
               <p class="role-tag">{{ role }}</p>
               <div class="tomato-info">
                 <el-icon><Food /></el-icon>
                 <span>{{ userData.tomato }} 圣女果</span>
-                <el-button 
-                  type="primary" 
-                  size="small" 
+                <el-button
+                  type="primary"
+                  size="small"
                   @click="showRechargeDialog = true"
                   class="recharge-btn"
                 >
@@ -505,6 +721,13 @@ const calculateTotalAmount = computed(() => {
 
             <div class="form-actions">
               <el-button
+                  v-if="!userData.isVerified && role === 'user'"
+                  type="warning"
+                  @click="applyDialogVisible = true"
+              >
+                发起大师认证申请
+              </el-button>
+              <el-button
                   v-if="!editMode"
                   type="primary"
                   @click="editMode = true"
@@ -525,15 +748,15 @@ const calculateTotalAmount = computed(() => {
         <div class="section-header">
           <h2>我的书单</h2>
           <div class="tabs">
-            <div 
-              :class="['tab-item', { active: activeTab === 'created' }]"
-              @click="activeTab = 'created'"
+            <div
+                :class="['tab-item', { active: activeTab === 'created' }]"
+                @click="activeTab = 'created'"
             >
               我创建的
             </div>
-            <div 
-              :class="['tab-item', { active: activeTab === 'favourite' }]"
-              @click="activeTab = 'favourite'"
+            <div
+                :class="['tab-item', { active: activeTab === 'favourite' }]"
+                @click="activeTab = 'favourite'"
             >
               我收藏的
             </div>
@@ -542,40 +765,85 @@ const calculateTotalAmount = computed(() => {
 
         <div class="booklists-grid" v-loading="loading">
           <book-list-item
-            v-for="bookList in activeTab === 'created' ? createdBookLists : favouriteBookLists"
-            :key="bookList.id"
-            :book-list="bookList"
-            :is-favourite="favouriteBookListIds.has(bookList.id)"
-            :is-creator="currentUserId === bookList.creatorId"
-            @collect="handleCollect"
-            @delete="handleDelete"
-            @view="handleView"
+              v-for="bookList in activeTab === 'created' ? createdBookLists : favouriteBookLists"
+              :key="bookList.id"
+              :book-list="bookList"
+              :is-favourite="favouriteBookListIds.has(bookList.id)"
+              :is-creator="currentUserId === bookList.creatorId"
+              @collect="handleCollect"
+              @delete="handleDelete"
+              @view="handleView"
           />
         </div>
 
         <!-- 无数据提示 -->
-        <div v-if="(activeTab === 'created' ? createdBookLists : favouriteBookLists).length === 0" 
+        <div v-if="(activeTab === 'created' ? createdBookLists : favouriteBookLists).length === 0"
              class="no-data">
           暂无{{ activeTab === 'created' ? '创建' : '收藏' }}的书单
         </div>
       </div>
 
+      <!-- 订单历史区域 -->
+      <div class="orders-section">
+        <div class="section-header">
+          <h2>订单历史</h2>
+        </div>
+
+        <div class="orders-list" v-loading="loadingOrders">
+          <div class="orders-scroll-container" v-if="orders.length > 0">
+            <div v-for="order in orders" :key="order.id" class="order-card">
+              <div class="order-header">
+                <span class="order-id">订单号：{{ order.id }}</span>
+                <el-tag :type="getStatusType(order.status)" size="small">
+                  {{ formatOrderStatus(order.status) }}
+                </el-tag>
+              </div>
+
+              <div class="order-content">
+                <div class="order-info-item">
+                  <span class="label">订单金额</span>
+                  <span class="amount">¥{{ order.totalAmount.toFixed(2) }}</span>
+                  <span v-if="order.useCoupon" class="discount-info">
+                    (优惠: ¥{{ order.reducedAmount.toFixed(2) }})
+                  </span>
+                </div>
+
+                <div class="order-info-item">
+                  <span class="label">支付方式</span>
+                  <span class="value">{{ formatPaymentMethod(order.paymentMethod) }}</span>
+                </div>
+
+                <div class="order-info-item">
+                  <span class="label">创建时间</span>
+                  <span class="value">{{ new Date(order.createTime).toLocaleString() }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 无数据提示 -->
+          <div v-if="orders.length === 0" class="no-data">
+            暂无订单记录
+          </div>
+        </div>
+      </div>
+
       <!-- 书单详情对话框 -->
       <el-dialog
-        v-model="detailDialogVisible"
-        title="书单详情"
-        width="800px"
+          v-model="detailDialogVisible"
+          title="书单详情"
+          width="800px"
       >
         <div v-if="currentBookList" class="booklist-detail">
           <h2>{{ currentBookList.title }}</h2>
           <p class="description">{{ currentBookList.description }}</p>
-          
+
           <div class="products-list">
-            <div 
-              v-for="product in currentBookList.products" 
-              :key="product.id" 
-              class="product-item"
-              @click="handleProductClick(product.id)"
+            <div
+                v-for="product in currentBookList.products"
+                :key="product.id"
+                class="product-item"
+                @click="handleProductClick(product.id)"
             >
               <img :src="product.cover" :alt="product.title" class="product-cover">
               <div class="product-info">
@@ -601,6 +869,54 @@ const calculateTotalAmount = computed(() => {
         <el-button type="primary" @click="handleRelogin">重新登录</el-button>
       </template>
     </el-dialog>
+    <!-- 添加认证申请对话框 -->
+    <el-dialog v-model="applyDialogVisible" title="大师认证申请">
+      <el-form
+          :model="applyForm"
+          :rules="applyRules"
+          ref="formRef"
+          label-width="100px">
+        <!-- 新增认证名号选择 -->
+        <el-form-item label="认证名号" prop="verifiedName">
+          <el-select
+              v-model="applyForm.verifiedName"
+              placeholder="请选择认证名号"
+              class="full-width"
+          >
+            <el-option
+                v-for="name in verifiedNameOptions"
+                :key="name"
+                :label="name"
+                :value="name"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="申请理由" required>
+          <el-input
+              v-model="applyForm.reasonText"
+              type="textarea"
+              :rows="4"
+              placeholder="请说明申请理由（至少20字）"
+          />
+        </el-form-item>
+        <el-form-item label="证明材料">
+          <el-upload
+              list-type="picture-card"
+              :auto-upload="true"
+              :http-request="handleProofUpload"
+              :on-remove="handleProofRemove"
+              :file-list="proofFiles"
+              :before-upload="beforeProofUpload"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="applyDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleApplyVerification">提交申请</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 圣女果充值对话框 -->
     <el-dialog
@@ -615,7 +931,7 @@ const calculateTotalAmount = computed(() => {
           <h3>圣女果充值</h3>
           <p class="current-balance">当前余额：{{ userData.tomato }} 圣女果</p>
         </div>
-        
+
         <el-form
           ref="rechargeFormRef"
           :model="{ amount: rechargeAmount }"
@@ -669,8 +985,8 @@ const calculateTotalAmount = computed(() => {
           </div>
           <div class="action-buttons">
             <el-button @click="showRechargeDialog = false">取消</el-button>
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               @click="handleRecharge"
               :disabled="!rechargeAmount"
             >
@@ -735,6 +1051,7 @@ const calculateTotalAmount = computed(() => {
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0;
+  width: 50px
 }
 
 .tomato-info {
@@ -988,6 +1305,228 @@ const calculateTotalAmount = computed(() => {
   margin: 4px 0;
 }
 
+.verified-tag {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.social-stats {
+  margin-top: 8px;
+  color: #666;
+  font-size: 0.9em;
+}
+.social-stats span {
+  margin-right: 15px;
+}
+
+.badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  height: 24px;
+  line-height: 20px;
+  letter-spacing: 0.5px;
+  border-width: 1px;
+}
+
+/* 认证标识优化 */
+.verified-badge {
+  background: linear-gradient(45deg, #FFD700 0%, #FFC800 100%);
+  border-color: #D4AF37;
+  color: #2D2D2D;
+  .v-icon {
+    color: #2D2D2D;
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: -1px;
+  }
+  .badge-text {
+    font-weight: 500;
+  }
+}
+
+/* 读者标识优化 */
+.reader-badge {
+  background: rgba(64,158,255,0.08);
+  border-color: rgba(64,158,255,0.6);
+  color: #409EFF;
+  font-weight: 400;
+}
+
+/* 调整Element图标颜色 */
+:deep(.el-icon) {
+  vertical-align: middle;
+}
+
+.verified-badge {
+  position: relative;
+  background: linear-gradient(
+      45deg,
+      #FFD700 0%,
+      #FFC800 30%,
+      #D4AF37 70%,
+      #FFD700 100%
+  );
+  border: 1px solid rgba(212, 175, 55, 0.8);
+  color: #2d2d2d;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        rgba(255,255,255,0) 25%,
+        rgba(255,255,255,0.8) 50%,
+        rgba(255,255,255,0) 75%
+    );
+    animation: metal-glow 2s infinite linear;
+  }
+}
+
+/* 动态V图标 */
+.v-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  filter: drop-shadow(0 0 2px rgba(255,215,0,0.8));
+  animation:
+      icon-float 1.5s ease-in-out infinite,
+      icon-glow 1s alternate infinite;
+}
+
+/* 关键帧动画 */
+@keyframes metal-glow {
+  0% { transform: translate(-25%, -25%) rotate(45deg); }
+  100% { transform: translate(25%, 25%) rotate(45deg); }
+}
+
+@keyframes icon-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes icon-glow {
+  from { filter: drop-shadow(0 0 2px rgba(255,215,0,0.8)); }
+  to { filter: drop-shadow(0 0 5px rgba(255,215,0,0.9)); }
+}
+
+/* 悬停增强效果 */
+.verified-badge:hover {
+  transform: scale(1.05);
+  box-shadow:
+      0 0 15px rgba(255,215,0,0.5),
+      0 0 30px rgba(255,215,0,0.3);
+}
+
+/* 过渡效果 */
+.glow-enter-active {
+  animation: glow-in 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes glow-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotate(-5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.auth-apply-btn {
+  position: relative;
+  background: linear-gradient(45deg, #FF6B6B 0%, #FFE66D 100%);
+  border: none;
+  color: #2d3436;
+  font-weight: 600;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  padding-right: 35px;
+
+  &::after {
+    content: '✨';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+
+    .glow-effect {
+      opacity: 1;
+      transform: translateX(100%);
+    }
+  }
+}
+
+.glow-effect {
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+      90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.3) 50%,
+      rgba(255,255,255,0) 100%
+  );
+  opacity: 0;
+  transform: skewX(-20deg);
+  transition: all 0.6s ease;
+  animation: button-glow 2s infinite;
+}
+
+@keyframes button-glow {
+  0% { opacity: 0; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+.user-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.auth-button-container {
+  margin-left: 800px; /* 用固定间距代替auto */
+  order: 2; /* 确保按钮在标识之后 */
+}
+
+
+/* 调整原有认证标识样式 */
+.verified-badge,
+.reader-badge {
+  order: 1; /* 确保标识在按钮之前 */
+}
+
+@media (max-width: 768px) {
+  .user-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-button-container {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+  }
+}
+
 .recharge-btn {
   margin-left: 1rem;
   background-color: #ff6b6b;
@@ -1187,5 +1726,137 @@ const calculateTotalAmount = computed(() => {
 .action-buttons .el-button--primary:disabled {
   background-color: #ffb3b3;
   border-color: #ffb3b3;
+}
+
+/* 订单历史区域样式 */
+.orders-section {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+}
+
+.orders-list {
+  margin-top: 1rem;
+  position: relative;
+}
+
+.orders-scroll-container {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 1rem 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+.orders-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.orders-scroll-container::-webkit-scrollbar-thumb {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+}
+
+.order-card {
+  flex: 0 0 300px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid #ebeef5;
+}
+
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.order-id {
+  font-size: 0.9rem;
+  color: #606266;
+  font-weight: 500;
+}
+
+.order-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.order-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.order-info-item .label {
+  font-size: 0.85rem;
+  color: #909399;
+}
+
+.order-info-item .value {
+  font-size: 0.95rem;
+  color: #606266;
+}
+
+.order-info-item .amount {
+  font-size: 1.1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.order-info-item .discount-info {
+  font-size: 0.85rem;
+  color: #909399;
+  margin-top: 0.2rem;
+}
+
+:deep(.el-tag) {
+  border-radius: 4px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 22px;
+}
+
+:deep(.el-tag--success) {
+  background-color: #f0f9eb;
+  border-color: #e1f3d8;
+  color: #67c23a;
+}
+
+:deep(.el-tag--warning) {
+  background-color: #fdf6ec;
+  border-color: #faecd8;
+  color: #e6a23c;
+}
+
+:deep(.el-tag--danger) {
+  background-color: #fef0f0;
+  border-color: #fde2e2;
+  color: #f56c6c;
+}
+
+:deep(.el-tag--info) {
+  background-color: #f4f4f5;
+  border-color: #e9e9eb;
+  color: #909399;
 }
 </style>

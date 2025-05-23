@@ -4,7 +4,7 @@ import { axios } from '../utils/request'
 export interface ChatMessage {
     id: string
     sessionId: string
-    role: 'USER' | 'AI'
+    role: 'USER' | 'AI' | 'PRODUCT'
     content: string
     createTime: string
 }
@@ -16,6 +16,21 @@ export interface ChatSession {
     updateTime: string
 }
 
+// 新增处理 /api/chat/talk 的方法
+export const talkToAI = (data: {
+    sessionId: string
+    content: string
+}) => {
+    const token = sessionStorage.getItem('token')
+    return axios.post(`/api/chat/talk`, data, {
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token || ''
+        },
+    })
+}
+
+// 原方法保持不变
 export const postChatMessage = (data: {
     sessionId: string
     role: 'USER' | 'AI'
@@ -30,6 +45,7 @@ export const postChatMessage = (data: {
     })
 }
 
+// 原方法保持不变
 export const getChatSessions = () => {
     const token = sessionStorage.getItem('token')
     return axios.get(`/api/chat/sessions`, {
@@ -39,9 +55,10 @@ export const getChatSessions = () => {
     })
 }
 
+// 原方法保持不变
 export const getSessionMessages = (sessionId: string) => {
     const token = sessionStorage.getItem('token')
-    return axios.get(`/api/messages/${sessionId}`, {
+    return axios.get(`/api/chat/messages/${sessionId}`, {
         headers: {
             'token': token || ''
         }

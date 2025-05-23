@@ -184,10 +184,6 @@ public class NoteServiceImpl implements NoteService
     @Transactional
     public String subLikeCnt(Integer id)
     {
-        if (checkLiked(id))
-        {
-            throw TomatoMallException.noteLiked();
-        }
 
         Note note = noteRepository.findById(id)
                 .orElseThrow(TomatoMallException::noteNotFound);

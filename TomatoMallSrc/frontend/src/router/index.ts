@@ -75,6 +75,24 @@ const router = createRouter({
                 name: 'ai-chat',
                 component: AiChat,
                 meta: {title: '我的优惠券'}
+            },
+            {
+                path: '/verification-list',
+                name: 'VerificationList',
+                component: () => import('../views/verification/VerificationList.vue'),
+                meta: { title: '名家大师榜' }
+            },
+            {
+                path: '/verification-review',
+                name: 'VerificationReview',
+                component: () => import('../views/verification/VerificationReview.vue'),
+                meta: { title: '认证审核', permission: ['admin'] }
+            },
+            {
+                path: '/vuser-detail/:userId',
+                name: 'VUserDetail',
+                component: () => import('../views/verification/VUserDetail.vue'),
+                meta: { title: '用户详情' }
             }
         ]
     }, {
