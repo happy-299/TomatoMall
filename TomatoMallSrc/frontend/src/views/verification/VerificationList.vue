@@ -2,75 +2,70 @@
   <div class="verification-list">
     <!-- 管理员按钮 -->
     <div v-if="isAdmin" class="admin-actions">
-      <el-button
-          type="primary"
-          @click="router.push('/verification-review')"
-      >
+      <el-button type="primary" @click="router.push('/verification-review')">
         审核认证用户
       </el-button>
     </div>
 
-    <!-- 大师列表 -->
-    <div class="user-grid">
-      <VUserCard
-          v-for="user in verifiedUsers"
-          :key="user.id"
-          :user="user"
-      />
-    </div>
+    <!-- 导航栏 -->
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+      <el-tab-pane
+          v-for="category in categories"
+          :key="category"
+          :label="category"
+          :name="category"
+      >
+        <!-- 用户列表 -->
+        <div class="user-grid">
+          <template v-if="loading">
+            <el-skeleton v-for="i in 4" :key="i" animated />
+          </template>
+          <template v-else>
+            <VUserCard
+                v-for="user in categoryUsers"
+                :key="user.id"
+                :user="user"
+            />
+            <el-empty v-if="!categoryUsers.length" description="暂无认证用户" />
+          </template>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getVerificationListByStatus } from '../../api/verification'
-import { getUserInfo } from '../../api/user'
+import { getUsersByVerifiedName } from '../../api/user.ts'
 import VUserCard from '../../components/VUserCard.vue'
 
 const router = useRouter()
-const verifiedUsers = ref<any[]>([])
+const categories = ['墨香雅士', '当代鲁迅', '读书达人', '藏书阁主', '笔记大师']
+const activeTab = ref(categories[0])
+const categoryUsers = ref<any[]>([])
+const loading = ref(false)
 const isAdmin = computed(() => sessionStorage.getItem('role') === 'admin')
 
-// 获取已认证用户
-const loadVerifiedUsers = async () => {
+const loadUsers = async (verifiedName: string) => {
   try {
-    const res = await getVerificationListByStatus('APPROVED', 0, 100)
-    console.log('认证申请数据:', res.data) // [!code ++]
-
-    // 确认数据结构是否正确
-    const applications = res.data.data?.content || []
-    console.log('解析后的申请列表:', applications) // [!code ++]
-
-    const users = await Promise.all(
-        applications.map(async (app: any) => {
-          try {
-            const userRes = await getUserInfo(app.username)
-            console.log('用户详情响应:', userRes.data) // [!code ++]
-
-            // 合并数据时显式设置 isVerified
-            return {
-              ...userRes.data.data,
-              isVerified: true, // 强制标记认证状态 // [!code ++]
-              verificationInfo: app
-            }
-          } catch (error) {
-            console.error('获取用户失败:', app.username, error)
-            return null
-          }
-        })
-    )
-
-    verifiedUsers.value = users.filter(Boolean)
-    console.log('最终用户列表:', verifiedUsers.value) // [!code ++]
+    loading.value = true
+    const res = await getUsersByVerifiedName(verifiedName)
+    categoryUsers.value = res.data.data || []
   } catch (error) {
-    console.error('加载认证用户失败:', error)
-    ElMessage.error('加载认证用户失败')
+    console.error('加载用户失败:', error)
+    ElMessage.error('加载用户失败')
+  } finally {
+    loading.value = false
   }
 }
 
+const handleTabChange = (tabName: string) => {
+  loadUsers(tabName)
+}
+
 onMounted(() => {
-  loadVerifiedUsers()
+  loadUsers(activeTab.value)
 })
 </script>
 
@@ -85,5 +80,9 @@ onMounted(() => {
 .admin-actions {
   padding: 20px;
   border-bottom: 1px solid #eee;
+}
+
+.el-tabs {
+  margin: 0 20px;
 }
 </style>

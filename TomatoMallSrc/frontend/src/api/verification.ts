@@ -6,6 +6,7 @@ import { VERIFICATION_MODULE } from './_prefix'
 export interface ApplyVerificationRequest {
     reasonText: string
     proofImgs: string[]
+    verifiedName: string
 }
 
 /* 审核请求类型 */

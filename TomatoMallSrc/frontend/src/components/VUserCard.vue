@@ -24,7 +24,7 @@
     <div class="info">
       <div class="name-wrapper">
         <h3 class="username">{{ user.username || '未命名用户' }}</h3>
-        <UserBadge :is-verified="user.isVerified" />
+        <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
       </div>
 
       <!-- 附加信息 -->
@@ -48,14 +48,23 @@ const props = defineProps({
       username: '',
       avatar: '',
       isVerified: false,
-      bio: ''
+      bio: '',
+      verifiedName: ''
     })
   }
 })
 
 const router = useRouter()
 const viewDetail = () => {
-  router.push(`/vuser-detail/${props.user.id}`)
+  router.push({
+    path: `/vuser-detail/${props.user.id}`,
+    query: {
+      avatar: props.user.avatar,
+      username: props.user.username,
+      isVerified: props.user.isVerified,
+      verifiedName: props.user.verifiedName
+    }
+  })
 }
 </script>
 
@@ -76,12 +85,22 @@ const viewDetail = () => {
 }
 
 .avatar-container {
+  width: 100px;  /* 调整为更合适的尺寸 */
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  overflow: hidden;  /* 添加溢出隐藏 */
+  position: relative; /* 为子元素定位做准备 */
+}
+
+.avatar-container :deep(.el-image) {
+  border-radius: inherit;
+}
+
+.avatar-container :deep(img) {
   width: 100%;
-  height: 200px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f5f7fa;
-  margin-bottom: 12px;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar {

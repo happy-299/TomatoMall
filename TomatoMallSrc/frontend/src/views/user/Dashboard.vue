@@ -1,6 +1,6 @@
 <!-- Dashboard.vue -->
 <script setup lang="ts">
-import {ref, onMounted, computed} from 'vue'
+import {ref, onMounted, computed, reactive} from 'vue'
 import {useRouter} from 'vue-router'
 import {getUserInfo, updateUserInfo} from '../../api/user'
 import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
@@ -8,27 +8,42 @@ import {UserFilled, Food, Money, Delete} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
 import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList, addItemToBookList, removeItemFromBookList} from '../../api/booklist'
 import {getProducts, type Product} from '../../api/product'
+import {
+  getFavouriteBookLists,
+  getAllBookLists,
+  type BookListVO,
+  collectBookList,
+  cancelCollectBookList,
+  deleteBookList
+} from '../../api/booklist'
 import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
-import { applyVerification } from '../../api/verification'
-import { ElTag } from 'element-plus'
+import {applyVerification, type ApplyVerificationRequest} from '../../api/verification'
+import {ElTag} from 'element-plus'
 import axios from "axios";
-const sparkle = ref(false)
-import { getVerificationListByStatus } from '../../api/verification'
+import {
+  getUserNotes,
+  getPaidNotes,
+  getLikedNotes,
+  deleteNote,
+  likeNote,
+  unlikeNote,
+  payNote,
+  updateNote,
+  type NoteVO
+} from '../../api/note'
+import {getMyVerifications, type VerificationVO} from '../../api/verification'
 import UserBadge from '../../components/UserBadge.vue'
+import ReadingNote from "../../components/ReadingNote.vue";
 
-const hasPendingVerification = ref(false)
-const applyButtonText = ref('发起大师认证申请')
-const isApplying = ref(false)
-const startSparkle = () => {
-  sparkle.value = true
-  setTimeout(() => sparkle.value = false, 1000)
+
+interface UploadFile {
+  url: string
+  name?: string
+  status?: string
 }
 
-interface UploadResponse {
-  data: string
-}
-
+const proofFiles = ref<UploadFile[]>([])
 const router = useRouter()
 const userData = ref({
   username: '',
@@ -43,7 +58,8 @@ const userData = ref({
   isVerified: false,
   followingCount: 0,
   followerCount: 0,
-  tomato: 0
+  tomato: 0,
+  verifiedName: ''
 })
 const originalPassword = ref('')
 const showReloginDialog = ref(false)
@@ -67,14 +83,33 @@ const currentBookList = ref<BookListVO | null>(null)
 const selectedProduct = ref<number | null>(null)
 const products = ref<Product[]>([])
 
+//笔记相关状态
+const activeNoteTab = ref('created-notes')
+const createdNotes = ref<NoteVO[]>([])
+const paidNotes = ref<NoteVO[]>([])
+const likedNotes = ref<NoteVO[]>([])
+const likedNoteIds = ref<number[]>([])
+const paidNoteIds = ref<Set<number>>(new Set())
+const loadingNotes = ref(false)
+const detailNoteDialogVisible = ref(false)
+const currentNote = ref<NoteVO | null>(null)
+const editNoteDialogVisible = ref(false)
+const editNoteForm = reactive({
+  id: -1,
+  title: '',
+  content: '',
+  price: 0,
+  img: ''
+})
+
 // 圣女果充值相关
 const showRechargeDialog = ref(false)
 const rechargeAmount = ref(0)
 const rechargeFormRef = ref<FormInstance>()
 const rechargeRules = {
   amount: [
-    { required: true, message: '请输入充值数量', trigger: 'blur' },
-    { type: 'number', min: 1, message: '充值数量必须大于0', trigger: 'blur' }
+    {required: true, message: '请输入充值数量', trigger: 'blur'},
+    {type: 'number', min: 1, message: '充值数量必须大于0', trigger: 'blur'}
   ]
 }
 
@@ -139,11 +174,29 @@ const rules = {
 const applyDialogVisible = ref(false)
 const applyForm = ref({
   reasonText: '',
-  proofImgs: [] as string[]
+  proofImgs: [] as string[],
+  verifiedName: ''
 })
 
+const applyRules = {
+  reasonText: [
+    {required: true, message: '请输入申请理由', trigger: 'blur'},
+    {min: 20, message: '申请理由至少20字', trigger: 'blur'}
+  ],
+  verifiedName: [
+    {required: true, message: '请选择认证名号', trigger: 'change'}
+  ]
+}
+
+const recordDialogVisible = ref(false)
+const verificationRecords = ref<VerificationVO[]>([])
+const currentPage = ref(1)
+const pageSize = ref(5)
+const totalRecords = ref(0)
+const loadingRecords = ref(false)
 const orders = ref<OrderVO[]>([])
 const loadingOrders = ref(false)
+
 
 const fetchUserInfo = async () => {
   const username = sessionStorage.getItem('username')
@@ -168,37 +221,112 @@ const fetchUserInfo = async () => {
       isVerified: res.data.data.isVerified,
       followingCount: res.data.data.followingCount,
       followerCount: res.data.data.followerCount,
-      tomato: res.data.data.tomato || 0
+      tomato: res.data.data.tomato || 0,
+      verifiedName: res.data.data.verifiedName || ''
     }
     sessionStorage.setItem('role', userData.value.role);
     role.value = userData.value.role === 'user' ? "顾客" : "管理员";
     tempAvatar.value = res.data.data.avatar || ''
-
-    // 如果已经认证，不需要检查审核状态
-    if (!userData.value.isVerified) {
-      const pendingRes = await getVerificationListByStatus('PENDING', 0, 1)
-      hasPendingVerification.value = pendingRes.data.data?.content?.length > 0 || false
-    } else {
-      hasPendingVerification.value = false
-    }
 
   } catch (error) {
     ElMessage.error('获取用户信息失败')
   }
 }
 
+// 新增认证名号选项
+const verifiedNameOptions = [
+  '墨香雅士',
+  '当代鲁迅',
+  '读书达人',
+  '藏书阁主',
+  '笔记大师'
+]
+
+const fetchVerificationRecords = async () => {
+  loadingRecords.value = true
+  try {
+    const res = await getMyVerifications(currentPage.value - 1, pageSize.value)
+    console.log("get my v => ", res)
+    if (res.data.code === '200') {
+      verificationRecords.value = res.data.data.content
+      totalRecords.value = res.data.data.total
+    }
+  } catch (error) {
+    ElMessage.error('获取申请记录失败')
+  } finally {
+    loadingRecords.value = false
+  }
+}
+
+// 处理分页变化
+const handlePageChange = (newPage: number) => {
+  currentPage.value = newPage
+  fetchVerificationRecords()
+}
+
+// 处理证明材料上传
+const handleProofUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false})
+  try {
+    const {file} = params
+    const response = await uploadUserImage(file)
+    applyForm.value.proofImgs.push(response.data.data)
+    proofFiles.value = applyForm.value.proofImgs.map(url => ({url}))
+    ElMessage.success('上传成功')
+  } catch (error) {
+    ElMessage.error('证明材料上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 处理文件移除
+const handleProofRemove = (file: UploadFile) => {
+  const index = applyForm.value.proofImgs.indexOf(file.url)
+  if (index !== -1) {
+    applyForm.value.proofImgs.splice(index, 1)
+  }
+  proofFiles.value = proofFiles.value.filter(f => f.url !== file.url)
+}
+
+// 上传前校验
+const beforeProofUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过5MB')
+    return false
+  }
+  return true
+}
+
 // 新增认证申请方法
 const handleApplyVerification = async () => {
   try {
+    // 验证表单
+    await formRef.value?.validate()
+
     ElLoading.service()
-    await applyVerification({
+    const request: ApplyVerificationRequest = {
       reasonText: applyForm.value.reasonText,
-      proofImgs: applyForm.value.proofImgs
-    })
+      proofImgs: applyForm.value.proofImgs,
+      verifiedName: applyForm.value.verifiedName
+    }
+
+    const res = await applyVerification(request)
+    if (res.data.code == '400') {
+      ElMessage.error('申请提交失败！已有待审核申请')
+      return
+    }
     await fetchUserInfo()
     ElMessage.success('申请已提交，请等待审核')
     applyDialogVisible.value = false
-    applyForm.value = { reasonText: '', proofImgs: [] }
+    applyForm.value = {reasonText: '', proofImgs: [], verifiedName: ''}
   } catch (error) {
     if (axios.isAxiosError(error)) {
       ElMessage.error(error.response?.data?.msg || '提交申请失败')
@@ -260,6 +388,167 @@ const cancelEdit = () => {
   fetchUserInfo()
 }
 
+//读书笔记相关
+// 获取创建的笔记
+const fetchCreatedNotes = async () => {
+  try {
+    const res = await getUserNotes(currentUserId.value!)
+    createdNotes.value = res.data.data
+  } catch (error) {
+    ElMessage.error('获取创建的笔记失败')
+  }
+}
+
+// 获取购买的笔记
+const fetchPaidNotes = async () => {
+  try {
+    const res = await getPaidNotes()
+    paidNotes.value = res.data.data
+    paidNoteIds.value = new Set(paidNotes.value.map(n => n.id))
+  } catch (error) {
+    ElMessage.error('获取购买的笔记失败')
+  }
+}
+
+// 获取收藏的笔记
+const fetchLikedNotes = async () => {
+  try {
+    const res = await getLikedNotes()
+    likedNotes.value = res.data.data
+    likedNoteIds.value = likedNotes.value.map(n => n.id) // 改为数组
+  } catch (error) {
+    ElMessage.error('获取收藏的笔记失败')
+  }
+}
+
+const handleViewNote = (note: NoteVO) => {
+  currentNote.value = note
+  detailNoteDialogVisible.value = true
+}
+
+const handleEditNote = (note: NoteVO) => {
+  editNoteForm.id = note.id
+  editNoteForm.title = note.title
+  editNoteForm.content = note.content
+  editNoteForm.price = note.price
+  editNoteForm.img = note.img
+  editNoteDialogVisible.value = true
+  detailNoteDialogVisible.value = false
+}
+
+const getDisplayContent = (content: string, isPaid: boolean) => {
+  if (isPaid || !content) return content
+  const showLength = Math.ceil(content.length * 0.35)
+  return content.slice(0, showLength) + '...'
+}
+
+const updateNoteHandler = async () => {
+  try {
+    await updateNote({
+      id: editNoteForm.id,
+      title: editNoteForm.title,
+      content: editNoteForm.content,
+      price: editNoteForm.price,
+      img: editNoteForm.img
+    })
+
+    // 更新本地数据
+    const notesArray = activeNoteTab.value === 'created-notes' ? createdNotes.value :
+        activeNoteTab.value === 'paid-notes' ? paidNotes.value :
+            likedNotes.value;
+    const index = notesArray.findIndex(n => n.id === editNoteForm.id)
+    if (index > -1) {
+      notesArray[index] = {
+        ...notesArray[index],
+        ...editNoteForm
+      }
+    }
+
+    ElMessage.success('笔记更新成功')
+    editNoteDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('更新失败')
+  }
+}
+
+const handleEditNoteImageUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false})
+  try {
+    const {file} = params
+    const response = await uploadUserImage(file)
+    editNoteForm.img = response.data.data
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 初始化获取笔记数据
+const fetchAllNotes = async () => {
+  loadingNotes.value = true
+  try {
+    await Promise.all([
+      fetchCreatedNotes(),
+      fetchPaidNotes(),
+      fetchLikedNotes()
+    ])
+  } finally {
+    loadingNotes.value = false
+  }
+}
+
+// 处理笔记点赞
+const handleLikeNote = async (note: NoteVO) => {
+  try {
+    await likeNote(note.id)
+    likedNoteIds.value = [...likedNoteIds.value, note.id] // 创建新数组
+    note.likeCnt++
+    fetchLikedNotes()
+    ElMessage.success('点赞成功')
+  } catch (error) {
+    ElMessage.error('点赞失败')
+  }
+}
+
+const handleUnlikeNote = async (note: NoteVO) => {
+  try {
+    await unlikeNote(note.id)
+    likedNoteIds.value = likedNoteIds.value.filter(id => id !== note.id) // 过滤数组
+    note.likeCnt--
+    fetchLikedNotes()
+    ElMessage.success('取消点赞成功')
+  } catch (error) {
+    ElMessage.error('取消点赞失败')
+  }
+}
+
+// 处理删除笔记
+const handleDeleteNote = async (id: number) => {
+  try {
+    await deleteNote(id)
+    createdNotes.value = createdNotes.value.filter(n => n.id !== id)
+    fetchPaidNotes()
+    ElMessage.success('删除成功')
+  } catch (error) {
+    ElMessage.error('删除失败')
+  }
+}
+
+// 处理购买笔记
+const handlePurchaseNote = async (note: NoteVO) => {
+  try {
+    await payNote(note.id)
+    paidNoteIds.value.add(note.id)
+    await fetchPaidNotes()
+    fetchPaidNotes()
+    ElMessage.success('购买成功')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '购买失败')
+  }
+}
+
 // 获取用户创建的书单
 const fetchCreatedBookLists = async () => {
   try {
@@ -293,12 +582,12 @@ const handleCollect = async (bookList: BookListVO) => {
   try {
     const isCollected = favouriteBookListIds.value.has(bookList.id)
     if (isCollected) {
-      await cancelCollectBookList({ bookListId: bookList.id })
+      await cancelCollectBookList({bookListId: bookList.id})
       bookList.favouriteCount--
       favouriteBookListIds.value.delete(bookList.id)
       ElMessage.success('取消收藏成功')
     } else {
-      await collectBookList({ bookListId: bookList.id })
+      await collectBookList({bookListId: bookList.id})
       bookList.favouriteCount++
       favouriteBookListIds.value.add(bookList.id)
       ElMessage.success('收藏成功')
@@ -363,6 +652,7 @@ onMounted(() => {
   fetchFavouriteBookLists()
   fetchOrders()
   fetchProducts()
+  fetchAllNotes()
 })
 
 const handleRelogin = () => {
@@ -616,23 +906,28 @@ const fetchProducts = async () => {
                 <span>{{ userData.username }}</span>
 
                 <!-- 认证标识 -->
-                <user-badge :is-verified="userData.isVerified" />
+                <user-badge :is-verified="userData.isVerified" :verified-name="userData.verifiedName"/>
 
                 <!-- 申请按钮 -->
                 <div class="auth-button-container">
                   <el-button
                       class="auth-apply-btn"
-                      :disabled="userData.isVerified || hasPendingVerification"
+                      :disabled="userData.isVerified"
                       @click="applyDialogVisible = true"
                   >
                     {{
                       userData.isVerified
                           ? '已认证'
-                          : hasPendingVerification
-                              ? '审核中'
-                              : '发起大师认证申请'
+                          : '发起大师认证申请'
                     }}
-                    <div v-if="!userData.isVerified && !hasPendingVerification" class="glow-effect"></div>
+                    <div v-if="!userData.isVerified" class="glow-effect"></div>
+                  </el-button>
+                  <el-button
+                      type="info"
+                      class="record-btn"
+                      @click="recordDialogVisible = true; fetchVerificationRecords()"
+                  >
+                    申请记录
                   </el-button>
                 </div>
               </h2>
@@ -643,13 +938,15 @@ const fetchProducts = async () => {
               </div>
               <p class="role-tag">{{ role }}</p>
               <div class="tomato-info">
-                <el-icon><Food /></el-icon>
+                <el-icon>
+                  <Food/>
+                </el-icon>
                 <span>{{ userData.tomato }} 圣女果</span>
                 <el-button
-                  type="primary"
-                  size="small"
-                  @click="showRechargeDialog = true"
-                  class="recharge-btn"
+                    type="primary"
+                    size="small"
+                    @click="showRechargeDialog = true"
+                    class="recharge-btn"
                 >
                   充值
                 </el-button>
@@ -795,6 +1092,65 @@ const fetchProducts = async () => {
         </div>
       </div>
 
+      <!-- 读书笔记区域 -->
+      <div class="booklists-section">
+        <div class="section-header">
+          <h2>我的读书笔记</h2>
+          <div class="tabs">
+            <div
+                :class="['tab-item', { active: activeNoteTab === 'created-notes' }]"
+                @click="activeNoteTab = 'created-notes'"
+            >
+              我创建的
+            </div>
+            <div
+                :class="['tab-item', { active: activeNoteTab === 'paid-notes' }]"
+                @click="activeNoteTab = 'paid-notes'"
+            >
+              我购买的
+            </div>
+            <div
+                :class="['tab-item', { active: activeNoteTab === 'liked-notes' }]"
+                @click="activeNoteTab = 'liked-notes'"
+            >
+              我收藏的
+            </div>
+          </div>
+        </div>
+
+        <div class="booklists-grid" v-loading="loadingNotes">
+          <ReadingNote
+              @view="handleViewNote"
+              v-for="note in activeNoteTab === 'created-notes'
+          ? createdNotes
+          : activeNoteTab === 'paid-notes'
+            ? paidNotes
+            : likedNotes"
+              :key="note.id"
+              :note="note"
+              :is-liked="likedNoteIds.includes(note.id)"
+              :is-creator="currentUserId === note.creatorId"
+              :is-paid="paidNoteIds.has(note.id)"
+              @like="handleLikeNote"
+              @unlike="handleUnlikeNote"
+              @delete="handleDeleteNote"
+              @purchase="handlePurchaseNote"
+          />
+        </div>
+
+        <div
+            v-if="(activeNoteTab === 'created-notes' && createdNotes.length === 0)
+        || (activeNoteTab === 'paid-notes' && paidNotes.length === 0)
+        || (activeNoteTab === 'liked-notes' && likedNotes.length === 0)"
+            class="no-data"
+        >
+          暂无{{
+            activeNoteTab === 'created-notes' ? '创建' :
+                activeNoteTab === 'paid-notes' ? '购买' : '收藏'
+          }}的读书笔记
+        </div>
+      </div>
+
       <!-- 订单历史区域 -->
       <div class="orders-section">
         <div class="section-header">
@@ -810,7 +1166,7 @@ const fetchProducts = async () => {
                   {{ formatOrderStatus(order.status) }}
                 </el-tag>
               </div>
-              
+
               <div class="order-content">
                 <div class="order-info-item">
                   <span class="label">订单金额</span>
@@ -819,12 +1175,12 @@ const fetchProducts = async () => {
                     (优惠: ¥{{ order.reducedAmount.toFixed(2) }})
                   </span>
                 </div>
-                
+
                 <div class="order-info-item">
                   <span class="label">支付方式</span>
                   <span class="value">{{ formatPaymentMethod(order.paymentMethod) }}</span>
                 </div>
-                
+
                 <div class="order-info-item">
                   <span class="label">创建时间</span>
                   <span class="value">{{ new Date(order.createTime).toLocaleString() }}</span>
@@ -839,6 +1195,118 @@ const fetchProducts = async () => {
           </div>
         </div>
       </div>
+
+      <!-- 笔记详情弹窗 -->
+      <el-dialog
+          v-model="detailNoteDialogVisible"
+          title="笔记详情"
+          width="600px"
+      >
+        <div v-if="currentNote" class="note-detail">
+          <div class="detail-header">
+            <h2>{{ currentNote.title }}</h2>
+            <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
+              <template v-if="currentNote.price > 0">
+                {{ currentNote.price }} 🍅
+                <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
+              </template>
+              <span v-else class="free">免费</span>
+            </div>
+          </div>
+
+          <el-image
+              v-if="currentNote.img"
+              :src="currentNote.img"
+              class="note-image"
+              style="max-width: 100%; margin: 10px 0;"
+          />
+
+          <!-- 修改内容展示部分 -->
+          <div class="note-content-container">
+            <div
+                class="note-content"
+                :class="{ 'limited-content': currentNote.price > 0 && !paidNoteIds.has(currentNote.id) }"
+                style="white-space: pre-wrap;"
+            >
+              {{ getDisplayContent(currentNote.content, paidNoteIds.has(currentNote.id)) }}
+            </div>
+
+            <!-- 未购买提示 -->
+            <div
+                v-if="currentNote.price > 0 && !paidNoteIds.has(currentNote.id)"
+                class="purchase-tip"
+            >
+              <el-alert
+                  title="预览内容已结束，购买后可查看完整笔记"
+                  type="warning"
+                  :closable="false"
+                  show-icon
+              />
+              <el-button
+                  type="primary"
+                  class="purchase-button"
+                  @click="handlePurchaseNote(currentNote)"
+              >
+                立即解锁（{{ currentNote.price }} 🍅）
+              </el-button>
+            </div>
+          </div>
+
+          <div class="actions" v-if="currentUserId === currentNote.creatorId" style="margin-top: 20px;">
+            <el-button type="primary" @click="handleEditNote(currentNote)">编辑笔记</el-button>
+            <el-button type="danger" @click="handleDeleteNote(currentNote.id)">删除笔记</el-button>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 编辑笔记弹窗 -->
+      <el-dialog
+          v-model="editNoteDialogVisible"
+          title="编辑笔记"
+          width="600px"
+      >
+        <el-form :model="editNoteForm" label-width="80px">
+          <el-form-item label="标题" required>
+            <el-input v-model="editNoteForm.title"/>
+          </el-form-item>
+          <el-form-item label="内容" required>
+            <el-input
+                v-model="editNoteForm.content"
+                type="textarea"
+                :rows="4"
+                resize="none"
+            />
+          </el-form-item>
+          <el-form-item label="价格">
+            <el-input-number
+                v-model="editNoteForm.price"
+                :min="0"
+                :precision="0"
+            />
+          </el-form-item>
+          <el-form-item label="封面图">
+            <el-upload
+                :auto-upload="true"
+                :http-request="handleEditNoteImageUpload"
+                :show-file-list="false"
+            >
+              <template #trigger>
+                <el-button type="primary">上传新图片</el-button>
+              </template>
+              <img
+                  v-if="editNoteForm.img"
+                  :src="editNoteForm.img"
+                  class="preview-image"
+                  style="max-width: 200px; margin-top: 10px;"
+              />
+            </el-upload>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editNoteDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="updateNoteHandler">保存修改</el-button>
+        </template>
+      </el-dialog>
 
       <!-- 书单详情对话框 -->
       <el-dialog
@@ -916,24 +1384,122 @@ const fetchProducts = async () => {
         <el-button type="primary" @click="handleRelogin">重新登录</el-button>
       </template>
     </el-dialog>
+
+    <!-- 添加申请记录对话框 -->
+    <el-dialog
+        v-model="recordDialogVisible"
+        title="认证申请记录"
+        width="80%"
+    >
+      <div v-loading="loadingRecords">
+        <el-table :data="verificationRecords" style="width: 100%">
+          <el-table-column prop="createTime" label="申请时间" width="180">
+            <template #default="{row}">
+              {{ new Date(row.createTime).toLocaleString() }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{row}">
+              <el-tag :type="row.status === 'APPROVED' ? 'success' : row.status === 'REJECTED' ? 'danger' : 'warning'">
+                {{ row.status === 'PENDING' ? '审核中' : row.status === 'APPROVED' ? '已通过' : '已拒绝' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="verifiedName" label="申请名号" width="150"/>
+          <el-table-column label="申请理由" min-width="180">
+            <template #default="{row}">
+              <div class="reason-text">
+                {{ row.reasonText || '无申请理由' }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="证明材料" width="200">
+            <template #default="{row}">
+              <div class="proof-images" v-if="row.proofImgs?.length">
+                <el-image
+                    v-for="(img, index) in row.proofImgs"
+                    preview-teleported
+                    :key="index"
+                    :src="img"
+                    :preview-src-list="row.proofImgs"
+                    :initial-index="index"
+                    style="width: 60px; height: 60px; margin-right: 5px;"
+                    fit="cover"
+                    hide-on-click-modal
+                />
+              </div>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="审核意见" min-width="180">
+            <template #default="{row}">
+              <div v-if="row.status === 'REJECTED'">
+                <div class="reject-reason">{{ row.rejectReason }}</div>
+              </div>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="reviewTime" label="审核时间" width="180">
+            <template #default="{row}">
+              {{ row.reviewTime ? new Date(row.reviewTime).toLocaleString() : '-' }}
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination-container">
+          <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :total="totalRecords"
+              layout="prev, pager, next"
+              @current-change="handlePageChange"
+          />
+        </div>
+      </div>
+    </el-dialog>
+
     <!-- 添加认证申请对话框 -->
     <el-dialog v-model="applyDialogVisible" title="大师认证申请">
-      <el-form :model="applyForm" label-width="100px">
+      <el-form
+          :model="applyForm"
+          :rules="applyRules"
+          ref="formRef"
+          label-width="100px">
+        <!-- 新增认证名号选择 -->
+        <el-form-item label="认证名号" prop="verifiedName">
+          <el-select
+              v-model="applyForm.verifiedName"
+              placeholder="请选择认证名号"
+              class="full-width"
+          >
+            <el-option
+                v-for="name in verifiedNameOptions"
+                :key="name"
+                :label="name"
+                :value="name"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="申请理由" required>
           <el-input
               v-model="applyForm.reasonText"
               type="textarea"
               :rows="4"
-              placeholder="请说明申请理由（至少100字）"
+              placeholder="请说明申请理由（至少20字）"
           />
         </el-form-item>
         <el-form-item label="证明材料">
           <el-upload
-              action="/api/upload"
               list-type="picture-card"
-              :on-success="(res: UploadResponse) => applyForm.proofImgs.push(res.data)"
+              :auto-upload="true"
+              :http-request="handleProofUpload"
+              :on-remove="handleProofRemove"
+              :file-list="proofFiles"
+              :before-upload="beforeProofUpload"
           >
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus/>
+            </el-icon>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -945,46 +1511,48 @@ const fetchProducts = async () => {
 
     <!-- 圣女果充值对话框 -->
     <el-dialog
-      v-model="showRechargeDialog"
-      title="圣女果充值"
-      width="500px"
-      class="recharge-dialog"
+        v-model="showRechargeDialog"
+        title="圣女果充值"
+        width="500px"
+        class="recharge-dialog"
     >
       <div class="recharge-content">
         <div class="recharge-header">
-          <el-icon class="tomato-icon"><Food /></el-icon>
+          <el-icon class="tomato-icon">
+            <Food/>
+          </el-icon>
           <h3>圣女果充值</h3>
           <p class="current-balance">当前余额：{{ userData.tomato }} 圣女果</p>
         </div>
 
         <el-form
-          ref="rechargeFormRef"
-          :model="{ amount: rechargeAmount }"
-          :rules="rechargeRules"
-          label-width="0"
-          class="recharge-form"
+            ref="rechargeFormRef"
+            :model="{ amount: rechargeAmount }"
+            :rules="rechargeRules"
+            label-width="0"
+            class="recharge-form"
         >
           <el-form-item prop="amount">
             <div class="amount-input-wrapper">
               <span class="amount-label">充值数量</span>
               <el-input-number
-                v-model="rechargeAmount"
-                :min="1"
-                :step="1"
-                :precision="0"
-                size="large"
-                class="amount-input"
-                placeholder="请输入充值数量"
+                  v-model="rechargeAmount"
+                  :min="1"
+                  :step="1"
+                  :precision="0"
+                  size="large"
+                  class="amount-input"
+                  placeholder="请输入充值数量"
               />
             </div>
           </el-form-item>
 
           <div class="quick-amounts">
             <el-button
-              v-for="amount in [10, 50, 100, 200]"
-              :key="amount"
-              :class="['quick-amount-btn', { active: rechargeAmount === amount }]"
-              @click="rechargeAmount = amount"
+                v-for="amount in [10, 50, 100, 200]"
+                :key="amount"
+                :class="['quick-amount-btn', { active: rechargeAmount === amount }]"
+                @click="rechargeAmount = amount"
             >
               {{ amount }}个
             </el-button>
@@ -994,7 +1562,9 @@ const fetchProducts = async () => {
             <span class="method-label">支付方式</span>
             <div class="method-options">
               <div class="method-option active">
-                <el-icon><Money /></el-icon>
+                <el-icon>
+                  <Money/>
+                </el-icon>
                 <span>支付宝</span>
               </div>
             </div>
@@ -1011,9 +1581,9 @@ const fetchProducts = async () => {
           <div class="action-buttons">
             <el-button @click="showRechargeDialog = false">取消</el-button>
             <el-button
-              type="primary"
-              @click="handleRecharge"
-              :disabled="!rechargeAmount"
+                type="primary"
+                @click="handleRecharge"
+                :disabled="!rechargeAmount"
             >
               立即充值
             </el-button>
@@ -1341,6 +1911,7 @@ const fetchProducts = async () => {
   color: #666;
   font-size: 0.9em;
 }
+
 .social-stats span {
   margin-right: 15px;
 }
@@ -1361,12 +1932,14 @@ const fetchProducts = async () => {
   background: linear-gradient(45deg, #FFD700 0%, #FFC800 100%);
   border-color: #D4AF37;
   color: #2D2D2D;
+
   .v-icon {
     color: #2D2D2D;
     font-size: 14px;
     margin-right: 4px;
     vertical-align: -1px;
   }
+
   .badge-text {
     font-weight: 500;
   }
@@ -1374,8 +1947,8 @@ const fetchProducts = async () => {
 
 /* 读者标识优化 */
 .reader-badge {
-  background: rgba(64,158,255,0.08);
-  border-color: rgba(64,158,255,0.6);
+  background: rgba(64, 158, 255, 0.08);
+  border-color: rgba(64, 158, 255, 0.6);
   color: #409EFF;
   font-weight: 400;
 }
@@ -1408,9 +1981,9 @@ const fetchProducts = async () => {
     height: 200%;
     background: linear-gradient(
         45deg,
-        rgba(255,255,255,0) 25%,
-        rgba(255,255,255,0.8) 50%,
-        rgba(255,255,255,0) 75%
+        rgba(255, 255, 255, 0) 25%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0) 75%
     );
     animation: metal-glow 2s infinite linear;
   }
@@ -1421,34 +1994,44 @@ const fetchProducts = async () => {
   width: 18px;
   height: 18px;
   margin-right: 6px;
-  filter: drop-shadow(0 0 2px rgba(255,215,0,0.8));
-  animation:
-      icon-float 1.5s ease-in-out infinite,
-      icon-glow 1s alternate infinite;
+  filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.8));
+  animation: icon-float 1.5s ease-in-out infinite,
+  icon-glow 1s alternate infinite;
 }
 
 /* 关键帧动画 */
 @keyframes metal-glow {
-  0% { transform: translate(-25%, -25%) rotate(45deg); }
-  100% { transform: translate(25%, 25%) rotate(45deg); }
+  0% {
+    transform: translate(-25%, -25%) rotate(45deg);
+  }
+  100% {
+    transform: translate(25%, 25%) rotate(45deg);
+  }
 }
 
 @keyframes icon-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 @keyframes icon-glow {
-  from { filter: drop-shadow(0 0 2px rgba(255,215,0,0.8)); }
-  to { filter: drop-shadow(0 0 5px rgba(255,215,0,0.9)); }
+  from {
+    filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.8));
+  }
+  to {
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.9));
+  }
 }
 
 /* 悬停增强效果 */
 .verified-badge:hover {
   transform: scale(1.05);
-  box-shadow:
-      0 0 15px rgba(255,215,0,0.5),
-      0 0 30px rgba(255,215,0,0.3);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5),
+  0 0 30px rgba(255, 215, 0, 0.3);
 }
 
 /* 过渡效果 */
@@ -1487,7 +2070,7 @@ const fetchProducts = async () => {
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 
     .glow-effect {
       opacity: 1;
@@ -1504,9 +2087,9 @@ const fetchProducts = async () => {
   height: 100%;
   background: linear-gradient(
       90deg,
-      rgba(255,255,255,0) 0%,
-      rgba(255,255,255,0.3) 50%,
-      rgba(255,255,255,0) 100%
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
   );
   opacity: 0;
   transform: skewX(-20deg);
@@ -1515,9 +2098,15 @@ const fetchProducts = async () => {
 }
 
 @keyframes button-glow {
-  0% { opacity: 0; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .user-title {
@@ -1897,5 +2486,116 @@ const fetchProducts = async () => {
   margin-top: 20px;
   display: flex;
   gap: 12px;
+}
+
+.record-btn {
+  margin-left: 1px;
+  background-color: #909399;
+  border-color: #909399;
+}
+
+.record-btn:hover {
+  background-color: #82848a;
+  border-color: #82848a;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.reject-reason {
+  color: #f56c6c;
+  word-break: break-word;
+}
+
+.proof-images {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.note-detail {
+  padding: 20px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-price {
+  font-size: 18px;
+  color: #e6a23c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-price.paid {
+  color: #67c23a;
+}
+
+.paid-badge {
+  background: #f0f9eb;
+  color: #67c23a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.note-image {
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.preview-image {
+  max-width: 200px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.note-content-container {
+  position: relative;
+}
+
+.limited-content {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.limited-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, white);
+}
+
+.purchase-tip {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.purchase-button {
+  margin-top: 15px;
+  width: 100%;
+}
+
+.paid-badge {
+  background: #f0f9eb;
+  color: #67c23a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
 }
 </style>
