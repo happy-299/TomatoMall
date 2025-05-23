@@ -1,29 +1,56 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, ElLoading, ElDialog } from 'element-plus'
-import { Star } from '@element-plus/icons-vue'
-import { search, type SearchResult } from '../../api/search'
+import {ref, onMounted, reactive} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {ElMessage, ElMessageBox, ElLoading, ElDialog} from 'element-plus'
+import {Star} from '@element-plus/icons-vue'
+import {search, type SearchResult} from '../../api/search'
 import Header from '../../components/Header.vue'
 import BookListItem from '../../components/BookListItem.vue'
-import { collectBookList, cancelCollectBookList, deleteBookList, getAllBookLists, type BookListVO } from '../../api/booklist'
+import {
+  collectBookList,
+  cancelCollectBookList,
+  deleteBookList,
+  getAllBookLists,
+  type BookListVO
+} from '../../api/booklist'
+import {deleteNote, getNoteLikeStatus, getNotePayStatus, payNote, type NoteVO, updateNote, likeNote, unlikeNote} from '../../api/note'
+import ReadingNote from "../../components/ReadingNote.vue";
+import {uploadUserImage} from '../../api/util.ts'
+import VUserCard from '../../components/VUserCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 const searchResults = ref<SearchResult>({
   accounts: [],
   products: [],
-  bookLists: []
+  bookLists: [],
+  notes: []
 })
 const loading = ref(false)
 const activeTab = ref('products')
 const currentUserId = ref<number | null>(null)
 const favouriteBookListIds = ref<Set<number>>(new Set())
+const likedNoteIds = ref<Set<number>>(new Set())
+const paidNoteIds = ref<Set<number>>(new Set())
 
 // 书单详情相关
 const detailDialogVisible = ref(false)
 const currentBookList = ref<BookListVO | null>(null)
 const detailLoading = ref(false)
+
+// 笔记相关状态
+const showPurchaseDialog = ref(false)
+const selectedNote = ref<NoteVO | null>(null)
+const detailNoteDialogVisible = ref(false)
+const currentNote = ref<NoteVO | null>(null)
+const editNoteDialogVisible = ref(false)
+const editNoteForm = reactive({
+  id: -1,
+  title: '',
+  content: '',
+  price: 0,
+  img: ''
+})
 
 const fetchSearchResults = async () => {
   const keyword = route.query.keyword as string
@@ -35,6 +62,7 @@ const fetchSearchResults = async () => {
   loading.value = true
   try {
     const res = await search(keyword)
+    console.log("search => ", res)
     if (res.data.code === '200') {
       // 获取完整的书单信息
       const bookListRes = await getAllBookLists(0, 1000)
@@ -58,11 +86,159 @@ const fetchSearchResults = async () => {
           }
         })
       }
+      // 获取笔记状态
+      const notePromises = searchResults.value.notes.map(async (note: NoteVO) => {
+        if (currentUserId.value) {
+          try {
+            const [likeRes, payRes] = await Promise.all([
+              getNoteLikeStatus(note.id),
+              getNotePayStatus(note.id)
+            ])
+            if (likeRes.data.data) likedNoteIds.value.add(note.id)
+            if (payRes.data.data) paidNoteIds.value.add(note.id)
+          } catch (error) {
+            console.error('获取笔记状态失败', error)
+          }
+        }
+      })
+
+
+      await Promise.all(notePromises)
     }
   } catch (error) {
     ElMessage.error('搜索失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 笔记点赞处理
+const handleLikeNote = async (note: NoteVO) => {
+  if (!currentUserId.value) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  try {
+    await likeNote(note.id)
+    likedNoteIds.value.add(note.id)
+    note.likeCnt++
+  } catch (error) {
+    ElMessage.error('点赞失败')
+  }
+}
+
+const handleUnlikeNote = async (note: NoteVO) => {
+  try {
+    await unlikeNote(note.id)
+    likedNoteIds.value.delete(note.id)
+    note.likeCnt--
+  } catch (error) {
+    ElMessage.error('取消点赞失败')
+  }
+}
+
+// 删除笔记
+const handleDeleteNote = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('确定删除该笔记？', '提示', {type: 'warning'})
+    await deleteNote(id)
+    searchResults.value.notes = searchResults.value.notes.filter(n => n.id !== id)
+    ElMessage.success('删除成功')
+  } catch (error) {
+    // 取消操作
+  }
+}
+
+// 购买笔记处理
+const handlePurchaseNote = (note: NoteVO) => {
+  selectedNote.value = note
+  showPurchaseDialog.value = true
+}
+
+const getDisplayContent = (content: string, isPaid: boolean) => {
+  if (isPaid || !content) return content
+  const showLength = Math.ceil(content.length * 0.35)
+  return content.slice(0, showLength) + '...'
+}
+
+const confirmPurchase = async () => {
+  if (!selectedNote.value) return
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在购买...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    await payNote(selectedNote.value.id)
+    paidNoteIds.value.add(selectedNote.value.id)
+    ElMessage.success('购买成功')
+    showPurchaseDialog.value = false
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.msg || error.message || '购买失败'
+    ElMessage.error(errorMessage.includes('余额不足') ? '余额不足，请先充值' : errorMessage)
+  } finally {
+    loading.close()
+  }
+}
+
+// 查看笔记详情
+const handleViewNote = (note: NoteVO) => {
+  currentNote.value = note
+  detailNoteDialogVisible.value = true
+}
+
+// 打开编辑弹窗
+const handleEditNote = (note: NoteVO) => {
+  editNoteForm.id = note.id
+  editNoteForm.title = note.title
+  editNoteForm.content = note.content
+  editNoteForm.price = note.price
+  editNoteForm.img = note.img
+  editNoteDialogVisible.value = true
+  detailNoteDialogVisible.value = false
+}
+
+// 更新笔记处理
+const updateNoteHandler = async () => {
+  try {
+    await updateNote({
+      id: editNoteForm.id,
+      title: editNoteForm.title,
+      content: editNoteForm.content,
+      price: editNoteForm.price,
+      img: editNoteForm.img
+    })
+
+    // 更新本地数据
+    const index = searchResults.value.notes.findIndex(n => n.id === editNoteForm.id)
+    if (index > -1) {
+      searchResults.value.notes[index] = {
+        ...searchResults.value.notes[index],
+        ...editNoteForm
+      }
+    }
+
+    ElMessage.success('笔记更新成功')
+    editNoteDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('更新失败')
+  }
+}
+
+// 处理图片上传
+const handleEditNoteImageUpload = async (params: any) => {
+  const loading = ElLoading.service({fullscreen: false})
+  try {
+    const {file} = params
+    const response = await uploadUserImage(file)
+    editNoteForm.img = response.data.data
+    ElMessage.success('图片上传成功')
+  } catch (error) {
+    ElMessage.error('图片上传失败')
+  } finally {
+    loading.close()
   }
 }
 
@@ -81,12 +257,12 @@ const handleCollect = async (bookList: any) => {
   try {
     const isCollected = favouriteBookListIds.value.has(bookList.id)
     if (isCollected) {
-      await cancelCollectBookList({ bookListId: bookList.id })
+      await cancelCollectBookList({bookListId: bookList.id})
       bookList.favouriteCount--
       favouriteBookListIds.value.delete(bookList.id)
       ElMessage.success('取消收藏成功')
     } else {
-      await collectBookList({ bookListId: bookList.id })
+      await collectBookList({bookListId: bookList.id})
       bookList.favouriteCount++
       favouriteBookListIds.value.add(bookList.id)
       ElMessage.success('收藏成功')
@@ -100,13 +276,13 @@ const handleCollect = async (bookList: any) => {
 const handleDelete = async (id: number) => {
   try {
     await ElMessageBox.confirm(
-      '确定要删除这个书单吗？',
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
+        '确定要删除这个书单吗？',
+        '删除确认',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
     )
 
     const loading = ElLoading.service({
@@ -159,35 +335,54 @@ onMounted(async () => {
 
 <template>
   <div class="search-result-page">
-    <Header />
+    <Header/>
     <div class="search-result-container" v-loading="loading">
       <h2 class="search-title">搜索结果: {{ route.query.keyword }}</h2>
-      
+
       <!-- 导航栏 -->
       <div class="search-tabs">
-        <div 
-          v-for="tab in [
+        <div
+            v-for="tab in [
             { key: 'products', label: '商品', count: searchResults.products.length },
             { key: 'accounts', label: '用户', count: searchResults.accounts.length },
-            { key: 'bookLists', label: '书单', count: searchResults.bookLists.length }
-          ]" 
-          :key="tab.key"
-          :class="['tab-item', { active: activeTab === tab.key }]"
-          @click="activeTab = tab.key"
+            { key: 'bookLists', label: '书单', count: searchResults.bookLists.length },
+            { key: 'notes', label: '读书笔记', count: searchResults.notes.length }
+          ]"
+            :key="tab.key"
+            :class="['tab-item', { active: activeTab === tab.key }]"
+            @click="activeTab = tab.key"
         >
           {{ tab.label }}
           <span class="count">({{ tab.count }})</span>
         </div>
       </div>
-      
+
+      <!-- 读书笔记内容 -->
+      <div v-show="activeTab === 'notes'" class="result-content">
+        <div class="notes-grid">
+          <ReadingNote
+              v-for="note in searchResults.notes"
+              :key="note.id"
+              :note="note"
+              :is-liked="likedNoteIds.has(note.id)"
+              :is-creator="currentUserId === note.creatorId"
+              :is-paid="paidNoteIds.has(note.id)"
+              @like="handleLikeNote"
+              @unlike="handleUnlikeNote"
+              @delete="handleDeleteNote"
+              @purchase="handlePurchaseNote"
+              @view="handleViewNote"
+          />
+        </div>
+      </div>
       <!-- 商品结果 -->
       <div v-show="activeTab === 'products'" class="result-content">
         <div class="product-grid">
-          <div 
-            v-for="product in searchResults.products" 
-            :key="product.id" 
-            class="product-card"
-            @click="handleProductClick(product.id)"
+          <div
+              v-for="product in searchResults.products"
+              :key="product.id"
+              class="product-card"
+              @click="handleProductClick(product.id)"
           >
             <img :src="product.cover" :alt="product.title" class="product-cover">
             <div class="product-info">
@@ -202,19 +397,18 @@ onMounted(async () => {
       <!-- 用户结果 -->
       <div v-show="activeTab === 'accounts'" class="result-content">
         <div class="user-grid">
-          <div 
-            v-for="account in searchResults.accounts" 
-            :key="account.id" 
-            class="user-card"
-            @click="handleUserClick(account.id)"
-          >
-            <img :src="account.avatar" :alt="account.username" class="user-avatar">
-            <div class="user-info">
-              <h4>{{ account.username }}</h4>
-              <p>关注者: {{ account.followerCount }}</p>
-              <p>关注中: {{ account.followingCount }}</p>
-            </div>
-          </div>
+          <VUserCard
+              v-for="account in searchResults.accounts"
+              :key="account.id"
+              :user="{
+          id: account.id,
+          username: account.username,
+          avatar: account.avatar,
+          isVerified: account.verifiedName !== null,
+          bio: '',
+          verifiedName: account.verifiedName || ''
+        }"
+          />
         </div>
       </div>
 
@@ -222,23 +416,159 @@ onMounted(async () => {
       <div v-show="activeTab === 'bookLists'" class="result-content">
         <div class="booklist-grid">
           <book-list-item
-            v-for="bookList in searchResults.bookLists"
-            :key="bookList.id"
-            :book-list="bookList"
-            :is-favourite="favouriteBookListIds.has(bookList.id)"
-            :is-creator="currentUserId === bookList.creatorId"
-            @collect="handleCollect"
-            @delete="handleDelete"
-            @view="handleView"
+              v-for="bookList in searchResults.bookLists"
+              :key="bookList.id"
+              :book-list="bookList"
+              :is-favourite="favouriteBookListIds.has(bookList.id)"
+              :is-creator="currentUserId === bookList.creatorId"
+              @collect="handleCollect"
+              @delete="handleDelete"
+              @view="handleView"
           />
         </div>
       </div>
 
+      <!-- 笔记详情弹窗 -->
+      <el-dialog
+          v-model="detailNoteDialogVisible"
+          title="笔记详情"
+          width="600px"
+      >
+        <div v-if="currentNote" class="note-detail">
+          <div class="detail-header">
+            <h2>{{ currentNote.title }}</h2>
+            <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
+              <template v-if="currentNote.price > 0">
+                {{ currentNote.price }} 🍅
+                <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
+              </template>
+              <span v-else class="free">免费</span>
+            </div>
+          </div>
+
+          <el-image
+              v-if="currentNote.img"
+              :src="currentNote.img"
+              class="note-image"
+              style="max-width: 100%; margin: 10px 0;"
+          />
+
+          <!-- 修改内容展示部分 -->
+          <div class="note-content-container">
+            <div
+                class="note-content"
+                :class="{ 'limited-content': currentNote.price > 0 && !paidNoteIds.has(currentNote.id) }"
+                style="white-space: pre-wrap;"
+            >
+              {{ getDisplayContent(currentNote.content, paidNoteIds.has(currentNote.id)) }}
+            </div>
+
+            <!-- 未购买提示 -->
+            <div
+                v-if="currentNote.price > 0 && !paidNoteIds.has(currentNote.id)"
+                class="purchase-tip"
+            >
+              <el-alert
+                  title="预览内容已结束，购买后可查看完整笔记"
+                  type="warning"
+                  :closable="false"
+                  show-icon
+              />
+              <el-button
+                  type="primary"
+                  class="purchase-button"
+                  @click="handlePurchaseNote(currentNote)"
+              >
+                立即解锁（{{ currentNote.price }} 🍅）
+              </el-button>
+            </div>
+          </div>
+
+          <div class="actions" v-if="currentUserId === currentNote.creatorId" style="margin-top: 20px;">
+            <el-button type="primary" @click="handleEditNote(currentNote)">编辑笔记</el-button>
+            <el-button type="danger" @click="handleDeleteNote(currentNote.id)">删除笔记</el-button>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 编辑笔记弹窗 -->
+      <el-dialog
+          v-model="editNoteDialogVisible"
+          title="编辑笔记"
+          width="600px"
+      >
+        <el-form :model="editNoteForm" label-width="80px">
+          <el-form-item label="标题" required>
+            <el-input v-model="editNoteForm.title"/>
+          </el-form-item>
+          <el-form-item label="内容" required>
+            <el-input
+                v-model="editNoteForm.content"
+                type="textarea"
+                :rows="4"
+                resize="none"
+            />
+          </el-form-item>
+          <el-form-item label="价格">
+            <el-input-number
+                v-model="editNoteForm.price"
+                :min="0"
+                :precision="0"
+            />
+          </el-form-item>
+          <el-form-item label="封面图">
+            <el-upload
+                :auto-upload="true"
+                :http-request="handleEditNoteImageUpload"
+                :show-file-list="false"
+            >
+              <template #trigger>
+                <el-button type="primary">上传新图片</el-button>
+              </template>
+              <img
+                  v-if="editNoteForm.img"
+                  :src="editNoteForm.img"
+                  class="preview-image"
+                  style="max-width: 200px; margin-top: 10px;"
+              />
+            </el-upload>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="editNoteDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="updateNoteHandler">保存修改</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 购买确认弹窗 -->
+      <el-dialog
+          v-model="showPurchaseDialog"
+          title="确认购买"
+          width="500px"
+          class="purchase-confirm-dialog"
+      >
+        <div v-if="selectedNote" class="confirm-purchase">
+          <img
+              :src="selectedNote.img || '/default-note-cover.png'"
+              class="note-cover"
+              alt="笔记封面"
+          />
+          <div class="content">
+            <h3>是否确认购买《{{ selectedNote.title }}》？</h3>
+            <p class="price">价格：{{ selectedNote.price }} 🍅</p>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="showPurchaseDialog = false">取消</el-button>
+          <el-button type="primary" @click="confirmPurchase">确认购买</el-button>
+        </template>
+      </el-dialog>
+
       <!-- 书单详情对话框 -->
       <el-dialog
-        v-model="detailDialogVisible"
-        title="书单详情"
-        width="800px"
+          v-model="detailDialogVisible"
+          title="书单详情"
+          width="800px"
       >
         <div v-loading="detailLoading" class="booklist-detail">
           <template v-if="currentBookList">
@@ -251,13 +581,13 @@ onMounted(async () => {
               </div>
             </div>
             <p class="description">{{ currentBookList.description }}</p>
-            
+
             <div class="products-list">
-              <div 
-                v-for="product in currentBookList.products" 
-                :key="product.id" 
-                class="product-item"
-                @click="handleProductClick(product.id)"
+              <div
+                  v-for="product in currentBookList.products"
+                  :key="product.id"
+                  class="product-item"
+                  @click="handleProductClick(product.id)"
               >
                 <img :src="product.cover" :alt="product.title" class="product-cover">
                 <div class="product-info">
@@ -269,7 +599,7 @@ onMounted(async () => {
 
             <div class="booklist-footer">
               <span class="favourite-count">
-                <el-icon><Star /></el-icon>
+                <el-icon><Star/></el-icon>
                 {{ currentBookList.favouriteCount }} 收藏
               </span>
               <span class="product-count">
@@ -284,7 +614,7 @@ onMounted(async () => {
       <div v-if="!loading && 
                 searchResults.products.length === 0 && 
                 searchResults.accounts.length === 0 && 
-                searchResults.bookLists.length === 0" 
+                searchResults.bookLists.length === 0"
            class="no-results">
         未找到相关结果
       </div>
@@ -419,8 +749,9 @@ onMounted(async () => {
 
 .user-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 16px;
 }
 
 .user-card {
@@ -569,5 +900,119 @@ onMounted(async () => {
 
 .product-count {
   color: #606266;
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.note-detail {
+  padding: 20px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-price {
+  font-size: 18px;
+  color: #e6a23c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-price.paid {
+  color: #67c23a;
+}
+
+.paid-badge {
+  background: #f0f9eb;
+  color: #67c23a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.note-image {
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.confirm-purchase {
+  text-align: center;
+  padding: 20px;
+}
+
+.note-cover {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.purchase-confirm-dialog .el-dialog__body {
+  padding: 20px;
+}
+
+.content h3 {
+  margin: 0 0 12px 0;
+  color: #303133;
+}
+
+.content .price {
+  color: #e6a23c;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.preview-image {
+  max-width: 200px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  padding: 20px;
+}
+
+.note-content-container {
+  position: relative;
+}
+
+.limited-content {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.limited-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, white);
+}
+
+.purchase-tip {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.purchase-button {
+  margin-top: 15px;
+  width: 100%;
 }
 </style> 

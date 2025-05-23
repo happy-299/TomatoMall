@@ -24,7 +24,7 @@
 
       <!-- 内容切换 -->
       <el-tabs v-model="activeTab">
-        <!-- 书单列表（使用新组件） -->
+        <!-- 书单列表 -->
         <el-tab-pane label="创建的书单" name="booklists">
           <div v-if="booklists.length === 0" class="empty-tip">
             <el-empty description="该用户暂未创建书单"/>
@@ -35,16 +35,15 @@
                 :key="list.id"
                 :book-list="list"
                 :is-favourite="list.isFavourite"
-                :is-creator="list.creatorId === currentUserId"
+                :is-creator="false"
                 @collect="handleCollectBookList"
-                @delete="handleDeleteBookList"
                 @view="handleViewBookList"
                 class="list-item"
             />
           </div>
         </el-tab-pane>
 
-        <!-- 笔记列表（使用新组件） -->
+        <!-- 笔记列表 -->
         <el-tab-pane label="读书笔记" name="notes">
           <div v-if="notes.length === 0" class="empty-tip">
             <el-empty description="该用户暂未发布笔记"/>
@@ -54,12 +53,11 @@
                 v-for="note in notes"
                 :key="note.id"
                 :note="note"
-                :is-liked="note.isLiked"
-                :is-creator="note.creatorId === currentUserId"
-                :is-paid="note.isPaid"
-                @like="handleLike"
-                @unlike="handleUnlike"
-                @delete="handleDeleteNote"
+                :is-liked="likedNoteIds.has(note.id)"
+                :is-creator="false"
+                :is-paid="paidNoteIds.has(note.id)"
+                @like="handleLikeNote"
+                @unlike="handleUnlikeNote"
                 @purchase="handlePurchaseNote"
                 @view="handleViewNote"
                 class="list-item"
@@ -67,195 +65,432 @@
           </div>
         </el-tab-pane>
       </el-tabs>
+
+      <!-- 书单详情弹窗 -->
+      <el-dialog
+          v-model="bookListDetailVisible"
+          title="书单详情"
+          width="800px"
+      >
+        <div v-loading="detailLoading" class="booklist-detail">
+          <template v-if="currentBookList">
+            <div class="booklist-header">
+              <h2>{{ currentBookList.title }}</h2>
+              <div class="creator-info">
+                <img :src="currentBookList.creatorAvatar" class="creator-avatar">
+                <span>{{ currentBookList.creatorName }}</span>
+                <span class="creation-date">{{ new Date(currentBookList.creationDate).toLocaleDateString() }}</span>
+              </div>
+            </div>
+            <p class="description">{{ currentBookList.description }}</p>
+
+            <div class="products-list">
+              <div
+                  v-for="product in currentBookList.products"
+                  :key="product.id"
+                  class="product-item"
+                  @click="handleProductClick(product.id)"
+              >
+                <img :src="product.cover" class="product-cover">
+                <div class="product-info">
+                  <h4>{{ product.title }}</h4>
+                  <p class="price">¥{{ product.price }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="booklist-footer">
+              <span class="favourite-count">
+                <el-icon><Star/></el-icon>
+                {{ currentBookList.favouriteCount }} 收藏
+              </span>
+              <span class="product-count">
+                {{ currentBookList.products.length }} 个商品
+              </span>
+            </div>
+          </template>
+        </div>
+      </el-dialog>
+
+      <!-- 笔记详情弹窗 -->
+      <el-dialog
+          v-model="noteDetailVisible"
+          title="笔记详情"
+          width="600px"
+      >
+        <div v-if="currentNote" class="note-detail">
+          <div class="detail-header">
+            <h2>{{ currentNote.title }}</h2>
+            <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
+              <template v-if="currentNote.price > 0">
+                {{ currentNote.price }} 🍅
+                <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
+              </template>
+              <span v-else class="free">免费</span>
+            </div>
+          </div>
+
+          <el-image
+              v-if="currentNote.img"
+              :src="currentNote.img"
+              class="note-image"
+          />
+
+          <!-- 修改内容展示结构 -->
+          <div class="note-content-container">
+            <div
+                class="note-content"
+                :class="{ 'limited-content': currentNote.price > 0 && !paidNoteIds.has(currentNote.id) }"
+            >
+              {{ getDisplayContent(currentNote.content, paidNoteIds.has(currentNote.id)) }}
+            </div>
+
+            <!-- 未购买提示 -->
+            <div
+                v-if="currentNote.price > 0 && !paidNoteIds.has(currentNote.id)"
+                class="purchase-tip"
+            >
+              <el-alert
+                  title="预览内容已结束，购买后可查看完整笔记"
+                  type="warning"
+                  :closable="false"
+                  show-icon
+              />
+              <el-button
+                  type="primary"
+                  class="purchase-button"
+                  @click="handlePurchaseNote(currentNote)"
+              >
+                立即解锁（{{ currentNote.price }} 🍅）
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
+
+      <!-- 购买确认弹窗 -->
+      <el-dialog
+          v-model="purchaseVisible"
+          title="确认购买"
+          width="500px"
+      >
+        <div v-if="selectedNote" class="confirm-purchase">
+          <!-- 添加图片容器 -->
+          <div class="cover-container">
+            <img :src="selectedNote.img" class="note-cover">
+          </div>
+          <h3>{{ selectedNote.title }}</h3>
+          <p class="price">价格：{{ selectedNote.price }} 🍅</p>
+          <el-button type="primary" @click="confirmPurchase">确认购买</el-button>
+        </div>
+      </el-dialog>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import {ref, computed, onMounted} from 'vue'
+import {ref, computed, onMounted, reactive} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import {ElMessage} from 'element-plus'
-import {User} from '@element-plus/icons-vue'
+import {ElMessage, ElLoading} from 'element-plus'
+import {User, Star} from '@element-plus/icons-vue'
 import {
   getUserBookLists,
   collectBookList,
   cancelCollectBookList,
-  deleteBookList
-} from '../../api/booklist.ts'
+  getAllBookLists
+} from '../../api/booklist'
 import {
   getUserNotes,
+  payNote,
+  likeNote,
+  unlikeNote,
   getNoteLikeStatus,
-  getNotePayStatus,
-  deleteNote,
-  payNote
-} from '../../api/note.ts'
-import {getUserInfo} from '../../api/user.ts'
+  getNotePayStatus
+} from '../../api/note'
 import UserBadge from '../../components/UserBadge.vue'
 import ReadingNote from '../../components/ReadingNote.vue'
 import BookListItem from '../../components/BookListItem.vue'
-import axios from "axios";
 
 const route = useRoute()
+const userId = computed(() => Number(route.params.userId) || 0)
 const router = useRouter()
-// 当前登录用户ID
-const currentUserId = computed(() => {
-  return Number(sessionStorage.getItem('userId')) || 0
+
+// 用户信息
+const user = reactive({
+  id: userId,
+  avatar: computed(() => route.query.avatar as string || ''),
+  username: computed(() => route.query.username as string || ''),
+  isVerified: computed(() => route.query.isVerified === 'true'),
+  verifiedName: computed(() => route.query.verifiedName as string || '')
 })
 
-// 安全解析用户ID
-const userId = computed(() => {
-  const id = Number(route.params.userId)
-  return isNaN(id) ? 0 : id
-})
-
-const user = ref<any>({})
+// 书单相关
 const booklists = ref<any[]>([])
+const bookListDetailVisible = ref(false)
+const currentBookList = ref<any>(null)
+const detailLoading = ref(false)
+
+// 笔记相关
 const notes = ref<any[]>([])
-const activeTab = ref('booklists')
-const loading = ref(true)
+const likedNoteIds = ref(new Set<number>())
+const paidNoteIds = ref(new Set<number>())
+const noteDetailVisible = ref(false)
+const currentNote = ref<any>(null)
+const purchaseVisible = ref(false)
+const selectedNote = ref<any>(null)
 
-// 格式化时间显示
-const formatTime = (timeStr: string) => {
-  return new Date(timeStr).toLocaleDateString()
-}
-
-//书单
-// 获取书单收藏状态
-const fetchBookListStatus = async (bookListId: number) => {
+// 初始化加载
+onMounted(async () => {
   try {
-    const res = await axios.get(`/api/booklist/favourite-status/${bookListId}`)
-    return res.data
-  } catch (error) {
-    console.error('获取收藏状态失败:', error)
-    return false
-  }
-}
+    // 加载书单
+    const listRes = await getUserBookLists(userId.value)
+    booklists.value = listRes.data.data?.content || []
 
-// 书单事件处理
+    // 加载笔记
+    const noteRes = await getUserNotes(userId.value)
+    notes.value = noteRes.data.data || []
+
+    // 初始化笔记状态
+    for (const note of notes.value) {
+      const [likeRes, payRes] = await Promise.all([
+        getNoteLikeStatus(note.id),
+        getNotePayStatus(note.id)
+      ])
+      if (likeRes.data.data) likedNoteIds.value.add(note.id)
+      if (payRes.data.data) paidNoteIds.value.add(note.id)
+    }
+  } catch (error) {
+    ElMessage.error('数据加载失败')
+  }
+})
+
+// 书单操作
 const handleCollectBookList = async (bookList: any) => {
   try {
     if (bookList.isFavourite) {
       await cancelCollectBookList({bookListId: bookList.id})
-      ElMessage.success('已取消收藏')
+      bookList.favouriteCount--
     } else {
       await collectBookList({bookListId: bookList.id})
-      ElMessage.success('收藏成功')
+      bookList.favouriteCount++
     }
     bookList.isFavourite = !bookList.isFavourite
-    bookList.favouriteCount += bookList.isFavourite ? 1 : -1
   } catch (error) {
-    console.error('操作失败:', error)
+    ElMessage.error('操作失败')
   }
 }
 
-const handleDeleteBookList = async (id: number) => {
+const handleViewBookList = async (bookList: any) => {
+  detailLoading.value = true
   try {
-    await deleteBookList(id)
-    booklists.value = booklists.value.filter(list => list.id !== id)
-    ElMessage.success('书单删除成功')
-  } catch (error) {
-    console.error('删除失败:', error)
-  }
-}
+    const res = await getAllBookLists(0, 1000)
+    const fullBookList = res.data.data.content.find((list: any) => list.id === bookList.id)
 
-const handleViewBookList = (bookList: any) => {
-  router.push(`/booklist/${bookList.id}`)
-}
-
-
-// 获取笔记状态信息
-const fetchNoteStatus = async (noteId: number) => {
-  try {
-    const [likeRes, payRes] = await Promise.all([
-      getNoteLikeStatus(noteId),
-      getNotePayStatus(noteId)
-    ])
-    return {
-      isLiked: likeRes.data,
-      isPaid: payRes.data
+    if (fullBookList) {
+      currentBookList.value = {
+        ...fullBookList,
+        creatorAvatar: fullBookList.creatorAvatar || user.avatar,
+        creatorName: fullBookList.creatorName || user.username
+      }
+      bookListDetailVisible.value = true
     }
   } catch (error) {
-    console.error('获取笔记状态失败:', error)
-    return {isLiked: false, isPaid: false}
-  }
-}
-
-// 修改后的数据获取逻辑
-onMounted(async () => {
-  try {
-    // 用户信息
-    const userRes = await getUserInfo(userId.value)
-    console.log(userRes)
-    user.value = userRes.data.data || {}
-
-    // 书单数据（含收藏状态）
-    const listRes = await getUserBookLists(userId.value, 0, 10)
-    booklists.value = await Promise.all(
-        listRes.data.data?.content.map(async (list: any) => ({
-          ...list,
-          isFavourite: await fetchBookListStatus(list.id)
-        })) || []
-    )
-
-    // 笔记数据（含状态）
-    const noteRes = await getUserNotes(userId.value)
-    notes.value = await Promise.all(
-        noteRes.data.data.map(async (note: any) => ({
-          ...note,
-          ...(await fetchNoteStatus(note.id))
-        }))
-    )
-
-  } catch (error) {
-    console.error('数据加载失败:', error)
-    ElMessage.error('加载失败，请检查控制台')
+    ElMessage.error('获取书单详情失败')
   } finally {
-    loading.value = false
-  }
-})
-
-// 事件处理
-const handleLike = async (note: any) => {
-  try {
-    await (note.isLiked ?
-        axios.post(`/api/note/like/sub/${note.id}`) :
-        axios.post(`/api/note/like/add/${note.id}`))
-    note.isLiked = !note.isLiked
-    note.likeCnt += note.isLiked ? 1 : -1
-  } catch (error) {
-    console.error('操作失败:', error)
+    detailLoading.value = false
   }
 }
 
-const handleUnlike = handleLike // 共用相同逻辑
+// 商品点击处理
+const handleProductClick = (productId: string) => {
+  router.push(`/product/${productId}`)
+}
 
-const handleDeleteNote = async (id: number) => {
+// 笔记操作
+const handleLikeNote = async (note: any) => {
   try {
-    await deleteNote(id)
-    notes.value = notes.value.filter(note => note.id !== id)
-    ElMessage.success('删除成功')
+    await likeNote(note.id)
+    likedNoteIds.value.add(note.id)
+    note.likeCnt++
   } catch (error) {
-    console.error('删除失败:', error)
+    ElMessage.error('点赞失败')
   }
 }
 
-const handlePurchaseNote = async (note: any) => {
+const handleUnlikeNote = async (note: any) => {
   try {
-    await payNote(note.id)
-    note.isPaid = true
-    ElMessage.success('购买成功')
+    await unlikeNote(note.id)
+    likedNoteIds.value.delete(note.id)
+    note.likeCnt--
   } catch (error) {
-    console.error('购买失败:', error)
+    ElMessage.error('取消点赞失败')
   }
 }
 
 const handleViewNote = (note: any) => {
-  router.push(`/note/${note.id}`)
+  currentNote.value = note
+  noteDetailVisible.value = true
+}
+
+const handlePurchaseNote = (note: any) => {
+  selectedNote.value = note
+  purchaseVisible.value = true
+}
+
+const confirmPurchase = async () => {
+  if (!selectedNote.value) return
+  try {
+    await payNote(selectedNote.value.id)
+    paidNoteIds.value.add(selectedNote.value.id)
+    ElMessage.success('购买成功')
+    purchaseVisible.value = false
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.msg || '购买失败')
+  }
+}
+
+const getDisplayContent = (content: string, isPaid: boolean) => {
+  if (isPaid || !content) return content
+  const showLength = Math.ceil(content.length * 0.35)
+  return content.slice(0, showLength) + '...'
 }
 </script>
 
 <style scoped>
-/* 保持原有用户信息样式 */
+/* 保持原有样式，新增弹窗相关样式 */
+.booklist-detail {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.products-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.product-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-cover {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h4 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.note-content-container {
+  position: relative;
+}
+
+.limited-content {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.limited-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, white);
+}
+
+.purchase-tip {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.purchase-button {
+  margin-top: 15px;
+  width: 100%;
+}
+
+.price {
+  color: #f56c6c;
+  font-weight: bold;
+  margin-top: 8px;
+  font-size: 16px;
+}
+
+.creator-info {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.creator-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.creation-date {
+  color: #909399;
+  margin-left: 12px;
+  font-size: 12px;
+}
+
+.booklist-footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #ebeef5;
+  display: flex;
+  justify-content: space-between;
+  color: #606266;
+  font-size: 14px;
+}
+
+.preview-image {
+  max-width: 200px;
+  margin-top: 10px;
+}
+
+.note-detail .note-content {
+  white-space: pre-wrap;
+  margin: 16px 0;
+}
+
+.confirm-purchase {
+  text-align: center;
+}
+
 .profile {
   text-align: center;
   padding: 20px 0;
@@ -362,5 +597,90 @@ const handleViewNote = (note: any) => {
   height: 24px;
   padding: 0 8px;
   font-size: 12px;
+}
+
+.note-content-container {
+  position: relative;
+  margin: 16px 0;
+}
+
+/* 内容限制样式 */
+.limited-content {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.limited-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, white);
+}
+
+/* 调整购买提示样式 */
+.purchase-tip {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.purchase-button {
+  margin-top: 15px;
+  width: 100%;
+}
+
+/* 保持原有其他样式 */
+.note-content {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 14px;
+  color: #606266;
+}
+
+.confirm-purchase {
+  text-align: center;
+
+  .cover-container {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0 auto 20px;
+    background: #f5f7fa;
+  }
+
+  .note-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+  }
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .price {
+    color: #e6a23c;
+    font-size: 20px;
+    margin: 0 0 20px;
+    font-weight: bold;
+  }
+
+  .el-button {
+    width: 80%;
+    margin-top: 10px;
+  }
 }
 </style>

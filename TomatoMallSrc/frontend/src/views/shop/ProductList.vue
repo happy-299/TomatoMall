@@ -1006,6 +1006,12 @@ const handlePurchaseNote = (note: NoteVO) => {
   showPurchaseDialog.value = true
 }
 
+const getDisplayContent = (content: string, isPaid: boolean) => {
+  if (isPaid || !content) return content
+  const showLength = Math.ceil(content.length * 0.35)
+  return content.slice(0, showLength) + '...'
+}
+
 // 确认购买
 const confirmPurchase = async () => {
   if (!selectedNote.value) return
@@ -1157,7 +1163,7 @@ onUnmounted(() => {
           <h2>{{ currentNote.title }}</h2>
           <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
             <template v-if="currentNote.price > 0">
-              {{ currentNote.price }} 🍅
+              {{ currentNote.price }} 元
               <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
             </template>
             <span v-else class="free">免费</span>
@@ -1170,7 +1176,36 @@ onUnmounted(() => {
             class="note-image"
             style="max-width: 100%; margin: 10px 0;"
         />
-        <div class="note-content" style="white-space: pre-wrap;">{{ currentNote.content }}</div>
+
+        <div class="note-content-container">
+          <div
+              class="note-content"
+              :class="{ 'limited-content': currentNote.price > 0 && !paidNoteIds.has(currentNote.id) }"
+              style="white-space: pre-wrap;"
+          >
+            {{ getDisplayContent(currentNote.content, paidNoteIds.has(currentNote.id)) }}
+          </div>
+
+          <div
+              v-if="currentNote.price > 0 && !paidNoteIds.has(currentNote.id)"
+              class="purchase-tip"
+          >
+            <el-alert
+                title="预览内容已结束，购买后可查看完整笔记"
+                type="warning"
+                :closable="false"
+                show-icon
+            />
+            <el-button
+                type="primary"
+                class="purchase-button"
+                @click="handlePurchaseNote(currentNote)"
+            >
+              立即解锁（{{ currentNote.price }} 🍅）
+            </el-button>
+          </div>
+        </div>
+
         <div class="actions" v-if="currentUserId === currentNote.creatorId" style="margin-top: 20px;">
           <el-button type="primary" @click="openEditNote(currentNote)">编辑笔记</el-button>
         </div>
@@ -2479,5 +2514,37 @@ onUnmounted(() => {
     border-top: 1px solid #ebeef5;
     padding: 16px 20px;
   }
+}
+
+.note-content-container {
+  position: relative;
+}
+
+.limited-content {
+  position: relative;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.limited-content::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, white);
+}
+
+.purchase-tip {
+  margin-top: 20px;
+  text-align: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.purchase-button {
+  margin-top: 15px;
+  width: 100%;
 }
 </style>

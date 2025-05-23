@@ -1,56 +1,86 @@
 <template>
-  <el-skeleton v-if="loading" :rows="5" animated />
+  <el-skeleton v-if="loading" :rows="5" animated/>
   <div v-else class="verification-review">
     <el-tabs v-model="activeStatus">
-      <el-tab-pane label="待审核" name="PENDING" />
-      <el-tab-pane label="已通过" name="APPROVED" />
-      <el-tab-pane label="已拒绝" name="REJECTED" />
+      <el-tab-pane label="待审核" name="PENDING"/>
+      <el-tab-pane label="已通过" name="APPROVED"/>
+      <el-tab-pane label="已拒绝" name="REJECTED"/>
     </el-tabs>
 
     <!-- 申请列表 -->
     <div class="application-list">
       <div v-for="app in applications" :key="app.id" class="application-card">
-        <user-card :user="app.user" />
+        <div class="user-header">
+          <user-card :user="app.user"/>
+          <el-button class="detail-btn" size="small" @click="openDetail(app)">申请资料</el-button>
+        </div>
 
-        <div class="application-content">
-          <div class="reason-section">
-            <h4>认证理由</h4>
-            <p>{{ app.reasonText || '未填写申请理由' }}</p>
+        <div class="compact-info">
+          <div class="info-item">
+            <span class="label">认证类型：</span>
+            <span class="value">{{ app.verifiedName || '普通认证' }}</span>
           </div>
-
-          <div class="materials-section">
-            <h4>申请材料</h4>
-            <div class="material-images">
-              <el-image
-                  v-for="(img, index) in app.materialUrls"
-                  :key="index"
-                  :src="img"
-                  fit="cover"
-                  class="material-image"
-                  :preview-src-list="app.materialUrls"
-              >
-                <template #error>
-                  <div class="image-error">
-                    <el-icon :size="20"><Picture /></el-icon>
-                  </div>
-                </template>
-              </el-image>
-            </div>
+          <div class="info-item">
+            <span class="label">申请状态：</span>
+            <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
+              {{ statusMap[app.status] }}
+            </el-tag>
           </div>
         </div>
 
         <!-- 操作区域 -->
         <div v-if="activeStatus === 'PENDING'" class="action-buttons">
-          <el-button type="success" @click="handleReview(app.id, true)">通过</el-button>
-          <el-button type="danger" @click="openRejectDialog(app)">拒绝</el-button>
+          <el-button type="success" size="small" @click="handleReview(app.id, true)">通过</el-button>
+          <el-button type="danger" size="small" @click="openRejectDialog(app)">拒绝</el-button>
         </div>
 
+        <!-- 状态显示 -->
         <div v-else class="review-status">
-          <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'">
+          <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
             {{ statusMap[app.status] }}
           </el-tag>
+          <!-- 添加审核时间显示 -->
+          <div v-if="app.reviewTime" class="review-time">
+            {{ formatTime(app.reviewTime) }}
+          </div>
+        </div>
           <p v-if="app.rejectReason" class="reject-reason">拒绝原因：{{ app.rejectReason }}</p>
         </div>
+
+        <!-- 申请资料弹窗 -->
+        <el-dialog v-model="detailDialogVisible" title="申请详细信息" width="600px">
+          <div class="detail-content">
+            <div class="detail-item">
+              <h4>认证名号</h4>
+              <p>{{ app.verifiedName || '未填写认证名号' }}</p>
+            </div>
+            <div class="detail-item">
+              <h4>申请理由</h4>
+              <p>{{ app.reasonText || '未填写申请理由' }}</p>
+            </div>
+            <div class="detail-item">
+              <h4>证明材料</h4>
+              <div class="material-grid">
+                <el-image
+                    v-for="(img, index) in app.proofImgs"
+                    :key="index"
+                    :src="img"
+                    fit="cover"
+                    class="material-thumbnail"
+                    :preview-src-list="app.proofImgs"
+                >
+                  <template #error>
+                    <div class="image-error">
+                      <el-icon>
+                        <Picture/>
+                      </el-icon>
+                    </div>
+                  </template>
+                </el-image>
+              </div>
+            </div>
+          </div>
+        </el-dialog>
       </div>
     </div>
 
@@ -79,19 +109,19 @@
         <el-button type="primary" @click="confirmReject">确认</el-button>
       </template>
     </el-dialog>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { Picture } from '@element-plus/icons-vue'
+import {ref, watch, onMounted} from 'vue'
+import {Picture} from '@element-plus/icons-vue'
 import UserCard from '../../components/VUserCard.vue'
 import {
   reviewVerification,
   getVerificationListByStatus
 } from '../../api/verification'
-import { getUserInfo } from '../../api/user'
-import { ElMessage } from 'element-plus'
+import {getUserInfo} from '../../api/user'
+import {ElMessage} from 'element-plus'
+import dayjs from 'dayjs'
 
 const loading = ref(false)
 const activeStatus = ref<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING')
@@ -100,10 +130,21 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
+const detailDialogVisible = ref(false)
+const currentDetailApp = ref<any>(null)
 // 拒绝相关状态
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
 const currentRejectApp = ref<any>(null)
+
+const formatTime = (timestamp: number) => {
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm')
+}
+
+const openDetail = (app: any) => {
+  currentDetailApp.value = app
+  detailDialogVisible.value = true
+}
 
 const statusMap = {
   PENDING: '待审核',
@@ -120,7 +161,7 @@ const loadApplications = async () => {
         currentPage.value - 1, // 后端页码从0开始
         pageSize.value
     )
-
+    console.log("res => ",res)
     const data = res.data.data
     total.value = data.total
 
@@ -130,11 +171,12 @@ const loadApplications = async () => {
           const userRes = await getUserInfo(app.userId)
           return {
             ...app,
-            user: userRes.data.data || { avatar: '', username: '未知用户' },
+            user: userRes.data.data || {avatar: '', username: '未知用户'},
             materialUrls: app.materials?.split(',') || []
           }
         })
     )
+    console.log("app => ",applications)
   } catch (error) {
     console.error('加载申请失败:', error)
     ElMessage.error('数据加载失败')
@@ -200,15 +242,16 @@ onMounted(loadApplications)
 
 .application-list {
   display: grid;
-  gap: 20px;
-  margin-top: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 .application-card {
-  border: 1px solid #ebeef5;
+  border: 1px solid #e4e7ed;
   border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+  padding: 12px;
+  transition: all 0.3s;
+  min-height: 200px;
 }
 
 .application-content {
@@ -223,17 +266,23 @@ onMounted(loadApplications)
   color: #606266;
 }
 
-.material-images {
+.action-buttons {
+  margin-top: 16px;
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.material-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 4px;
-  border: 1px solid #eee;
+.review-status {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.reject-reason {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #f56c6c;
+  word-break: break-all;
 }
 
 .image-error {
@@ -265,5 +314,94 @@ onMounted(loadApplications)
   margin-top: 30px;
   display: flex;
   justify-content: center;
+}
+
+.user-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detail-btn {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.compact-info {
+  margin: 12px 0;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.label {
+  color: #909399;
+  min-width: 70px;
+}
+
+.value {
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.material-thumbnail {
+  width: 100%;
+  height: 80px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #f5f7fa;
+}
+
+.detail-content h4 {
+  margin: 12px 0 8px;
+  font-size: 14px;
+  color: #303133;
+}
+
+.detail-content p {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.image-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #c0c4cc;
+}
+
+.review-status {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.status-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-time {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
 }
 </style>
