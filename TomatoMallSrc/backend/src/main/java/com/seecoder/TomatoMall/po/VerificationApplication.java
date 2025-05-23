@@ -58,6 +58,7 @@ public class VerificationApplication {
         vo.setId(this.id);
         vo.setAccountId(this.account.getId());
         vo.setUsername(this.account.getUsername());
+        vo.setAvatar(this.account.getAvatar());
         vo.setReasonText(this.reasonText);
         vo.setProofImgs(this.proofImgs);
         vo.setStatus(this.status);

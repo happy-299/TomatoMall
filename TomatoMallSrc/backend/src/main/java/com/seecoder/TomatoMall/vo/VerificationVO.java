@@ -13,6 +13,7 @@ public class VerificationVO {
     /** 申请人基本信息 */
     private Integer accountId;
     private String username;          // 方便前端直接显示昵称 / 用户名
+    private String avatar;
 
     /** 申请内容 */
     private String verifiedName;
