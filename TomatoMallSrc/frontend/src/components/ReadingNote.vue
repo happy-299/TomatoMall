@@ -58,7 +58,7 @@ const handlePurchase = () => {
             size="small"
             @click="handlePurchase"
         >
-          购买（¥{{ note.price }}）
+          购买（🍅{{ note.price }}）
         </el-button>
         <el-button
             :type="isLiked ? 'warning' : 'default'"
@@ -83,7 +83,7 @@ const handlePurchase = () => {
     <!-- 新增价格显示 -->
     <div class="note-price" :class="{ 'paid': isPaid }">
       <template v-if="note.price > 0">
-        ¥{{ note.price }}
+        🍅{{ note.price }}
         <span v-if="isPaid" class="paid-badge">已购买</span>
       </template>
       <span v-else class="free">免费</span>

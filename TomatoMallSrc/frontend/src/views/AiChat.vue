@@ -29,8 +29,8 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { postChatMessage, getSessionMessages } from '../api/aihistory'
-import { ChatMessage } from '../api/aihistory'
+import { postChatMessage, getSessionMessages } from '../api/ai_chat.ts'
+import { ChatMessage } from '../api/ai_chat.ts'
 
 // API_KEY需要替换成实际的DeepSeek密钥
 const API_KEY = 'your_api_key'
