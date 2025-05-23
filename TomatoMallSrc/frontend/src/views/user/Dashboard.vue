@@ -6,16 +6,7 @@ import {getUserInfo, updateUserInfo} from '../../api/user'
 import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
 import {UserFilled, Food, Money, Delete} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
-import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList, addItemToBookList, removeItemFromBookList} from '../../api/booklist'
 import {getProducts, type Product} from '../../api/product'
-import {
-  getFavouriteBookLists,
-  getAllBookLists,
-  type BookListVO,
-  collectBookList,
-  cancelCollectBookList,
-  deleteBookList
-} from '../../api/booklist'
 import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
 import {applyVerification, type ApplyVerificationRequest} from '../../api/verification'
@@ -35,6 +26,14 @@ import {
 import {getMyVerifications, type VerificationVO} from '../../api/verification'
 import UserBadge from '../../components/UserBadge.vue'
 import ReadingNote from "../../components/ReadingNote.vue";
+import {
+  addItemToBookList,
+  BookListVO,
+  cancelCollectBookList,
+  collectBookList, deleteBookList,
+  getAllBookLists,
+  getFavouriteBookLists, removeItemFromBookList
+} from "../../api/booklist.ts";
 
 
 interface UploadFile {
