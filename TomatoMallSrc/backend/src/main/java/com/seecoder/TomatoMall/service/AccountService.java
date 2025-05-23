@@ -13,6 +13,8 @@ public interface AccountService {
 
     Boolean updateInformation(AccountVO accountVO);
 
+    Boolean isFollowed(Integer currentUserId, Integer followId);
+
     void followUser(Integer followerId, Integer followedId);
 
     void unfollowUser(Integer followerId, Integer followedId);

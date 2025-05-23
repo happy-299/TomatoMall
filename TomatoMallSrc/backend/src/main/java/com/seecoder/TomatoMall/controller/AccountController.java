@@ -70,6 +70,13 @@ public class AccountController {
      *       follow related
      * ==================================
      */
+    @GetMapping("isfollowed")
+    public Response<Boolean> isFollowed(@RequestParam Integer targetUserId) {
+        AccountVO accountVO = accountService.getInformation();
+        return Response.buildSuccess(accountService.isFollowed(accountVO.getId(),targetUserId));
+    }
+
+
     @PostMapping("/follow")
     public Response<String> follow(@RequestBody Integer targetId) {
         AccountVO accountVO = accountService.getInformation();

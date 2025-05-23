@@ -130,6 +130,12 @@ public class AccountServiceImpl implements AccountService
      *      follow related
      * ===============================
      */
+
+    @Override
+    public Boolean isFollowed(Integer followerId, Integer followedId) {
+        return followRepository.existsByFollowerIdAndFollowedId(followerId, followedId);
+    }
+
     // 关注用户
     @Override
     @Transactional
