@@ -4,9 +4,10 @@ import {ref, onMounted, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {getUserInfo, updateUserInfo} from '../../api/user'
 import {ElMessage, ElLoading, ElDialog, ElMessageBox, type FormInstance} from 'element-plus'
-import {UserFilled, Food, Money} from '@element-plus/icons-vue'
+import {UserFilled, Food, Money, Delete} from '@element-plus/icons-vue'
 import {uploadUserImage} from '../../api/util'
-import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList} from '../../api/booklist'
+import {getFavouriteBookLists, getAllBookLists, type BookListVO, collectBookList, cancelCollectBookList, deleteBookList, addItemToBookList, removeItemFromBookList} from '../../api/booklist'
+import {getProducts, type Product} from '../../api/product'
 import {submitTomatoRecharge, payOrder, alipayHelper, getAllOrders, type OrderVO} from '../../api/order'
 import BookListItem from '../../components/BookListItem.vue'
 import { applyVerification } from '../../api/verification'
@@ -63,6 +64,8 @@ const currentUserId = ref<number | null>(null)
 // 书单详情相关
 const detailDialogVisible = ref(false)
 const currentBookList = ref<BookListVO | null>(null)
+const selectedProduct = ref<number | null>(null)
+const products = ref<Product[]>([])
 
 // 圣女果充值相关
 const showRechargeDialog = ref(false)
@@ -359,6 +362,7 @@ onMounted(() => {
   fetchCreatedBookLists()
   fetchFavouriteBookLists()
   fetchOrders()
+  fetchProducts()
 })
 
 const handleRelogin = () => {
@@ -499,6 +503,90 @@ const getStatusType = (status: string) => {
     'FAILED': 'danger'
   }
   return typeMap[status] || 'info'
+}
+
+// 添加商品到书单
+const handleAddProduct = async (bookListId: number) => {
+  if (!selectedProduct.value) {
+    ElMessage.warning('请先选择要添加的商品')
+    return
+  }
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在添加商品...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    await addItemToBookList(bookListId, selectedProduct.value)
+
+    // 更新当前书单的商品列表
+    if (currentBookList.value) {
+      const addedProduct = products.value.find(p => p.id === selectedProduct.value)
+      if (addedProduct) {
+        currentBookList.value.products = [...currentBookList.value.products, addedProduct]
+      }
+    }
+
+    ElMessage({
+      type: 'success',
+      message: '添加商品成功',
+      duration: 2000
+    })
+
+    selectedProduct.value = null // 清空选择
+  } catch (error) {
+    ElMessage({
+      type: 'error',
+      message: '添加商品失败，请重试',
+      duration: 2000
+    })
+  } finally {
+    loading.close()
+  }
+}
+
+// 从书单移除商品
+const handleRemoveProduct = async (bookListId: number, productId: number) => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在移除商品...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    await removeItemFromBookList(bookListId, productId)
+
+    // 更新当前书单的商品列表
+    if (currentBookList.value) {
+      currentBookList.value.products = currentBookList.value.products.filter(p => p.id !== productId)
+    }
+
+    ElMessage({
+      type: 'success',
+      message: '移除商品成功',
+      duration: 2000
+    })
+  } catch (error) {
+    ElMessage({
+      type: 'error',
+      message: '移除商品失败，请重试',
+      duration: 2000
+    })
+  } finally {
+    loading.close()
+  }
+}
+
+// 获取商品列表
+const fetchProducts = async () => {
+  try {
+    const res = await getProducts()
+    products.value = res.data.data
+  } catch (error) {
+    ElMessage.error('获取商品列表失败')
+  }
 }
 </script>
 
@@ -774,7 +862,42 @@ const getStatusType = (status: string) => {
                 <h4>{{ product.title }}</h4>
                 <p class="price">¥{{ product.price }}</p>
               </div>
+              <div class="product-actions">
+                <el-button
+                    v-if="currentUserId === currentBookList.creatorId"
+                    type="danger"
+                    circle
+                    @click.stop="handleRemoveProduct(currentBookList.id, product.id)"
+                >
+                  <el-icon>
+                    <Delete/>
+                  </el-icon>
+                </el-button>
+              </div>
             </div>
+          </div>
+
+          <div v-if="currentUserId === currentBookList.creatorId" class="add-product">
+            <el-select
+                v-model="selectedProduct"
+                filterable
+                placeholder="添加商品到书单"
+                style="width: 100%"
+            >
+              <el-option
+                  v-for="product in products"
+                  :key="product.id"
+                  :label="product.title"
+                  :value="product.id"
+              />
+            </el-select>
+            <el-button
+                type="primary"
+                @click="handleAddProduct(currentBookList.id)"
+                :disabled="!selectedProduct"
+            >
+              添加商品
+            </el-button>
           </div>
         </div>
       </el-dialog>
@@ -1169,6 +1292,7 @@ const getStatusType = (status: string) => {
 }
 
 .product-item {
+  position: relative;
   background: #f5f7fa;
   border-radius: 8px;
   padding: 12px;
@@ -1760,5 +1884,18 @@ const getStatusType = (status: string) => {
   background-color: #f4f4f5;
   border-color: #e9e9eb;
   color: #909399;
+}
+
+.product-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.add-product {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
 }
 </style>

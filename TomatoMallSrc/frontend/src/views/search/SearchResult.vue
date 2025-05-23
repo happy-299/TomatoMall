@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading, ElDialog } from 'element-plus'
 import { Star } from '@element-plus/icons-vue'
@@ -146,6 +146,15 @@ const handleView = async (bookList: BookListVO) => {
     detailLoading.value = false
   }
 }
+
+watch(
+  () => route.query.keyword,
+  async (newKeyword) => {
+    if (newKeyword) {
+      await fetchSearchResults()
+    }
+  }
+)
 
 onMounted(async () => {
   // 获取当前用户ID
