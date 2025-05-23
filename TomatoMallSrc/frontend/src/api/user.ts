@@ -1,4 +1,4 @@
-// api/user.ts
+//../../api/user.ts
 import { axios } from '../utils/request'
 import { USER_MODULE } from './_prefix'
 
@@ -135,8 +135,17 @@ export const getFollowingList = (page?: number, size?: number) => {
 // 获取粉丝列表（分页）
 export const getFollowersList = (page?: number, size?: number) => {
     const token = sessionStorage.getItem('token');
-    return axios.get(`${USER_MODULE}/followers`, {
+    return axios.get(`${USER_MODULE}/follower`, {
         headers: { 'token': token },
         params: { page, size }
+    })
+}
+
+// 检查是否已关注目标用户
+export const checkIsFollowed = (targetUserId: number) => {
+    const token = sessionStorage.getItem('token');
+    return axios.get(`${USER_MODULE}/isfollowed`, {
+        headers: { 'token': token },
+        params: { targetUserId }
     })
 }

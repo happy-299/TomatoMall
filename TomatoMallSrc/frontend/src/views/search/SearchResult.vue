@@ -759,9 +759,21 @@ onMounted(async () => {
 
 .user-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  gap: 24px;
   padding: 16px;
+}
+
+@media (max-width: 1200px) {
+  .user-grid {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .user-grid {
+    grid-template-columns: repeat(1, minmax(280px, 1fr));
+  }
 }
 
 .user-card {

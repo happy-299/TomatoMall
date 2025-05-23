@@ -932,8 +932,12 @@ const fetchProducts = async () => {
               </h2>
 
               <div class="social-stats">
-                <span>关注 {{ userData.followingCount }}</span>
-                <span>粉丝 {{ userData.followerCount }}</span>
+                <el-button type="primary" class="follow-btn" @click="router.push('/following')">
+                  我的关注 {{ userData.followingCount }}
+                </el-button>
+                <el-button type="danger" class="fans-btn" @click="router.push('/followers')">
+                  我的粉丝 {{ userData.followerCount }}
+                </el-button>
               </div>
               <p class="role-tag">{{ role }}</p>
               <div class="tomato-info">
@@ -2596,5 +2600,36 @@ const fetchProducts = async () => {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.social-stats {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.follow-btn {
+  background: linear-gradient(45deg, #409EFF, #79BBFF);
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(64, 158, 255, 0.2);
+}
+
+.fans-btn {
+  background: linear-gradient(45deg, #F56C6C, #F89898);
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(245, 108, 108, 0.2);
+}
+
+.follow-btn:hover, .fans-btn:hover {
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
 }
 </style>
