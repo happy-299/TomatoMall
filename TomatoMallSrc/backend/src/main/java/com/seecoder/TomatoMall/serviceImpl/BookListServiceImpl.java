@@ -201,6 +201,7 @@ public class BookListServiceImpl implements BookListService {
         vo.setCreatorAvatar(list.getCreator().getAvatar());
         vo.setFavouriteCount(list.getFavoriteCount());
         vo.setCreationDate(list.getCreateTime());
+        vo.setPicture(list.getPicture());
         List<ProductVO> products = new ArrayList<>();
         list.getItems().stream()
                 .sorted(Comparator.comparing(BookListItem::getSortOrder))

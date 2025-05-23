@@ -15,6 +15,7 @@ public class BookListVO {
     private String title;
     private Integer creatorId;
     private String description;
+    private String picture;
     private List<ProductVO> products;
 
     private String creatorName;
