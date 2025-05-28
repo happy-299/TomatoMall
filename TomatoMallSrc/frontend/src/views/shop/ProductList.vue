@@ -1722,28 +1722,28 @@ onUnmounted(() => {
               placeholder="请输入书单描述"
           />
         </el-form-item>
-        <el-form-item label="封面图">
-          <el-upload
-              :auto-upload="true"
-              :http-request="handleBookListImageUpload"
-              :show-file-list="false"
-          >
-            <template #trigger>
-              <el-button type="primary">上传图片</el-button>
-            </template>
-            <div class="cover-preview" v-if="createForm.picture">
-              <img
-                  :src="createForm.picture"
-                  class="preview-image"
-                  alt="书单封面预览"
-              />
-              <div class="preview-tip">（点击上方按钮重新上传）</div>
-            </div>
-            <template #tip>
-              <div class="upload-tip">支持JPG/PNG格式，建议尺寸800x800px</div>
-            </template>
-          </el-upload>
-        </el-form-item>
+<!--        <el-form-item label="封面图">-->
+<!--          <el-upload-->
+<!--              :auto-upload="true"-->
+<!--              :http-request="handleBookListImageUpload"-->
+<!--              :show-file-list="false"-->
+<!--          >-->
+<!--            <template #trigger>-->
+<!--              <el-button type="primary">上传图片</el-button>-->
+<!--            </template>-->
+<!--            <div class="cover-preview" v-if="createForm.picture">-->
+<!--              <img-->
+<!--                  :src="createForm.picture"-->
+<!--                  class="preview-image"-->
+<!--                  alt="书单封面预览"-->
+<!--              />-->
+<!--              <div class="preview-tip">（点击上方按钮重新上传）</div>-->
+<!--            </div>-->
+<!--            <template #tip>-->
+<!--              <div class="upload-tip">支持JPG/PNG格式，建议尺寸800x800px</div>-->
+<!--            </template>-->
+<!--          </el-upload>-->
+<!--        </el-form-item>-->
         <el-form-item label="商品">
           <el-select
               v-model="createForm.productIds"
