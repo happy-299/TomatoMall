@@ -3,3 +3,4 @@
 !docs/
 !TomatoMallSrc/
 !readme.md
+!flake.nix
