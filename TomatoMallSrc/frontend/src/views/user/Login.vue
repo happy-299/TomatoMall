@@ -106,7 +106,7 @@ const handleLogin = async () => {
       });
 
       // 跳转到仪表盘
-      router.push({ path: "/dashboard" });
+      router.push({ path: "/productList" });
     } else {
       ElMessage({
         message: response.data.msg || '登录失败',

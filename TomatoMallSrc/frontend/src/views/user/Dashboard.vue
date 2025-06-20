@@ -1785,9 +1785,27 @@ const fetchProducts = async () => {
 }
 
 .booklists-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: flex;
+  flex-direction: row;
   gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+.booklists-grid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.booklists-grid::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+
+.booklists-grid > * {
+  flex: 0 0 320px;
+  max-width: 320px;
 }
 
 .booklist-card {
