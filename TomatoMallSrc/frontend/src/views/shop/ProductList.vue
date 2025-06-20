@@ -1343,6 +1343,7 @@ onUnmounted(() => {
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
+      <!-- 移除顶部按钮 -->
       <product-card
           v-for="product in products"
           :key="product.id"
@@ -1384,7 +1385,6 @@ onUnmounted(() => {
           收藏的书单
         </el-button>
       </div>
-
       <div class="booklist-grid" v-loading="loading">
         <BookListItem
           v-for="bookList in bookLists"
@@ -1428,7 +1428,6 @@ onUnmounted(() => {
           购买的笔记
         </el-button>
       </div>
-
       <div class="note-grid">
         <ReadingNote
             v-for="note in notes"
@@ -1444,6 +1443,15 @@ onUnmounted(() => {
             @view="handleViewNote"
         />
       </div>
+    </div>
+
+    <!-- 悬浮加号按钮 -->
+    <div class="fab-glass" @click="
+      activeTab === 'products' ? dialogVisible = true :
+      activeTab === 'booklists' ? createDialogVisible = true :
+      activeTab === 'notes' ? createNoteDialogVisible = true : null
+    ">
+      <el-icon><Plus /></el-icon>
     </div>
 
     <!-- 分页 -->
@@ -2229,5 +2237,58 @@ onUnmounted(() => {
 .note-sub-tabs .el-button:hover {
   color: #c9302c !important;
   background: rgba(217, 83, 79, 0.08) !important;
+}
+
+.create-btn-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+
+.create-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffb199 100%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(255,107,107,0.10);
+  padding: 12px 28px;
+  transition: all 0.2s;
+}
+.create-btn:hover {
+  background: linear-gradient(135deg, #ff4d4f 0%, #ffb199 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 24px rgba(255,107,107,0.18);
+}
+
+/* 悬浮毛玻璃加号按钮 */
+.fab-glass {
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.35);
+  box-shadow: 0 8px 32px rgba(255,107,107,0.18), 0 1.5px 8px rgba(0,0,0,0.08);
+  border-radius: 50%;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1.5px solid rgba(255,255,255,0.32);
+  cursor: pointer;
+  z-index: 1002;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.fab-glass:hover {
+  box-shadow: 0 12px 40px rgba(255,107,107,0.28), 0 2px 12px rgba(0,0,0,0.12);
+  transform: scale(1.08);
+}
+.fab-glass .el-icon {
+  font-size: 38px;
+  color: #ff6b6b;
+  filter: drop-shadow(0 2px 8px rgba(255,107,107,0.18));
 }
 </style>
