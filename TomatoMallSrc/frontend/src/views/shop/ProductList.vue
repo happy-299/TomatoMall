@@ -25,7 +25,7 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity,  deleteCartItem} from '../../api/cart'
-import {Plus, Delete} from '@element-plus/icons-vue'
+import {Plus, Delete, User, ShoppingCart, SwitchButton, Menu, Search, Tickets, Medal} from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -1097,6 +1097,16 @@ const handleBookListImageUpload = async (params: any) => {
   }
 }
 
+const searchKeyword = ref('')
+const handleSearch = () => {
+  if (!searchKeyword.value.trim()) return
+  router.push({ path: '/search', query: { keyword: searchKeyword.value.trim() } })
+}
+function logout() {
+  sessionStorage.clear()
+  router.push({path: "/login"})
+}
+
 onMounted(async () => {
   // 先获取用户信息
   try {
@@ -1129,7 +1139,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <ad-carousel :ads="ads"/>
+  <ad-carousel :ads="ads" class="big-banner-modern" />
   <div class="product-list-container">
     <!-- 导航栏 -->
     <div class="nav-tabs">
@@ -1330,37 +1340,6 @@ onUnmounted(() => {
         <el-button type="primary" @click="createNewNote">创建</el-button>
       </template>
     </el-dialog>
-
-    <!-- 头部 -->
-    <div class="header">
-      <h1>        {{
-          activeTab === 'products'
-              ? '商品列表'
-              : activeTab === 'booklists'
-                  ? '书单列表'
-                  : '读书笔记'
-        }}</h1>
-      <div class="header-actions">
-        <!-- 删除搜索框相关代码 -->
-        <el-button v-if="isAdmin && activeTab === 'products'" type="primary" @click="dialogVisible = true">
-          新建商品
-        </el-button>
-        <el-button v-if="activeTab === 'booklists'" type="primary" @click="createDialogVisible = true">
-          <el-icon>
-            <Plus/>
-          </el-icon>
-          创建书单
-        </el-button>
-        <el-button
-            v-if="activeTab === 'notes'"
-            type="primary"
-            @click="createNoteDialogVisible = true"
-        >
-          <el-icon><Plus /></el-icon>
-          发布笔记
-        </el-button>
-      </div>
-    </div>
 
     <!-- 商品列表 -->
     <div v-if="activeTab === 'products'" class="grid-container">
@@ -1722,28 +1701,6 @@ onUnmounted(() => {
               placeholder="请输入书单描述"
           />
         </el-form-item>
-<!--        <el-form-item label="封面图">-->
-<!--          <el-upload-->
-<!--              :auto-upload="true"-->
-<!--              :http-request="handleBookListImageUpload"-->
-<!--              :show-file-list="false"-->
-<!--          >-->
-<!--            <template #trigger>-->
-<!--              <el-button type="primary">上传图片</el-button>-->
-<!--            </template>-->
-<!--            <div class="cover-preview" v-if="createForm.picture">-->
-<!--              <img-->
-<!--                  :src="createForm.picture"-->
-<!--                  class="preview-image"-->
-<!--                  alt="书单封面预览"-->
-<!--              />-->
-<!--              <div class="preview-tip">（点击上方按钮重新上传）</div>-->
-<!--            </div>-->
-<!--            <template #tip>-->
-<!--              <div class="upload-tip">支持JPG/PNG格式，建议尺寸800x800px</div>-->
-<!--            </template>-->
-<!--          </el-upload>-->
-<!--        </el-form-item>-->
         <el-form-item label="商品">
           <el-select
               v-model="createForm.productIds"
@@ -1870,7 +1827,7 @@ onUnmounted(() => {
 <style scoped>
 .product-list-container {
   padding: 24px;
-  background: linear-gradient(120deg, #e3f6f5 0%, #d0eeff 100%);
+  background: linear-gradient(120deg, #fff0f0 0%, #ffe8e8 100%);
   min-height: 100vh;
 }
 
@@ -1880,456 +1837,185 @@ onUnmounted(() => {
   gap: 40px;
   margin-bottom: 32px;
   padding: 0;
-  border-bottom: 1px solid #ebeef5;
+  background: none;
+  border: none;
 }
 
 .nav-tabs .el-button {
   border: none;
   background: none;
   font-size: 16px;
-  padding: 12px 0;
+  padding: 12px 24px;
   position: relative;
-  color: #606266;
+  color: #666;
   transition: all 0.3s;
-  font-weight: 400;
+  font-weight: 500;
+  border-radius: 8px;
 }
 
 .nav-tabs .el-button:hover {
-  color: #2c698d;
-  transform: none;
-  box-shadow: none;
+  color: #d9534f;
+  background: rgba(217, 83, 79, 0.1);
+  transform: translateY(-2px);
 }
 
 .nav-tabs .el-button.is-primary {
-  color: #1a4b6e;
-  background: none;
+  color: #ffffff;
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
   border: none;
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.3);
 }
 
 .nav-tabs .el-button.is-primary::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #1a4b6e;
-  transition: all 0.3s;
-  border-radius: 2px 2px 0 0;
+  display: none;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding: 0 20px;
+  margin-bottom: 32px;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.header h1 {
+  color: #d9534f;
+  font-size: 28px;
+  font-weight: bold;
+  margin: 0;
+  font-family: 'Microsoft YaHei', sans-serif;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+}
+
+.header-actions .el-button {
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.2);
+}
+
+.header-actions .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(217, 83, 79, 0.3);
 }
 
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  padding: 0 20px;
-}
-
-.product-card {
-  cursor: pointer;
-  transition: transform 0.3s;
-  border-radius: 8px;
-}
-
-.product-card:hover {
-  transform: translateY(-5px);
-}
-
-.product-cover {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px 8px 0 0;
-}
-
-.product-info {
-  padding: 12px;
-}
-
-.title {
-  color: #272643;
-  margin: 8px 0;
-  height: 44px;
-  overflow: hidden;
-}
-
-.price-rate {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.price-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price {
-  color: #ff4d4f;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.stock-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 12px;
-}
-
-.frozen {
-  color: #909399;
-}
-
-.admin-actions {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  position: relative;
-  z-index: 2; /* 确保点击按钮时不会触发卡片点击 */
-}
-
-:deep(.el-dialog__body) {
-  padding: 20px 25px;
-}
-
-.action-group {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.action-group + .action-group {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #eee;
-}
-
-/* 调整按钮文字间距 */
-.el-button--small {
-  letter-spacing: 0.5px;
-  flex: 1;
-  justify-content: center;
-}
-
-/* 优化hover效果 */
-.el-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* 调整删除按钮样式 */
-.el-button--danger {
-  background: #ff4d4f;
-  border-color: #ff4d4f;
-}
-
-.cover-preview {
-  margin-top: 10px;
-  text-align: center;
-}
-
-.preview-image {
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 6px;
-  margin: 10px 0;
-}
-
-.preview-tip {
-  color: #909399;
-  font-size: 12px;
-}
-
-.upload-tip {
-  color: #2c698d;
-  font-size: 12px;
-  margin-top: 8px;
-}
-
-.user-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.buy-btn {
-  background: #2c698d;
-  border-color: #2c698d;
-  color: white;
-  transition: all 0.3s;
-}
-
-.buy-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.cart-operations {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quantity {
-  min-width: 24px;
-  text-align: center;
-  color: #2c698d;
-  font-weight: 500;
-}
-
-:deep(.el-button.is-circle) {
-  width: 28px;
-  height: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
   padding: 0;
+}
+
+.big-banner-modern {
+  width: 100vw;
+  max-width: 100vw;
+  height: 650px;
+  min-height: 320px;
+  max-height: 900px;
+  margin: 0;
+  padding: 0;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: none !important;
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 .booklist-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+  padding: 0;
 }
 
 .booklist-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  position: relative;
+  height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
 }
-
 .booklist-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(217, 83, 79, 0.15);
 }
-
-.booklist-card:hover .cover-image {
-  transform: scale(1.05);
-}
-
 .booklist-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 8px;
-  background-color: #f5f7fa;
+  height: 100%;
+  z-index: 1;
 }
-
 .cover-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s;
+  border-radius: 0;
 }
-
-.booklist-header {
+.booklist-card:hover .cover-image {
+  transform: scale(1.05);
+}
+.booklist-content {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  padding: 32px 24px 24px 24px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.2) 100%);
+  color: #fff;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.booklist-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #2c3e50;
-  flex: 1;
-  margin-right: 12px;
+.booklist-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
 }
-
-.description {
-  color: #666;
+.booklist-description {
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: 1.4;
-  height: 40px;
 }
-
 .booklist-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
-}
-
-.creator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #606266;
-  font-size: 14px;
-}
-
-.stats {
-  display: flex;
-  gap: 16px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #909399;
-  font-size: 14px;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin-top: 24px;
-  padding: 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-.pagination :deep(.el-pagination) {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  background: #f8f9fa;
-}
-
-.pagination :deep(.el-pagination .el-pagination__total) {
-  margin-right: 16px;
-  font-weight: 500;
-  color: #606266;
-}
-
-.pagination :deep(.el-pagination .el-pagination__sizes) {
-  margin-right: 16px;
-}
-
-.pagination :deep(.el-pagination .el-select .el-input) {
-  width: 110px;
-}
-
-.pagination :deep(.el-pagination .el-pagination__sizes .el-input__inner) {
-  border-radius: 6px;
-  border: 1px solid #dcdfe6;
-  background-color: white;
-}
-
-.pagination :deep(.el-pagination .btn-prev),
-.pagination :deep(.el-pagination .btn-next) {
-  background: white;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  padding: 0 12px;
-  height: 32px;
-  line-height: 32px;
-  transition: all 0.3s;
-}
-
-.pagination :deep(.el-pagination .btn-prev:hover),
-.pagination :deep(.el-pagination .btn-next:hover) {
-  color: #409EFF;
-  border-color: #409EFF;
-  background-color: #ecf5ff;
-}
-
-.pagination :deep(.el-pagination .el-pager li) {
-  background: white;
-  border: 1px solid #dcdfe6;
-  border-radius: 6px;
-  transition: all 0.3s;
-}
-
-.pagination :deep(.el-pagination .el-pager li:hover) {
-  color: #409EFF;
-  border-color: #409EFF;
-  background-color: #ecf5ff;
-}
-
-.pagination :deep(.el-pagination .el-pager li.active) {
-  background-color: #409EFF;
-  color: white;
-  border-color: #409EFF;
-  font-weight: bold;
-}
-
-.pagination :deep(.el-pagination .el-pager li.active:hover) {
-  background-color: #66b1ff;
-  border-color: #66b1ff;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.clickable:hover {
-  color: #409EFF;
-}
-
-.booklist-detail {
-  padding: 20px;
-}
-
-.products-list {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.product-item {
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.product-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.product-actions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
-}
-
-.add-product {
-  margin-top: 20px;
-  display: flex;
-  gap: 12px;
+  margin-top: 12px;
+  color: #fff;
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 .booklist-sub-tabs {
@@ -2338,59 +2024,177 @@ onUnmounted(() => {
   gap: 40px;
   margin-bottom: 32px;
   padding: 0;
-  border-bottom: 1px solid #ebeef5;
+  background: none;
+  border: none;
 }
 
 .booklist-sub-tabs .el-button {
-  border: none;
-  background: none;
+  border: none !important;
+  background: none !important;
   font-size: 16px;
-  padding: 12px 0;
+  padding: 12px 32px;
   position: relative;
-  color: #606266;
+  color: #d9534f;
   transition: all 0.3s;
-  font-weight: 400;
-}
-
-.booklist-sub-tabs .el-button:hover {
-  color: #2c698d;
-  transform: none;
-  box-shadow: none;
+  font-weight: 500;
+  border-radius: 24px !important;
+  box-shadow: none !important;
 }
 
 .booklist-sub-tabs .el-button.is-primary {
-  color: #1a4b6e;
-  background: none;
-  border: none;
+  color: #fff !important;
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%) !important;
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.10);
 }
 
-.booklist-sub-tabs .el-button.is-primary::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #1a4b6e;
-  transition: all 0.3s;
-  border-radius: 2px 2px 0 0;
+.booklist-sub-tabs .el-button:hover {
+  color: #c9302c !important;
+  background: rgba(217, 83, 79, 0.08) !important;
 }
 
-.note-sub-tabs {
+.products-list {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.product-item {
+  position: relative;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8f9fa;
+  padding: 0;
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  border: none;
+  margin: 12px;
+}
+.product-item img.product-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  z-index: 1;
+}
+.product-info {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  padding: 16px 10px 10px 10px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.12) 100%, transparent 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 0 0 12px 12px;
+}
+.product-info h4 {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0 0 4px 0;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+}
+.product-info .price {
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  margin: 0;
+}
+
+:deep(.el-dialog) {
+  background: rgba(255,255,255,0.72) !important;
+  backdrop-filter: blur(18px) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  overflow: hidden;
 }
 
 .note-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 0;
 }
 
+.reading-note-card {
+  position: relative;
+  height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+.reading-note-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(217, 83, 79, 0.15);
+}
+.reading-note-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  object-fit: cover;
+  border-radius: 0;
+  transition: transform 0.3s;
+}
+.reading-note-card:hover .reading-note-cover {
+  transform: scale(1.05);
+}
+.reading-note-content {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  padding: 32px 24px 24px 24px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.2) 100%, transparent 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.reading-note-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+}
+.reading-note-desc {
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.reading-note-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  color: #fff;
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
 
 .note-sub-tabs {
   display: flex;
@@ -2398,185 +2202,32 @@ onUnmounted(() => {
   gap: 20px;
   margin-bottom: 32px;
   padding: 0;
-  border-bottom: 1px solid #ebeef5;
+  background: none;
+  border: none;
 }
 
 .note-sub-tabs .el-button {
-  border: none;
-  background: none;
+  border: none !important;
+  background: none !important;
   font-size: 16px;
-  padding: 12px 0;
+  padding: 12px 32px;
   position: relative;
-  color: #606266;
+  color: #d9534f;
   transition: all 0.3s;
-  font-weight: 400;
-}
-
-.note-sub-tabs .el-button:hover {
-  color: #2c698d;
-  transform: none;
-  box-shadow: none;
+  font-weight: 500;
+  border-radius: 24px !important;
+  box-shadow: none !important;
 }
 
 .note-sub-tabs .el-button.is-primary {
-  color: #1a4b6e;
-  background: none;
-  border: none;
+  color: #fff !important;
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%) !important;
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.10);
 }
 
-.note-sub-tabs .el-button.is-primary::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #1a4b6e;
-  transition: all 0.3s;
-  border-radius: 2px 2px 0 0;
-}
-
-/* 统一新建按钮样式 */
-.new-note-btn {
-  height: 200px;
-  border: 2px dashed #dcdfe6;
-  background-color: #f8f9fa;
-  color: #606266;
-  transition: all 0.3s;
-}
-
-.new-note-btn:hover {
-  border-color: #2c698d;
-  color: #2c698d;
-  transform: translateY(-3px);
-}
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.detail-header h2 {
-  font-size: 24px;
-  color: #303133;
-  margin: 0;
-}
-
-.detail-price {
-  font-size: 18px;
-  color: #e6a23c;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-price .paid {
-  color: #67c23a;
-}
-
-.detail-price .paid-badge {
-  background: #f0f9eb;
-  color: #67c23a;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.detail-price .free {
-  color: #909399;
-}
-
-.confirm-purchase {
-  text-align: center;
-
-  .note-cover {
-    max-width: 200px;
-    max-height: 150px;
-    border-radius: 4px;
-    margin: 10px 0;
-  }
-
-  .price {
-    color: #e6a23c;
-    font-weight: bold;
-    margin: 8px 0;
-  }
-}
-
-.confirm-purchase {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 12px;
-
-  .note-cover {
-    width: 200px;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .content {
-    text-align: center;
-
-    h3 {
-      margin: 0 0 12px 0;
-      color: #303133;
-      font-size: 16px;
-    }
-
-    .price {
-      color: #e6a23c;
-      font-weight: bold;
-      font-size: 14px;
-    }
-  }
-}
-
-:deep(.purchase-confirm-dialog) {
-  .el-dialog__header {
-    border-bottom: 1px solid #ebeef5;
-  }
-
-  .el-dialog__footer {
-    border-top: 1px solid #ebeef5;
-    padding: 16px 20px;
-  }
-}
-
-.note-content-container {
-  position: relative;
-}
-
-.limited-content {
-  position: relative;
-  max-height: 200px;
-  overflow: hidden;
-}
-
-.limited-content::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(transparent, white);
-}
-
-.purchase-tip {
-  margin-top: 20px;
-  text-align: center;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-
-.purchase-button {
-  margin-top: 15px;
-  width: 100%;
+.note-sub-tabs .el-button:hover {
+  color: #c9302c !important;
+  background: rgba(217, 83, 79, 0.08) !important;
 }
 </style>

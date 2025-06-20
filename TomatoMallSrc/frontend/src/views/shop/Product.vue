@@ -540,8 +540,8 @@ onMounted(async () => {
 
 <style scoped>
 .product-detail-container {
-  padding: 24px;
-  background: linear-gradient(120deg, #e3f6f5 0%, #d0eeff 100%);
+  padding: 64px 24px 24px 24px;
+  background: #fff;
   min-height: 100vh;
 }
 
@@ -550,6 +550,8 @@ onMounted(async () => {
   margin: 0 auto;
   position: relative;
   border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
 .admin-actions {
@@ -763,5 +765,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 24px auto 0;
   border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 </style>
