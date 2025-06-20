@@ -100,103 +100,93 @@ const handleBuyNow = async (event: Event) => {
       class="product-card"
       @click="handleCardClick"
   >
-    <img v-if="product.cover" :src="product.cover" class="product-cover" />
+    <img v-if="product.cover" :src="product.cover" class="product-cover"/>
+    <div class="overlay"></div>
     <div class="product-info">
-      <h3 class="title">{{ product.title }}</h3>
-
-      <div class="price-rate">
-        <div class="price-section">
-          <span class="price">¥{{ product.price.toFixed(2) }}</span>
-          <div class="stock-info">
-            <span>库存: {{ stockpile.amount || 0 }}</span>
-            <span class="frozen">(冻结: {{ stockpile.frozen || 0 }})</span>
+      <div class="info-main">
+        <h3 class="title">{{ product.title }}</h3>
+        <div class="price-rate">
+          <div class="price-section">
+            <span class="price">¥{{ product.price.toFixed(2) }}</span>
+            <div class="stock-info">
+              <span>库存: {{ stockpile.amount || 0 }}</span>
+              <span class="frozen">(冻结: {{ stockpile.frozen || 0 }})</span>
+            </div>
           </div>
         </div>
-        <el-rate
-            :model-value="product.rate"
-            :max="10"
-            disabled
-            :colors="['#272643', '#272643', '#272643']"
-        />
       </div>
-
-      <div v-if="isAdmin" class="admin-actions">
-        <div class="action-group">
-          <el-button
-              v-if="hasAdvertisement"
-              size="small"
-              type="warning"
-              @click.stop="$emit('edit-ad', product.id)"
-          >
-            更新广告
-          </el-button>
-          <el-button
-              size="small"
-              :type="hasAdvertisement ? 'danger' : 'primary'"
-              @click.stop="$emit('ad-click', product.id)"
-          >
-            {{ hasAdvertisement ? '移除广告' : '添加广告' }}
-          </el-button>
-        </div>
-
-        <div class="action-group">
-          <el-button
-              size="small"
-              type="primary"
-              @click.stop="$emit('stock-update', product)"
-              color="#bae8e8"
-          >
-            库存管理
-          </el-button>
-          <el-button
-              type="danger"
-              size="small"
-              @click.stop="$emit('delete', product.id)"
-          >
-            删除商品
-          </el-button>
-        </div>
-      </div>
-
-      <div class="user-actions">
-        <el-button
-            type="primary"
-            class="buy-btn"
-            @click.stop="handleBuyNow"
-        >
-          立即购买
-        </el-button>
-
-        <div class="cart-operations">
-          <template v-if="cartItems[product.id]?.quantity > 0">
+      <div class="info-actions">
+        <div v-if="isAdmin" class="admin-actions">
+          <div class="action-group">
             <el-button
-                circle
+                v-if="hasAdvertisement"
                 size="small"
-                @click.stop="handleCartAction($event, 'subtract')"
+                @click.stop="$emit('edit-ad', product.id)"
             >
-              -
+              更新广告
             </el-button>
-            <span class="quantity">{{
-                Math.min(cartItems[product.id]?.quantity, stockpile.amount)
-              }}</span>
             <el-button
+                size="small"
+                @click.stop="$emit('ad-click', product.id)"
+            >
+              {{ hasAdvertisement ? '移除广告' : '添加广告' }}
+            </el-button>
+          </div>
+
+          <div class="action-group">
+            <el-button
+                size="small"
+                @click.stop="$emit('stock-update', product)"
+            >
+              库存管理
+            </el-button>
+            <el-button
+                size="small"
+                @click.stop="$emit('delete', product.id)"
+            >
+              删除商品
+            </el-button>
+          </div>
+        </div>
+
+        <div class="user-actions">
+          <el-button
+              class="buy-btn"
+              @click.stop="handleBuyNow"
+          >
+            立即购买
+          </el-button>
+
+          <div class="cart-operations">
+            <template v-if="cartItems[product.id]?.quantity > 0">
+              <el-button
+                  circle
+                  size="small"
+                  @click.stop="handleCartAction($event, 'subtract')"
+              >
+                -
+              </el-button>
+              <span class="quantity">{{
+                  Math.min(cartItems[product.id]?.quantity, stockpile.amount)
+                }}</span>
+              <el-button
+                  circle
+                  size="small"
+                  :disabled="cartItems[product.id]?.quantity >= stockpile.amount || stockpile.amount <= 0"
+                  @click.stop="handleCartAction($event, 'add')"
+              >
+                +
+              </el-button>
+            </template>
+            <el-button
+                v-else
+                :icon="ShoppingCart"
                 circle
                 size="small"
-                :disabled="cartItems[product.id]?.quantity >= stockpile.amount || stockpile.amount <= 0"
+                :disabled="stockpile.amount <= 0"
                 @click.stop="handleCartAction($event, 'add')"
-            >
-              +
-            </el-button>
-          </template>
-          <el-button
-              v-else
-              :icon="ShoppingCart"
-              circle
-              type="info"
-              size="small"
-              :disabled="stockpile.amount <= 0"
-              @click.stop="handleCartAction($event, 'add')"
-          />
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -206,36 +196,93 @@ const handleBuyNow = async (event: Event) => {
 <style scoped>
 .product-card {
   cursor: pointer;
-  transition: transform 0.3s;
-  border-radius: 8px;
+  transition: all 0.3s;
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: none;
+  position: relative;
+  height: 520px;
+}
+
+:deep(.el-card__body) {
+  padding: 0;
+  height: 100%;
+  justify-content: flex-end;
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(217, 83, 79, 0.15);
 }
 
 .product-cover {
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px 8px 0 0;
+  transition: transform 0.3s;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.product-card:hover .product-cover {
+  transform: scale(1.05);
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.2) 50%, transparent 100%);
+  z-index: 2;
+  transition: background 0.3s;
 }
 
 .product-info {
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  z-index: 3;
+  color: white;
+  padding: 16px 16px 10px 16px;
+  box-sizing: border-box;
+}
+
+.info-main {
+  flex: 1 1 auto;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.info-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .title {
-  color: #272643;
-  margin: 8px 0;
-  height: 44px;
+  color: #fff;
+  margin-bottom: 6px;
+  height: auto;
+  max-height: 54px;
   overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 .price-rate {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .price-section {
@@ -245,32 +292,34 @@ const handleBuyNow = async (event: Event) => {
 }
 
 .price {
-  color: #ff4d4f;
-  font-size: 18px;
+  color: #fff;
+  font-size: 20px;
   font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .stock-info {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: 12px;
+  font-size: 13px;
+  color: #ddd;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .frozen {
-  color: #909399;
+  color: #bbb;
 }
 
 .admin-actions {
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  position: relative;
-  z-index: 2;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .action-group {
@@ -280,28 +329,29 @@ const handleBuyNow = async (event: Event) => {
 }
 
 .action-group + .action-group {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #eee;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.el-button {
+  background: transparent !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 20px !important;
+  font-weight: 500;
+  border-radius: 8px !important;
+}
+
+.el-button:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
 }
 
 .user-actions {
-  margin-top: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.buy-btn {
-  background: #2c698d;
-  border-color: #2c698d;
-  color: white;
-  transition: all 0.3s;
-}
-
-.buy-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
 }
 
 .cart-operations {
@@ -311,15 +361,39 @@ const handleBuyNow = async (event: Event) => {
 }
 
 .quantity {
-  min-width: 24px;
+  min-width: 28px;
   text-align: center;
-  color: #2c698d;
-  font-weight: 500;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 :deep(.el-button.is-circle) {
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  background-color: transparent;
+  color: white;
+}
+
+:deep(.el-button.is-circle:hover) {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+:deep(.el-button.is-circle.is-disabled) {
+  background-color: transparent !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+:deep(.el-button:focus),
+:deep(.el-button:active) {
+  outline: none !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+:deep(.el-button:active) {
+  border: none !important;
 }
 </style>

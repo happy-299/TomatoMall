@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElPagination, ElSelect, ElOption } from 'element-plus'
-import { Star, StarFilled, Plus, Delete, ShoppingCart } from '@element-plus/icons-vue'
+import { Star, StarFilled, Plus, Delete } from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -369,8 +369,7 @@ onMounted(async () => {
             <div class="product-actions">
               <el-button
                 v-if="currentUserId === currentBookList.creatorId"
-                type="danger"
-                circle
+                type="danger"                circle
                 @click="handleRemoveProduct(currentBookList.id, product.id)"
               >
                 <el-icon><Delete /></el-icon>

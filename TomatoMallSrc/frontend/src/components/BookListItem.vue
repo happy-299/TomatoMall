@@ -32,38 +32,40 @@ const handleView = () => {
     <div class="booklist-cover" v-if="bookList.products.length > 0">
       <img :src="bookList.products[0].cover" :alt="bookList.title" class="cover-image" />
     </div>
-    <div class="booklist-header">
-      <h3 @click="handleView" class="clickable">{{ bookList.title }}</h3>
-      <div class="actions">
-        <el-button
-          :type="isFavourite ? 'warning' : 'default'"
-          circle
-          @click="handleCollect"
-        >
-          <el-icon>
-            <StarFilled v-if="isFavourite" />
-            <Star v-else />
-          </el-icon>
-        </el-button>
-        <el-button
-          v-if="isCreator"
-          type="danger"
-          circle
-          @click="handleDelete"
-        >
-          <el-icon><Delete /></el-icon>
-        </el-button>
+    <div class="booklist-content">
+      <div class="booklist-header">
+        <h3 @click="handleView" class="booklist-title clickable">{{ bookList.title }}</h3>
+        <div class="actions">
+          <el-button
+            :type="isFavourite ? 'warning' : 'default'"
+            circle
+            @click="handleCollect"
+          >
+            <el-icon>
+              <StarFilled v-if="isFavourite" />
+              <Star v-else />
+            </el-icon>
+          </el-button>
+          <el-button
+            v-if="isCreator"
+            type="danger"
+            circle
+            @click="handleDelete"
+          >
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </div>
       </div>
-    </div>
-    <p class="description">{{ bookList.description }}</p>
-    <div class="booklist-footer">
-      <div class="creator">
-        <el-avatar :size="24" :src="bookList.creatorAvatar" />
-        <span>{{ bookList.creatorName }}</span>
-      </div>
-      <div class="stats">
-        <span>{{ bookList.products.length }} 本书</span>
-        <span>{{ bookList.favouriteCount }} 收藏</span>
+      <p class="booklist-description">{{ bookList.description }}</p>
+      <div class="booklist-footer">
+        <div class="creator">
+          <el-avatar :size="24" :src="bookList.creatorAvatar" />
+          <span>{{ bookList.creatorName }}</span>
+        </div>
+        <div class="stats">
+          <span>{{ bookList.products.length }} 本书</span>
+          <span>{{ bookList.favouriteCount }} 收藏</span>
+        </div>
       </div>
     </div>
   </div>
@@ -71,89 +73,86 @@ const handleView = () => {
 
 <style scoped>
 .booklist-card {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s;
+  position: relative;
+  height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: none;
+  box-shadow: none;
+  border: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin: 16px;
+  padding: 0;
 }
-
 .booklist-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(217, 83, 79, 0.15);
 }
-
 .booklist-cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
-  height: 200px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f5f7fa;
+  height: 100%;
+  z-index: 1;
 }
-
 .cover-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s;
+  border-radius: 0;
 }
-
-.cover-image:hover {
+.booklist-card:hover .cover-image {
   transform: scale(1.05);
 }
-
-.booklist-header {
+.booklist-content {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  padding: 32px 24px 24px 24px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 60%, rgba(0,0,0,0.2) 100%, transparent 100%);
+  color: #fff;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.booklist-header h3 {
+.booklist-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+}
+.booklist-description {
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
   margin: 0;
-  font-size: 18px;
-  color: #2c3e50;
-}
-
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.description {
-  color: #666;
-  margin-bottom: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  overflow: hidden;
 }
-
 .booklist-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  color: #666;
+  margin-top: 12px;
+  color: #fff;
+  font-size: 13px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
-
-.creator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.booklist-header, .actions, .description {
+  position: relative;
+  z-index: 3;
 }
-
-.stats {
-  display: flex;
-  gap: 16px;
-}
-
 .clickable {
   cursor: pointer;
 }
-
 .clickable:hover {
   color: #409EFF;
 }

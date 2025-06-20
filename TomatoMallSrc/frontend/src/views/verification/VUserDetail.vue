@@ -20,6 +20,16 @@
         </el-image>
         <h1>{{ user.username }}</h1>
         <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
+        <div class="profile-actions">
+          <el-button
+              v-if="currentId != user.id"
+              :type="isFollowing ? 'info' : 'primary'"
+              @click="handleFollow"
+              size="medium"
+          >
+            {{ isFollowing ? '已关注' : '+ 关注' }}
+          </el-button>
+        </div>
       </div>
 
       <!-- 内容切换 -->
@@ -210,11 +220,35 @@ import {
 import UserBadge from '../../components/UserBadge.vue'
 import ReadingNote from '../../components/ReadingNote.vue'
 import BookListItem from '../../components/BookListItem.vue'
+import { checkIsFollowed, followUser, unfollowUser } from '../../api/user'
 
 const route = useRoute()
 const userId = computed(() => Number(route.params.userId) || 0)
 const router = useRouter()
+const isFollowing = ref(false)
+const currentId = Number(sessionStorage.getItem('userId'))
 
+const getFollowStatus = async () => {
+  try {
+    const res = await checkIsFollowed(user.id)
+    isFollowing.value = res.data.data
+  } catch (error) {
+    console.error('获取关注状态失败:', error)
+  }
+}
+
+const handleFollow = async () => {
+  try {
+    if (isFollowing.value) {
+      await unfollowUser(user.id)
+    } else {
+      await followUser(user.id)
+    }
+    isFollowing.value = !isFollowing.value
+  } catch (error) {
+    console.error('操作失败:', error)
+  }
+}
 // 用户信息
 const user = reactive({
   id: userId,
@@ -259,6 +293,7 @@ onMounted(async () => {
       if (likeRes.data.data) likedNoteIds.value.add(note.id)
       if (payRes.data.data) paidNoteIds.value.add(note.id)
     }
+    await getFollowStatus()
   } catch (error) {
     ElMessage.error('数据加载失败')
   }
@@ -682,5 +717,15 @@ const getDisplayContent = (content: string, isPaid: boolean) => {
     width: 80%;
     margin-top: 10px;
   }
+}
+
+.profile-actions {
+  margin-top: 15px;
+}
+
+.profile-actions .el-button {
+  padding: 8px 25px;
+  border-radius: 20px;
+  font-size: 14px;
 }
 </style>

@@ -4,6 +4,8 @@ import SearchResult from '../views/search/SearchResult.vue'
 import CouponSquare from '../views/CouponSquare.vue'
 import MyCoupons from '../views/MyCoupons.vue'
 import AiChat from "../views/AiChat.vue";
+import FollowingList from '../views/user/FollowingList.vue'
+import FollowersList from '../views/user/FollowersList.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -93,6 +95,16 @@ const router = createRouter({
                 name: 'VUserDetail',
                 component: () => import('../views/verification/VUserDetail.vue'),
                 meta: { title: '用户详情' }
+            },
+            {
+                path: '/following',
+                name: 'Following',
+                component: FollowingList
+            },
+            {
+                path: '/followers',
+                name: 'Followers',
+                component: FollowersList
             }
         ]
     }, {

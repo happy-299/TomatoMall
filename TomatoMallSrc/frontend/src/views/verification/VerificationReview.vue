@@ -9,80 +9,92 @@
 
     <!-- 申请列表 -->
     <div class="application-list">
-      <div v-for="app in applications" :key="app.id" class="application-card">
-        <div class="user-header">
-          <user-card :user="app.user"/>
-          <el-button class="detail-btn" size="small" @click="openDetail(app)">申请资料</el-button>
-        </div>
-
-        <div class="compact-info">
-          <div class="info-item">
-            <span class="label">认证类型：</span>
-            <span class="value">{{ app.verifiedName || '普通认证' }}</span>
+      <template v-if="applications.length">
+        <div v-for="app in applications" :key="app.id" class="application-card">
+          <div class="user-header">
+            <user-card :user="{
+          id: app.id,
+          username: app.username,
+          avatar: app.avatar,
+          isVerified: app.verifiedName !== null,
+          bio: '',
+          verifiedName: app.verifiedName || ''
+        }"/>
+            <el-button class="detail-btn" size="small" @click="openDetail(app)">申请资料</el-button>
           </div>
-          <div class="info-item">
-            <span class="label">申请状态：</span>
-            <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
-              {{ statusMap[app.status] }}
-            </el-tag>
-          </div>
-        </div>
 
-        <!-- 操作区域 -->
-        <div v-if="activeStatus === 'PENDING'" class="action-buttons">
-          <el-button type="success" size="small" @click="handleReview(app.id, true)">通过</el-button>
-          <el-button type="danger" size="small" @click="openRejectDialog(app)">拒绝</el-button>
-        </div>
-
-        <!-- 状态显示 -->
-        <div v-else class="review-status">
-          <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
-            {{ statusMap[app.status] }}
-          </el-tag>
-          <!-- 添加审核时间显示 -->
-          <div v-if="app.reviewTime" class="review-time">
-            {{ formatTime(app.reviewTime) }}
-          </div>
-        </div>
-          <p v-if="app.rejectReason" class="reject-reason">拒绝原因：{{ app.rejectReason }}</p>
-        </div>
-
-        <!-- 申请资料弹窗 -->
-        <el-dialog v-model="detailDialogVisible" title="申请详细信息" width="600px">
-          <div class="detail-content">
-            <div class="detail-item">
-              <h4>认证名号</h4>
-              <p>{{ app.verifiedName || '未填写认证名号' }}</p>
+          <div class="compact-info">
+            <div class="info-item">
+              <span class="label">认证类型：</span>
+              <span class="value">{{ app.verifiedName || '普通认证' }}</span>
             </div>
-            <div class="detail-item">
-              <h4>申请理由</h4>
-              <p>{{ app.reasonText || '未填写申请理由' }}</p>
+            <div class="info-item">
+              <span class="label">申请状态：</span>
+              <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
+                {{ statusMap[app.status] }}
+              </el-tag>
             </div>
-            <div class="detail-item">
-              <h4>证明材料</h4>
-              <div class="material-grid">
-                <el-image
-                    v-for="(img, index) in app.proofImgs"
-                    :key="index"
-                    :src="img"
-                    fit="cover"
-                    class="material-thumbnail"
-                    :preview-src-list="app.proofImgs"
-                >
-                  <template #error>
-                    <div class="image-error">
-                      <el-icon>
-                        <Picture/>
-                      </el-icon>
-                    </div>
-                  </template>
-                </el-image>
+          </div>
+
+          <!-- 操作区域 -->
+          <div v-if="activeStatus === 'PENDING'" class="action-buttons">
+            <el-button type="success" size="small" @click="handleReview(app.id, true)">通过</el-button>
+            <el-button type="danger" size="small" @click="openRejectDialog(app)">拒绝</el-button>
+          </div>
+
+          <!-- 状态显示 -->
+          <div v-else class="review-status">
+            <div class="status-container">
+              <el-tag :type="app.status === 'APPROVED' ? 'success' : 'danger'" size="small">
+                {{ statusMap[app.status] }}
+              </el-tag>
+              <div v-if="app.reviewTime" class="review-time">
+                {{ formatTime(app.reviewTime) }}
               </div>
             </div>
           </div>
-        </el-dialog>
+          <p v-if="app.rejectReason" class="reject-reason">拒绝原因：{{ app.rejectReason }}</p>
+        </div>
+      </template>
+      <div v-else class="empty-state">
+        暂无相关申请
       </div>
     </div>
+
+    <!-- 申请资料弹窗 -->
+    <el-dialog v-model="detailDialogVisible" title="申请详细信息" width="600px">
+      <div class="detail-content" v-if="currentDetailApp">
+        <div class="detail-item">
+          <h4>认证名号</h4>
+          <p>{{ currentDetailApp.verifiedName || '未填写认证名号' }}</p>
+        </div>
+        <div class="detail-item">
+          <h4>申请理由</h4>
+          <p>{{ currentDetailApp.reasonText || '未填写申请理由' }}</p>
+        </div>
+        <div class="detail-item">
+          <h4>证明材料</h4>
+          <div class="material-grid">
+            <el-image
+                v-for="(img, index) in currentDetailApp.proofImgs"
+                :key="index"
+                :src="img"
+                fit="cover"
+                class="material-thumbnail"
+                :preview-src-list="currentDetailApp.proofImgs"
+            >
+              <template #error>
+                <div class="image-error">
+                  <el-icon>
+                    <Picture/>
+                  </el-icon>
+                </div>
+              </template>
+            </el-image>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
@@ -109,7 +121,9 @@
         <el-button type="primary" @click="confirmReject">确认</el-button>
       </template>
     </el-dialog>
+  </div>
 </template>
+
 
 <script setup lang="ts">
 import {ref, watch, onMounted} from 'vue'
@@ -158,24 +172,13 @@ const loadApplications = async () => {
     loading.value = true
     const res = await getVerificationListByStatus(
         activeStatus.value,
-        currentPage.value - 1, // 后端页码从0开始
+        currentPage.value - 1, // 修复页码转换
         pageSize.value
     )
     console.log("res => ",res)
-    const data = res.data.data
-    total.value = data.total
+    total.value = res.data.data.totalElements || res.data.data.total || 0 // 兼容不同分页字段
 
-    // 补充用户信息
-    applications.value = await Promise.all(
-        data.content.map(async (app: any) => {
-          const userRes = await getUserInfo(app.userId)
-          return {
-            ...app,
-            user: userRes.data.data || {avatar: '', username: '未知用户'},
-            materialUrls: app.materials?.split(',') || []
-          }
-        })
-    )
+    applications.value = res.data.data.content
     console.log("app => ",applications)
   } catch (error) {
     console.error('加载申请失败:', error)
@@ -236,6 +239,17 @@ onMounted(loadApplications)
 </script>
 
 <style scoped>
+.empty-state {
+  text-align: center;
+  color: #909399;
+  padding: 40px 0;
+  width: 100%;
+}
+
+.application-list {
+  min-height: 300px; /* 保证加载过渡 */
+}
+
 .verification-review {
   padding: 20px;
 }

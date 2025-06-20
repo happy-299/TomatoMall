@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getBookListDetail, type BookListVO } from '../../api/booklist'
+import { getBookList, type BookListVO } from '../../api/booklist'
 import Header from '../../components/Header.vue'
 
 const route = useRoute()
@@ -19,7 +19,7 @@ const fetchBookListDetail = async () => {
 
   loading.value = true
   try {
-    const res = await getBookListDetail(Number(bookListId))
+    const res = await getBookList(Number(bookListId))
     if (res.data.code === '200') {
       bookList.value = res.data.data
     }

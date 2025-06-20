@@ -25,6 +25,16 @@
       <div class="name-wrapper">
         <h3 class="username">{{ user.username || '未命名用户' }}</h3>
         <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
+        <!-- 新增关注按钮 -->
+        <el-button
+            v-if="currentId != user.id"
+            :type="isFollowing ? 'info' : 'primary'"
+            size="small"
+            @click.stop="handleFollow"
+            class="follow-btn"
+        >
+          {{ isFollowing ? '已关注' : '关注' }}
+        </el-button>
       </div>
 
       <!-- 附加信息 -->
@@ -38,6 +48,8 @@ import { defineProps } from 'vue'
 import { useRouter } from 'vue-router'
 import UserBadge from './UserBadge.vue'
 import { User, Loading } from '@element-plus/icons-vue'
+import { ref, watch, onMounted } from 'vue'
+import { checkIsFollowed, followUser, unfollowUser } from '../api/user.ts'
 
 const props = defineProps({
   user: {
@@ -54,7 +66,35 @@ const props = defineProps({
   }
 })
 
+const isFollowing = ref(false)
+const currentId = Number(sessionStorage.getItem('userId'))
 const router = useRouter()
+// 获取关注状态
+const getFollowStatus = async () => {
+  try {
+    const res = await checkIsFollowed(props.user.id)
+    console.log("isFollowed => ",res)
+    console.log("currentId => ",currentId)
+    isFollowing.value = res.data.data
+  } catch (error) {
+    console.error('获取关注状态失败:', error)
+  }
+}
+
+// 处理关注/取消关注
+const handleFollow = async (e: Event) => {
+  e.stopPropagation()
+  try {
+    if (isFollowing.value) {
+      await unfollowUser(props.user.id)
+    } else {
+      await followUser(props.user.id)
+    }
+    isFollowing.value = !isFollowing.value
+  } catch (error) {
+    console.error('操作失败:', error)
+  }
+}
 const viewDetail = () => {
   router.push({
     path: `/vuser-detail/${props.user.id}`,
@@ -66,6 +106,14 @@ const viewDetail = () => {
     }
   })
 }
+
+onMounted(() => {
+  getFollowStatus()
+  // 判断是否是当前用户（需要自行实现获取当前用户ID的逻辑）
+})
+
+// 监听用户ID变化
+watch(() => props.user.id, getFollowStatus)
 </script>
 
 <style scoped>
@@ -85,28 +133,38 @@ const viewDetail = () => {
 }
 
 .avatar-container {
-  width: 100px;  /* 调整为更合适的尺寸 */
+  width: 100px;
   height: 100px;
   border-radius: 50%;
   margin: 0 auto 12px;
-  overflow: hidden;  /* 添加溢出隐藏 */
-  position: relative; /* 为子元素定位做准备 */
+  overflow: hidden;
+  position: relative;
 }
 
+/* 深度穿透处理Element组件结构 */
 .avatar-container :deep(.el-image) {
-  border-radius: inherit;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
 }
 
-.avatar-container :deep(img) {
-  width: 100%;
-  height: 100%;
+.avatar-container :deep(.el-image__inner) {
+  border-radius: inherit !important;
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover;
+  transform: translateZ(0); /* 修复边界锯齿 */
 }
 
-.avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.avatar-container :deep(.el-image__error),
+.avatar-container :deep(.el-image__placeholder) {
+  border-radius: inherit !important;
+}
+
+.follow-btn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 16px;
 }
 
 .avatar-error {
