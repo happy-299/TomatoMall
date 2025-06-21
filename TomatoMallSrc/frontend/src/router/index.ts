@@ -1,5 +1,4 @@
-import {createRouter, createWebHashHistory, createWebHistory} from "vue-router"
-import { RouteRecordRaw } from "vue-router"
+import {createRouter, createWebHistory} from "vue-router"
 import SearchResult from '../views/search/SearchResult.vue'
 import CouponSquare from '../views/CouponSquare.vue'
 import MyCoupons from '../views/MyCoupons.vue'
