@@ -85,6 +85,9 @@ public class Account
     @Basic
     private Integer tomato = 0;//番茄币数量
 
+    @Basic
+    private Integer firstLogin = 0;
+
 //    @Basic
 //    @Column(name = "role")
 //    @Enumerated(EnumType.STRING)
@@ -107,6 +110,7 @@ public class Account
         accountVO.setVerifiedName(this.verifiedName);
         accountVO.setFollowerCount(this.followerCount);
         accountVO.setFollowingCount(this.followingCount);
+        accountVO.setFirstLogin(this.firstLogin);
 
         accountVO.setTomato(this.tomato);
         return accountVO;
