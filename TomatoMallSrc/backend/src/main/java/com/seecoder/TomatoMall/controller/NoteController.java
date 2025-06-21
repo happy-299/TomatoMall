@@ -102,6 +102,12 @@ public class NoteController
         return Response.buildSuccess(noteService.subLikeCnt(id));
     }
 
+    @GetMapping("/like/top/{topNum}")
+    public Response<List<NoteVO>> topLiked(@PathVariable Integer topNum)
+    {
+        return Response.buildSuccess(noteService.getNoteTopLiked(topNum));
+    }
+
     //检查当前用户是否已经购买->true为已经购买
     @GetMapping("/pay/{id}")
     public Response<Boolean> checkPaid(@PathVariable Integer id)
