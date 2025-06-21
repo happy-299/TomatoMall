@@ -12,12 +12,22 @@ function logout() {
   sessionStorage.clear()
   router.push({path: "/login"})
 }
+
+function goToWelcome() {
+  router.push({path: "/welcome"})
+}
 </script>
 
 <template>
   <header class="header1">
     <div class="header1-content">
-      <div class="header1-logo">番茄书城</div>
+      <div class="header1-logo" @click="goToWelcome">
+        <div class="logo-container">
+          <span class="tomato-icon">🍅</span>
+          <span class="logo-text">番茄书城</span>
+          <span class="book-icon">📚</span>
+        </div>
+      </div>
       <nav class="header1-nav">
         <el-tooltip content="官方认证大师榜" placement="bottom">
           <el-icon :size="24" class="header1-icon" @click="router.push('/verification-list')">
@@ -96,6 +106,50 @@ function logout() {
   font-weight: bold;
   letter-spacing: 2px;
   text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+.header1-logo:hover {
+  transform: scale(1.05);
+}
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-text {
+  background: linear-gradient(45deg, #ff6347, #ffe066);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  position: relative;
+}
+.tomato-icon {
+  font-size: 28px;
+  animation: bounce 2s infinite;
+}
+.book-icon {
+  font-size: 28px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 .header1-nav {
   display: flex;
