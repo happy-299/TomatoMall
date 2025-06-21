@@ -15,6 +15,7 @@ public class PartAccountVO {
     private Integer followingCount;
     private Boolean isVerified;
     private String verifiedName;
+    private Integer firstLogin;
 
 
 }
