@@ -1,6 +1,7 @@
 package com.seecoder.TomatoMall.service;
 
 import com.seecoder.TomatoMall.vo.AccountVO;
+import com.seecoder.TomatoMall.vo.PartAccountVO;
 
 import java.util.List;
 
@@ -10,6 +11,8 @@ public interface AccountService {
     String login(String username, String password);
 
     AccountVO getInformation();
+
+    PartAccountVO getInformationPart(Integer id);
 
     Boolean updateInformation(AccountVO accountVO);
 

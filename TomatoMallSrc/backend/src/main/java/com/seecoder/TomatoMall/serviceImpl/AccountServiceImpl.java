@@ -9,6 +9,7 @@ import com.seecoder.TomatoMall.service.AccountService;
 import com.seecoder.TomatoMall.util.SecurityUtil;
 import com.seecoder.TomatoMall.util.TokenUtil;
 import com.seecoder.TomatoMall.vo.AccountVO;
+import com.seecoder.TomatoMall.vo.PartAccountVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -21,6 +22,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,6 +88,16 @@ public class AccountServiceImpl implements AccountService
     {
         Account account = securityUtil.getCurrentAccount();
         return account.toVO();
+    }
+
+    @Override
+    public PartAccountVO getInformationPart(Integer id) {
+        Optional<Account> accountOptional = accountRepository.findById(id);
+        if (accountOptional.isPresent()) {
+            return accountOptional.get().toVO().toPart();
+        } else {
+            throw TomatoMallException.userNotFound();
+        }
     }
 
     @Override

@@ -29,6 +29,13 @@ public class AccountController {
         return Response.buildSuccess(accountService.getInformation());
     }
 
+    @GetMapping("/{userid}")
+    public Response<PartAccountVO> getAccountById(
+            @PathVariable Integer userid
+    ) {
+        return Response.buildSuccess(accountService.getInformationPart(userid));
+    }
+
     /**
      * 创建新的用户
      */
