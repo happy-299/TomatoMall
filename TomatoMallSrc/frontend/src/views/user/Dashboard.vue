@@ -699,7 +699,6 @@ const handleRecharge = async () => {
     try {
       // 计算实际支付金额（1元=10个圣女果）
       const actualAmount = rechargeAmount.value / 10;
-
       // 提交充值订单
       const rechargeData = {
         tomato: rechargeAmount.value,
