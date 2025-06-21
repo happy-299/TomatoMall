@@ -32,6 +32,11 @@ const router = createRouter({
                 name: 'Dashboard',
                 component: () => import('../views/user/Dashboard.vue'),
                 meta: {title: '个人信息'}
+            },            {
+                path: '/welcome',
+                name: 'Welcome',
+                component: () => import('../views/user/Welcome.vue'),
+                meta: {title: '欢迎导购'}
             },
              {
                 path: '/productList',

@@ -19,18 +19,18 @@
            :class="['message', msg.role.toLowerCase()]">
         <!-- 用户和AI消息 -->
         <div v-if="['USER', 'AI'].includes(msg.role)" class="bubble">
-          {{ msg.content }}
+          {{ typeof msg.content === 'string' ? msg.content : '' }}
         </div>
 
         <!-- 商品卡片 -->
         <div v-else-if="msg.role === 'PRODUCT'" class="product-card">
           <div class="card-content">
             <h3 class="recommend-title">🌟 为你推荐商品</h3>
-            <h4>{{ msg.content.title }}</h4>
-            <p class="price">{{ msg.content.price }}</p>
+            <h4>{{ typeof msg.content === 'object' ? msg.content.title : '' }}</h4>
+            <p class="price">{{ typeof msg.content === 'object' ? msg.content.price : '' }}</p>
             <el-button
                 class="arrow-btn"
-                @click="goToProduct(msg.content.id)"
+                @click="goToProduct(typeof msg.content === 'object' ? msg.content.id : '')"
                 circle
             >
               <el-icon>
@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import {ref, onMounted, nextTick, computed, onBeforeUnmount} from 'vue'
-import {useRouter} from 'vue-router'
+import {useRouter, useRoute} from 'vue-router'
 import {talkToAI, postChatMessage, getSessionMessages, getChatSessions} from '../api/ai_chat.ts'
 import {ChatMessage, ChatSession} from '../api/ai_chat.ts'
 import {debounce} from 'lodash-es'
@@ -64,28 +64,54 @@ import {Close} from '@element-plus/icons-vue'
 import {reactive} from 'vue'
 import {ArrowRight} from '@element-plus/icons-vue'
 import {getProductById} from '../api/product.ts'
+import { ElMessage } from 'element-plus'
+
+// Define proper types for message content
+interface ProductContent {
+  id: string;
+  title: string;
+  price: string | number;
+  [key: string]: any;
+}
+
+// Extend ChatMessage to handle different content types
+interface ExtendedChatMessage extends Omit<ChatMessage, 'content'> {
+  content: string | ProductContent;
+}
 
 const router = useRouter()
-const messages = ref<ChatMessage[]>([])
+const route = useRoute()
+const messages = ref<ExtendedChatMessage[]>([])
 const inputMessage = ref('')
 const isLoading = ref(false)
 const currentSessionId = ref('0')
 const chatScroll = ref<HTMLElement>()
 
 const goToProduct = (productId: string) => {
-  router.push(`/product/${productId}`)
+  // Force navigation by using replace and then push
+  const targetPath = `/product/${productId}`
+  
+  // If we're already on a product page
+  if (route.path.includes('/product/')) {
+    // Use replace to force component reload
+    router.replace('/productList').then(() => {
+      router.push(targetPath)
+    })
+  } else {
+    router.push(targetPath)
+  }
 }
 
 const loadHistory = async () => {
   try {
     if (currentSessionId.value !== '0') {
       const res = await getSessionMessages(currentSessionId.value)
-      messages.value = res.data.data.map(msg => {
+      messages.value = res.data.data.map((msg: any) => {
         if (msg.role === 'AI') {
           try {
             const parsed = JSON.parse(msg.content)
             if (parsed.reason) {
-              return {...msg, content: parsed.reason, id:parsed.id}
+              return {...msg, content: parsed.reason, id: parsed.id}
             }
           } catch (e) {
             console.warn('解析历史消息失败:', e)
@@ -133,13 +159,13 @@ const scrollToBottom = () => {
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isLoading.value) return
 
-  let tempAiMessage: ChatMessage | null = null
+  let tempAiMessage: ExtendedChatMessage | null = null
   try {
     isLoading.value = true
     tempAiMessage = {
       id: `temp-${Date.now()}`,
       sessionId: currentSessionId.value,
-      role: 'AI',
+      role: 'AI' as const,
       content: '思考中...',
       createTime: new Date().toISOString()
     }
@@ -148,7 +174,7 @@ const sendMessage = async () => {
     messages.value.push({
       id: Date.now().toString(),
       sessionId: currentSessionId.value,
-      role: 'USER',
+      role: 'USER' as const,
       content: inputMessage.value,
       createTime: new Date().toISOString()
     }, tempAiMessage)
@@ -177,10 +203,10 @@ const sendMessage = async () => {
       }
 
       // 创建AI消息
-      const aiMessage = {
+      const aiMessage: ExtendedChatMessage = {
         id: parsedReply.id?.toString() || `ai-${Date.now()}`,
         sessionId: responseData.sessionId?.toString() || currentSessionId.value,
-        role: 'AI',
+        role: 'AI' as const,
         content: parsedReply.reason || '未获取到回复内容',
         createTime: new Date().toISOString()
       }
@@ -213,7 +239,7 @@ const sendMessage = async () => {
           messages.value.push({
             id: `${product.id}`,
             sessionId: currentSessionId.value,
-            role: 'PRODUCT',
+            role: 'PRODUCT' as const,
             content: product,
             createTime: new Date().toISOString()
           })
