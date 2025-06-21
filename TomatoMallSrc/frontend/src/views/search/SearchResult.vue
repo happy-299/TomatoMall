@@ -7,6 +7,7 @@ import {ElMessage, ElMessageBox, ElLoading} from 'element-plus'
 import {search, type SearchResult} from '../../api/search'
 import Header from '../../components/Header.vue'
 import BookListItem from '../../components/BookListItem.vue'
+import ProductCard from '../../components/ProductCard.vue'
 import {
   collectBookList,
   cancelCollectBookList,
@@ -18,6 +19,8 @@ import {deleteNote, getNoteLikeStatus, getNotePayStatus, payNote, type NoteVO, u
 import ReadingNote from "../../components/ReadingNote.vue";
 import {uploadUserImage} from '../../api/util.ts'
 import VUserCard from '../../components/VUserCard.vue'
+import { getStockpile } from '../../api/product'
+import { getCart } from '../../api/cart'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +56,11 @@ const editNoteForm = reactive({
   img: ''
 })
 
+// ProductCard相关状态
+const stockpiles = ref<Record<string, any>>({})
+const cartItems = ref<Record<string, any>>({})
+const isAdmin = ref(false)
+
 const fetchSearchResults = async () => {
   const keyword = route.query.keyword as string
   if (!keyword) {
@@ -87,6 +95,30 @@ const fetchSearchResults = async () => {
           }
         })
       }
+
+      // 获取商品库存信息
+      await Promise.all(searchResults.value.products.map(async (product) => {
+        try {
+          const stockRes = await getStockpile(product.id)
+          stockpiles.value[product.id] = stockRes.data.data || { amount: 0, frozen: 0 }
+        } catch (error) {
+          console.error(`获取商品 ${product.id} 库存失败:`, error)
+          stockpiles.value[product.id] = { amount: 0, frozen: 0 }
+        }
+      }))
+
+      // 获取购物车信息
+      try {
+        const cartRes = await getCart()
+        const cartItemsData = cartRes.data.data.items || []
+        cartItems.value = {}
+        cartItemsData.forEach((item: any) => {
+          cartItems.value[item.productId] = item
+        })
+      } catch (error) {
+        console.error('获取购物车失败:', error)
+      }
+
       // 获取笔记状态
       const notePromises = searchResults.value.notes.map(async (note: NoteVO) => {
         if (currentUserId.value) {
@@ -102,7 +134,6 @@ const fetchSearchResults = async () => {
           }
         }
       })
-
 
       await Promise.all(notePromises)
     }
@@ -248,6 +279,46 @@ const handleProductClick = (productId: string) => {
   router.push(`/product/${productId}`)
 }
 
+// 购物车相关处理函数
+const handleCartAdd = async (productId: string) => {
+  try {
+    const { addToCart } = await import('../../api/cart')
+    await addToCart(productId, 1)
+    // 更新本地购物车状态
+    if (cartItems.value[productId]) {
+      cartItems.value[productId].quantity++
+    } else {
+      cartItems.value[productId] = { productId, quantity: 1 }
+    }
+    ElMessage.success('已添加到购物车')
+  } catch (error) {
+    ElMessage.error('添加到购物车失败')
+  }
+}
+
+const handleCartSubtract = async (productId: string) => {
+  try {
+    const { updateCartItemQuantity } = await import('../../api/cart')
+    const currentQuantity = cartItems.value[productId]?.quantity || 0
+    if (currentQuantity > 1) {
+      await updateCartItemQuantity(cartItems.value[productId].cartItemId, currentQuantity - 1)
+      cartItems.value[productId].quantity--
+    } else {
+      const { deleteCartItem } = await import('../../api/cart')
+      await deleteCartItem(cartItems.value[productId].cartItemId)
+      delete cartItems.value[productId]
+    }
+    ElMessage.success('购物车已更新')
+  } catch (error) {
+    ElMessage.error('更新购物车失败')
+  }
+}
+
+const handleCartUpdated = () => {
+  // 刷新购物车数据
+  fetchSearchResults()
+}
+
 // 处理用户点击
 const handleUserClick = (userId: number) => {
   router.push(`/user/${userId}`)
@@ -339,6 +410,11 @@ onMounted(async () => {
   if (userId) {
     currentUserId.value = Number(userId)
   }
+  
+  // 设置管理员状态
+  const role = sessionStorage.getItem('role')
+  isAdmin.value = role === 'admin'
+  
   await fetchSearchResults()
 })
 </script>
@@ -388,19 +464,18 @@ onMounted(async () => {
       <!-- 商品结果 -->
       <div v-show="activeTab === 'products'" class="result-content">
         <div class="product-grid">
-          <div
-              v-for="product in searchResults.products"
-              :key="product.id"
-              class="product-card"
-              @click="handleProductClick(product.id)"
-          >
-            <img :src="product.cover" :alt="product.title" class="product-cover">
-            <div class="product-info">
-              <h4>{{ product.title }}</h4>
-              <p class="price">¥{{ product.price }}</p>
-              <p class="description">{{ product.description }}</p>
-            </div>
-          </div>
+          <ProductCard
+            v-for="product in searchResults.products"
+            :key="product.id"
+            :product="product"
+            :stockpile="stockpiles[product.id] || { amount: 0, frozen: 0 }"
+            :is-admin="isAdmin"
+            :cart-items="cartItems"
+            :has-advertisement="false"
+            @cart-add="handleCartAdd"
+            @cart-subtract="handleCartSubtract"
+            @cart-updated="handleCartUpdated"
+          />
         </div>
       </div>
 
@@ -639,7 +714,7 @@ onMounted(async () => {
 }
 
 .search-result-container {
-  padding: 24px;
+  padding: 80px 24px 24px 24px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -699,8 +774,9 @@ onMounted(async () => {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
+  padding: 20px 0;
 }
 
 .product-card {

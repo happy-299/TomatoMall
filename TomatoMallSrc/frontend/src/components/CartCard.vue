@@ -69,7 +69,8 @@ defineEmits(['quantity-change', 'delete', 'view-product']);
   border-radius: 8px;
   background: #ffffff;
   transition: all 0.3s ease;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 8px;
 }
 
 .cart-item:hover {
@@ -78,9 +79,9 @@ defineEmits(['quantity-change', 'delete', 'view-product']);
 }
 
 .highlighted-item {
-  background: #f0f9ff;
-  border: 1px solid #409eff;
-  box-shadow: 0 0 8px rgba(64, 158, 255, 0.2);
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  border: 1px solid #ff6347;
+  box-shadow: 0 0 8px rgba(255, 99, 71, 0.2);
 }
 
 .item-left {
@@ -133,13 +134,13 @@ defineEmits(['quantity-change', 'delete', 'view-product']);
 }
 
 .price {
-  color: #f56c6c;
+  color: #ff6347;
   font-size: 18px;
   font-weight: 600;
 }
 
 .stock {
-  color: #409eff;
+  color: #ff6347;
   font-size: 14px;
 }
 
@@ -161,6 +162,18 @@ defineEmits(['quantity-change', 'delete', 'view-product']);
   width: 32px;
   height: 32px;
   font-size: 14px;
+  background: linear-gradient(135deg, #ff6347 0%, #ff4d29 100%);
+  border: none;
+  color: white;
+}
+
+.quantity-control .el-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff8266 0%, #ff6347 100%);
+}
+
+.quantity-control .el-button:disabled {
+  background: #d1d5db;
+  color: #6b7280;
 }
 
 .quantity-control .quantity {
@@ -170,5 +183,15 @@ defineEmits(['quantity-change', 'delete', 'view-product']);
   color: #333;
   font-size: 14px;
   padding: 0 8px;
+}
+
+.item-actions .el-button--danger {
+  background: linear-gradient(135deg, #ff6347 0%, #ff4d29 100%);
+  border: none;
+  color: white;
+}
+
+.item-actions .el-button--danger:hover {
+  background: linear-gradient(135deg, #ff8266 0%, #ff6347 100%);
 }
 </style>

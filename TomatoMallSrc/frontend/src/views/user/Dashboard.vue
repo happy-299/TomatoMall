@@ -903,22 +903,14 @@ const fetchProducts = async () => {
             <div class="user-basic-info">
               <h2 class="user-title">
                 <span>{{ userData.username }}</span>
-
-                <!-- 认证标识 -->
                 <user-badge :is-verified="userData.isVerified" :verified-name="userData.verifiedName"/>
-
-                <!-- 申请按钮 -->
                 <div class="auth-button-container">
                   <el-button
                       class="auth-apply-btn"
                       :disabled="userData.isVerified"
                       @click="applyDialogVisible = true"
                   >
-                    {{
-                      userData.isVerified
-                          ? '已认证'
-                          : '发起大师认证申请'
-                    }}
+                    {{ userData.isVerified ? '已认证' : '发起大师认证申请' }}
                     <div v-if="!userData.isVerified" class="glow-effect"></div>
                   </el-button>
                   <el-button
@@ -930,7 +922,6 @@ const fetchProducts = async () => {
                   </el-button>
                 </div>
               </h2>
-
               <div class="social-stats">
                 <el-button type="primary" class="follow-btn" @click="router.push('/following')">
                   我的关注 {{ userData.followingCount }}
@@ -954,11 +945,30 @@ const fetchProducts = async () => {
                   充值
                 </el-button>
               </div>
+              <!-- 编辑按钮 -->
+              <div class="form-actions" style="margin-top: 2rem;">
+                <el-button
+                    v-if="!editMode"
+                    type="primary"
+                    @click="editMode = true"
+                >
+                  编辑信息
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="profile-body">
+      <!-- 编辑信息弹窗 -->
+      <el-dialog
+        v-model="editMode"
+        title="编辑个人信息"
+        width="600px"
+        class="edit-info-dialog"
+        :close-on-click-modal="false"
+      >
+        <div class="profile-body" style="display:block;">
           <el-form
               :model="userData"
               :rules="rules"
@@ -970,7 +980,6 @@ const fetchProducts = async () => {
               <el-form-item label="姓名">
                 <el-input v-model="userData.name" :disabled="!editMode"/>
               </el-form-item>
-
               <el-form-item label="手机号" prop="telephone">
                 <el-input
                     v-model="userData.telephone"
@@ -978,7 +987,6 @@ const fetchProducts = async () => {
                     placeholder="1xxxxxxxxxx"
                 />
               </el-form-item>
-
               <el-form-item label="邮箱" prop="email">
                 <el-input
                     v-model="userData.email"
@@ -986,7 +994,6 @@ const fetchProducts = async () => {
                     placeholder="example@domain.com"
                 />
               </el-form-item>
-
               <el-form-item label="地址">
                 <el-input
                     v-model="userData.location"
@@ -995,7 +1002,6 @@ const fetchProducts = async () => {
                 />
               </el-form-item>
             </div>
-
             <el-form-item label="密码" prop="password">
               <div class="password-field">
                 <el-input
@@ -1016,7 +1022,6 @@ const fetchProducts = async () => {
                 </el-button>
               </div>
             </el-form-item>
-
             <el-form-item
                 v-if="isChangingPassword"
                 label="确认密码"
@@ -1030,30 +1035,13 @@ const fetchProducts = async () => {
                   autocomplete="new-password"
               />
             </el-form-item>
-
             <div class="form-actions">
-              <el-button
-                  v-if="!userData.isVerified && role === 'user'"
-                  type="warning"
-                  @click="applyDialogVisible = true"
-              >
-                发起大师认证申请
-              </el-button>
-              <el-button
-                  v-if="!editMode"
-                  type="primary"
-                  @click="editMode = true"
-              >
-                编辑信息
-              </el-button>
-              <template v-else>
-                <el-button @click="cancelEdit">取消</el-button>
-                <el-button type="primary" @click="handleSubmit">保存更改</el-button>
-              </template>
+              <el-button @click="editMode = false">取消</el-button>
+              <el-button type="primary" @click="handleSubmit">保存更改</el-button>
             </div>
           </el-form>
         </div>
-      </div>
+      </el-dialog>
 
       <!-- 书单展示区域 -->
       <div class="booklists-section">
@@ -1600,29 +1588,49 @@ const fetchProducts = async () => {
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
-  background: #f5f7fa;
-  padding: 2rem;
+  background: #f8fafc;
+  padding: 80px 0 0 0;
 }
 
 .dashboard-content {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  padding: 0 2rem 2rem 2rem;
 }
 
 /* 个人信息区域样式 */
 .profile-section {
-  background: linear-gradient(135deg, #2c698d 0%, #272643 100%);
-  border-radius: 20px;
+  background: none;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+  position: relative;
+  margin-top: 0;
+  min-height: 520px;
+}
+
+.profile-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('https://images.unsplash.com/photo-1499257398700-43669759a540?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover;
+  z-index: 1;
 }
 
 .profile-header {
-  padding: 2rem;
+  padding: 6rem 2rem 5rem 2rem;
   color: white;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
 }
 
 .user-info {
@@ -1639,17 +1647,20 @@ const fetchProducts = async () => {
 
 .user-basic-info h2 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 500;
+  font-size: 2rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .role-tag {
   background: rgba(255, 255, 255, 0.2);
-  padding: 0.25rem 1rem;
+  backdrop-filter: blur(10px);
+  padding: 0.5rem 1.5rem;
   border-radius: 20px;
   font-size: 0.9rem;
   margin: 0;
-  width: 50px
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .tomato-info {
@@ -1657,27 +1668,49 @@ const fetchProducts = async () => {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
-  color: #ff6b6b;
-  font-size: 1rem;
-  font-weight: 500;
+  color: #ffd93d;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .tomato-info .el-icon {
-  font-size: 1.4rem;
-  color: #ff6b6b;
+  font-size: 1.5rem;
+  color: #ffd93d;
   transform: rotate(-15deg);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .upload-tip {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
   margin-top: 0.5rem;
   text-align: center;
 }
 
-.profile-body {
-  background: white;
-  padding: 2rem;
+/* 移除主页面个人信息表单，仅保留编辑按钮 */
+.profile-body { display: none; }
+
+/* 弹窗编辑表单样式 */
+.edit-info-dialog .el-dialog__body {
+  padding: 32px 40px 24px 40px;
+  background: rgba(255,255,255,0.98);
+  border-radius: 16px;
+}
+
+.edit-info-dialog .el-dialog__header {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+  background: transparent;
+  border-bottom: none;
+  padding: 24px 40px 0 40px;
+}
+
+.edit-info-dialog .el-dialog__footer {
+  padding: 16px 40px 32px 40px;
+  background: transparent;
+  border-top: none;
 }
 
 .form-grid {
@@ -1692,12 +1725,25 @@ const fetchProducts = async () => {
 }
 
 :deep(.el-form-item__label) {
-  color: #2c698d;
+  color: #374151;
   font-weight: 500;
 }
 
-:deep(.el-input__inner) {
-  border-color: #bae8e8;
+:deep(.el-input__wrapper) {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+:deep(.el-input__wrapper:hover) {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .password-field {
@@ -1717,26 +1763,31 @@ const fetchProducts = async () => {
 
 .el-button {
   transition: all 0.3s ease;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 12px 24px;
+  font-weight: 500;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .el-button--primary {
-  background-color: #2c698d;
-  border-color: #2c698d;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
 }
 
 .el-button--primary:hover {
-  background-color: #272643;
-  border-color: #272643;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 /* 书单区域样式 */
 .booklists-section {
-  background: white;
-  border-radius: 16px;
+  background: transparent;
+  border-radius: 0;
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
+  border: none;
 }
 
 .section-header {
@@ -1747,41 +1798,40 @@ const fetchProducts = async () => {
 }
 
 .section-header h2 {
-  color: #2c698d;
+  color: #1f2937;
   font-size: 1.5rem;
+  font-weight: 600;
   margin: 0;
 }
 
 .tabs {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
+  background: rgba(248, 250, 252, 0.8);
+  padding: 0.25rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .tab-item {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   cursor: pointer;
-  color: #606266;
+  color: #64748b;
   position: relative;
   transition: all 0.3s;
-}
-
-.tab-item:hover {
-  color: #2c698d;
-}
-
-.tab-item.active {
-  color: #2c698d;
+  border-radius: 8px;
   font-weight: 500;
 }
 
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: #2c698d;
+.tab-item:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.tab-item.active {
+  color: #3b82f6;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .booklists-grid {
@@ -1791,7 +1841,7 @@ const fetchProducts = async () => {
   overflow-x: auto;
   padding-bottom: 8px;
   scrollbar-width: thin;
-  scrollbar-color: #c0c4cc #f5f7fa;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 .booklists-grid::-webkit-scrollbar {
@@ -1799,75 +1849,23 @@ const fetchProducts = async () => {
 }
 
 .booklists-grid::-webkit-scrollbar-thumb {
-  background: #c0c4cc;
+  background: rgba(203, 213, 225, 0.6);
   border-radius: 4px;
 }
 
 .booklists-grid > * {
-  flex: 0 0 320px;
-  max-width: 320px;
-}
-
-.booklist-card {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.booklist-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.booklist-header {
-  margin-bottom: 1rem;
-}
-
-.booklist-header h3 {
-  margin: 0 0 0.5rem 0;
-  color: #2c698d;
-  font-size: 1.1rem;
-}
-
-.creator-info {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #606266;
-  font-size: 0.9rem;
-}
-
-.description {
-  color: #606266;
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.booklist-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #909399;
-  font-size: 0.9rem;
-}
-
-.favourite-count {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+  flex: 0 0 360px;
+  max-width: 360px;
 }
 
 .no-data {
   text-align: center;
   padding: 3rem;
-  color: #909399;
+  color: #94a3b8;
   font-size: 1rem;
+  background: rgba(248, 250, 252, 0.5);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
 }
 
 /* 书单详情样式 */
@@ -1884,26 +1882,29 @@ const fetchProducts = async () => {
 
 .product-item {
   position: relative;
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
   transition: all 0.3s;
+  border: none;
+  backdrop-filter: blur(10px);
 }
 
 .product-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(248, 250, 252, 0.95);
 }
 
 .product-cover {
   width: 100%;
   height: 200px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .product-info {
@@ -1913,13 +1914,15 @@ const fetchProducts = async () => {
 .product-info h4 {
   margin: 0;
   font-size: 14px;
-  color: #2c3e50;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .price {
-  color: #f56c6c;
-  font-weight: bold;
+  color: #ef4444;
+  font-weight: 600;
   margin: 4px 0;
+  font-size: 16px;
 }
 
 .verified-tag {
@@ -1929,7 +1932,7 @@ const fetchProducts = async () => {
 
 .social-stats {
   margin-top: 8px;
-  color: #666;
+  color: #6b7280;
   font-size: 0.9em;
 }
 
@@ -1968,10 +1971,10 @@ const fetchProducts = async () => {
 
 /* 读者标识优化 */
 .reader-badge {
-  background: rgba(64, 158, 255, 0.08);
-  border-color: rgba(64, 158, 255, 0.6);
-  color: #409EFF;
-  font-weight: 400;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+  font-weight: 500;
 }
 
 /* 调整Element图标颜色 */
@@ -2080,6 +2083,8 @@ const fetchProducts = async () => {
   overflow: hidden;
   transition: all 0.3s ease;
   padding-right: 35px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 
   &::after {
     content: '✨';
@@ -2091,7 +2096,7 @@ const fetchProducts = async () => {
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 
     .glow-effect {
       opacity: 1;
@@ -2139,15 +2144,14 @@ const fetchProducts = async () => {
 }
 
 .auth-button-container {
-  margin-left: 800px; /* 用固定间距代替auto */
-  order: 2; /* 确保按钮在标识之后 */
+  margin-left: 800px;
+  order: 2;
 }
-
 
 /* 调整原有认证标识样式 */
 .verified-badge,
 .reader-badge {
-  order: 1; /* 确保标识在按钮之前 */
+  order: 1;
 }
 
 @media (max-width: 768px) {
@@ -2165,25 +2169,29 @@ const fetchProducts = async () => {
 
 .recharge-btn {
   margin-left: 1rem;
-  background-color: #ff6b6b;
-  border-color: #ff6b6b;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .recharge-btn:hover {
-  background-color: #ff5252;
-  border-color: #ff5252;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
 .recharge-dialog :deep(.el-dialog__header) {
   margin: 0;
   padding: 20px 24px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: none;
 }
 
 .recharge-dialog :deep(.el-dialog__title) {
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #1f2937;
 }
 
 .recharge-dialog :deep(.el-dialog__body) {
@@ -2192,11 +2200,14 @@ const fetchProducts = async () => {
 
 .recharge-dialog :deep(.el-dialog__footer) {
   padding: 16px 24px;
-  border-top: 1px solid #ebeef5;
+  border-top: none;
 }
 
 .recharge-content {
   padding: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
 }
 
 .recharge-header {
@@ -2206,19 +2217,19 @@ const fetchProducts = async () => {
 
 .tomato-icon {
   font-size: 48px;
-  color: #ff6b6b;
+  color: #ef4444;
   margin-bottom: 16px;
   transform: rotate(-15deg);
 }
 
 .recharge-header h3 {
   font-size: 20px;
-  color: #2c3e50;
+  color: #1f2937;
   margin: 0 0 8px 0;
 }
 
 .current-balance {
-  color: #606266;
+  color: #6b7280;
   font-size: 14px;
   margin: 0;
 }
@@ -2232,7 +2243,7 @@ const fetchProducts = async () => {
 
 .amount-label {
   font-size: 16px;
-  color: #2c3e50;
+  color: #1f2937;
   font-weight: 500;
   min-width: 70px;
 }
@@ -2243,7 +2254,8 @@ const fetchProducts = async () => {
 
 .amount-input :deep(.el-input-number__decrease),
 .amount-input :deep(.el-input-number__increase) {
-  background-color: #f5f7fa;
+  background-color: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .amount-input :deep(.el-input__inner) {
@@ -2260,23 +2272,27 @@ const fetchProducts = async () => {
 
 .quick-amount-btn {
   height: 40px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
+  border: none;
+  border-radius: 12px;
   font-size: 14px;
-  color: #606266;
-  background-color: #fff;
+  color: #6b7280;
+  background-color: rgba(248, 250, 252, 0.8);
   transition: all 0.3s;
+  backdrop-filter: blur(10px);
 }
 
 .quick-amount-btn:hover {
-  border-color: #ff6b6b;
-  color: #ff6b6b;
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: translateY(-2px);
+  background: rgba(254, 242, 242, 0.9);
 }
 
 .quick-amount-btn.active {
-  background-color: #ff6b6b;
-  border-color: #ff6b6b;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-color: #ef4444;
   color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .payment-method {
@@ -2286,7 +2302,7 @@ const fetchProducts = async () => {
 .method-label {
   display: block;
   font-size: 16px;
-  color: #2c3e50;
+  color: #1f2937;
   font-weight: 500;
   margin-bottom: 16px;
 }
@@ -2301,24 +2317,26 @@ const fetchProducts = async () => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(10px);
 }
 
 .method-option:hover {
-  border-color: #ff6b6b;
+  transform: translateY(-2px);
+  background: rgba(254, 242, 242, 0.9);
 }
 
 .method-option.active {
-  border-color: #ff6b6b;
-  background-color: #fff5f5;
+  background-color: rgba(254, 242, 242, 0.9);
 }
 
 .method-option .el-icon {
   font-size: 20px;
-  color: #ff6b6b;
+  color: #ef4444;
 }
 
 .dialog-footer {
@@ -2329,12 +2347,12 @@ const fetchProducts = async () => {
 
 .total-amount {
   font-size: 16px;
-  color: #606266;
+  color: #6b7280;
 }
 
 .total-amount .amount {
   font-size: 24px;
-  color: #ff6b6b;
+  color: #ef4444;
   font-weight: 600;
   margin-left: 8px;
 }
@@ -2347,30 +2365,36 @@ const fetchProducts = async () => {
 .action-buttons .el-button {
   padding: 12px 24px;
   font-size: 14px;
+  border-radius: 12px;
 }
 
 .action-buttons .el-button--primary {
-  background-color: #ff6b6b;
-  border-color: #ff6b6b;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .action-buttons .el-button--primary:hover {
-  background-color: #ff5252;
-  border-color: #ff5252;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
 .action-buttons .el-button--primary:disabled {
-  background-color: #ffb3b3;
-  border-color: #ffb3b3;
+  background: #fca5a5;
+  border: none;
+  transform: none;
+  box-shadow: none;
 }
 
 /* 订单历史区域样式 */
 .orders-section {
-  background: white;
-  border-radius: 16px;
+  background: transparent;
+  border-radius: 0;
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
   margin-top: 2rem;
+  border: none;
 }
 
 .orders-list {
@@ -2384,7 +2408,7 @@ const fetchProducts = async () => {
   overflow-x: auto;
   padding: 1rem 0.5rem;
   scrollbar-width: thin;
-  scrollbar-color: #c0c4cc #f5f7fa;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 .orders-scroll-container::-webkit-scrollbar {
@@ -2392,28 +2416,30 @@ const fetchProducts = async () => {
 }
 
 .orders-scroll-container::-webkit-scrollbar-track {
-  background: #f5f7fa;
+  background: rgba(241, 245, 249, 0.5);
   border-radius: 3px;
 }
 
 .orders-scroll-container::-webkit-scrollbar-thumb {
-  background-color: #c0c4cc;
+  background-color: rgba(203, 213, 225, 0.6);
   border-radius: 3px;
 }
 
 .order-card {
   flex: 0 0 300px;
-  background: #f8f9fa;
-  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 16px;
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  border: 1px solid #ebeef5;
+  border: none;
+  backdrop-filter: blur(10px);
 }
 
 .order-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  background: rgba(248, 250, 252, 0.95);
 }
 
 .order-header {
@@ -2422,12 +2448,12 @@ const fetchProducts = async () => {
   align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: none;
 }
 
 .order-id {
   font-size: 0.9rem;
-  color: #606266;
+  color: #6b7280;
   font-weight: 500;
 }
 
@@ -2445,55 +2471,56 @@ const fetchProducts = async () => {
 
 .order-info-item .label {
   font-size: 0.85rem;
-  color: #909399;
+  color: #9ca3af;
 }
 
 .order-info-item .value {
   font-size: 0.95rem;
-  color: #606266;
+  color: #6b7280;
 }
 
 .order-info-item .amount {
   font-size: 1.1rem;
-  color: #ff6b6b;
-  font-weight: 500;
+  color: #ef4444;
+  font-weight: 600;
 }
 
 .order-info-item .discount-info {
   font-size: 0.85rem;
-  color: #909399;
+  color: #9ca3af;
   margin-top: 0.2rem;
 }
 
 :deep(.el-tag) {
-  border-radius: 4px;
+  border-radius: 8px;
   padding: 0 8px;
   height: 24px;
   line-height: 22px;
+  font-weight: 500;
 }
 
 :deep(.el-tag--success) {
-  background-color: #f0f9eb;
-  border-color: #e1f3d8;
-  color: #67c23a;
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
 }
 
 :deep(.el-tag--warning) {
-  background-color: #fdf6ec;
-  border-color: #faecd8;
-  color: #e6a23c;
+  background-color: #fffbeb;
+  border-color: #fed7aa;
+  color: #d97706;
 }
 
 :deep(.el-tag--danger) {
-  background-color: #fef0f0;
-  border-color: #fde2e2;
-  color: #f56c6c;
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
 }
 
 :deep(.el-tag--info) {
-  background-color: #f4f4f5;
-  border-color: #e9e9eb;
-  color: #909399;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
 }
 
 .product-actions {
@@ -2511,13 +2538,17 @@ const fetchProducts = async () => {
 
 .record-btn {
   margin-left: 1px;
-  background-color: #909399;
-  border-color: #909399;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 .record-btn:hover {
-  background-color: #82848a;
-  border-color: #82848a;
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
 }
 
 .pagination-container {
@@ -2527,7 +2558,7 @@ const fetchProducts = async () => {
 }
 
 .reject-reason {
-  color: #f56c6c;
+  color: #ef4444;
   word-break: break-word;
 }
 
@@ -2551,32 +2582,33 @@ const fetchProducts = async () => {
 
 .detail-price {
   font-size: 18px;
-  color: #e6a23c;
+  color: #f59e0b;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .detail-price.paid {
-  color: #67c23a;
+  color: #16a34a;
 }
 
 .paid-badge {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: #f0fdf4;
+  color: #16a34a;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .note-image {
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 16px;
 }
 
 .preview-image {
   max-width: 200px;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-top: 10px;
 }
 
@@ -2603,21 +2635,23 @@ const fetchProducts = async () => {
 .purchase-tip {
   margin-top: 20px;
   text-align: center;
-  border-top: 1px solid #eee;
+  border-top: none;
   padding-top: 20px;
 }
 
 .purchase-button {
   margin-top: 15px;
   width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-.paid-badge {
-  background: #f0f9eb;
-  color: #67c23a;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 14px;
+.purchase-button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .social-stats {
@@ -2627,27 +2661,37 @@ const fetchProducts = async () => {
 }
 
 .follow-btn {
-  background: linear-gradient(45deg, #409EFF, #79BBFF);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   border: none;
   color: white;
   font-size: 1.1rem;
-  padding: 6px 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(64, 158, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  font-weight: 500;
 }
 
 .fans-btn {
-  background: linear-gradient(45deg, #F56C6C, #F89898);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   border: none;
   color: white;
   font-size: 1.1rem;
-  padding: 6px 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(245, 108, 108, 0.2);
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  font-weight: 500;
 }
 
 .follow-btn:hover, .fans-btn:hover {
   transform: translateY(-2px);
   transition: all 0.3s ease;
+}
+
+.follow-btn:hover {
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.fans-btn:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 </style>

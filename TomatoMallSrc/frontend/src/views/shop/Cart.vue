@@ -281,109 +281,127 @@ onMounted(() => {
   <div class="cart-container">
     <h1 class="header">我的购物车</h1>
 
-    <el-card class="cart-list" v-loading="loading">
-      <div class="select-all">
-        <div class="select-group">
-          <el-checkbox
-              v-model="selectAll"
-              @change="handleSelectAll"
-              :indeterminate="selectedItems.length > 0 && !selectAll"
-          >
-            全选（{{ selectedItems.length }}）
-          </el-checkbox>
+    <div class="cart-layout">
+      <!-- 左侧：购物车商品列表 -->
+      <div class="cart-left">
+        <el-card class="cart-list" v-loading="loading">
+          <div class="select-all">
+            <div class="select-group">
+              <el-checkbox
+                  v-model="selectAll"
+                  @change="handleSelectAll"
+                  :indeterminate="selectedItems.length > 0 && !selectAll"
+              >
+                全选（{{ selectedItems.length }}）
+              </el-checkbox>
+              <el-button
+                  type="danger"
+                  size="small"
+                  :disabled="!cartItems.length"
+                  @click="handleClearCart"
+              >
+                清空购物车
+              </el-button>
+            </div>
+          </div>
+
+          <el-checkbox-group v-model="selectedItems">
+            <template v-if="!loading">
+              <CartCard
+                  v-for="item in cartItems"
+                  :key="item.cartItemId"
+                  :item="item"
+                  :stock="stockpiles[item.productId] || 0"
+                  :highlighted="route.query.highlight === item.productId"
+                  @quantity-change="handleQuantityChange"
+                  @delete="handleDelete"
+                  @view-product="(productId) => router.push(`/product/${productId}`)"
+              />
+            </template>
+          </el-checkbox-group>
+
+          <div v-if="!cartItems.length" class="empty-cart">
+            <span>购物车空空如也，快去选购商品吧~</span>
+          </div>
+        </el-card>
+      </div>
+
+      <!-- 右侧：收货信息、优惠券、支付 -->
+      <div class="cart-right" v-if="selectedItems.length > 0">
+        <!-- 收货信息 -->
+        <el-card class="info-card">
+          <h2 class="card-title">收货信息</h2>
+          <el-form label-width="80px">
+            <el-form-item label="收货人">
+              <el-input v-model="shippingAddress.recipientName" />
+            </el-form-item>
+
+            <el-form-item label="联系电话">
+              <el-input v-model="shippingAddress.telephone" />
+            </el-form-item>
+
+            <el-form-item label="所在地区">
+              <el-input v-model="shippingAddress.location" placeholder="省 市 区 详细地址（用空格分隔）" />
+            </el-form-item>
+
+            <el-form-item label="邮政编码">
+              <el-input v-model="shippingAddress.zipCode" />
+            </el-form-item>
+          </el-form>
+        </el-card>
+
+        <!-- 优惠券 -->
+        <el-card class="info-card">
+          <div class="coupon-header">
+            <h2 class="card-title">优惠券</h2>
+            <el-button 
+              type="primary" 
+              link 
+              @click="showCouponDialog = true"
+            >
+              {{ selectedCoupon ? '更换优惠券' : '选择优惠券' }}
+            </el-button>
+          </div>
+          
+          <div v-if="selectedCoupon" class="selected-coupon">
+            <div class="coupon-info">
+              <span class="coupon-title">{{ selectedCoupon.title }}</span>
+              <span class="coupon-desc">满{{ selectedCoupon.threshold }}减{{ selectedCoupon.reduce }}</span>
+            </div>
+            <el-button type="danger" link @click="handleRemoveCoupon">
+              移除
+            </el-button>
+          </div>
+        </el-card>
+
+        <!-- 支付信息 -->
+        <el-card class="info-card checkout-card">
+          <h2 class="card-title">订单信息</h2>
+          <div class="order-summary">
+            <div class="summary-item">
+              <span>商品总额：</span>
+              <span class="amount">¥{{ totalAmount.toFixed(2) }}</span>
+            </div>
+            <div v-if="selectedCoupon" class="summary-item discount">
+              <span>优惠金额：</span>
+              <span class="amount">-¥{{ (totalAmount - finalAmount).toFixed(2) }}</span>
+            </div>
+            <div class="summary-item final">
+              <span>应付金额：</span>
+              <span class="final-amount">¥{{ finalAmount.toFixed(2) }}</span>
+            </div>
+          </div>
           <el-button
-              type="danger"
-              size="small"
-              :disabled="!cartItems.length"
-              @click="handleClearCart"
+            type="primary"
+            class="checkout-btn"
+            :disabled="!selectedItems.length"
+            @click="handleCheckout"
           >
-            清空购物车
+            去支付（{{ selectedItems.length }}件）
           </el-button>
-        </div>
+        </el-card>
       </div>
-
-      <el-checkbox-group v-model="selectedItems">
-        <template v-if="!loading">
-          <CartCard
-              v-for="item in cartItems"
-              :key="item.cartItemId"
-              :item="item"
-              :stock="stockpiles[item.productId] || 0"
-              :highlighted="route.query.highlight === item.productId"
-              @quantity-change="handleQuantityChange"
-              @delete="handleDelete"
-              @view-product="(productId) => router.push(`/product/${productId}`)"
-          />
-        </template>
-      </el-checkbox-group>
-
-      <div v-if="!cartItems.length" class="empty-cart">
-        <span>购物车空空如也，快去选购商品吧~</span>
-      </div>
-
-      <el-card class="shipping-form" v-if="selectedItems.length > 0">
-        <h2 class="form-title">收货信息</h2>
-        <el-form label-width="100px">
-          <el-form-item label="收货人">
-            <el-input v-model="shippingAddress.recipientName" />
-          </el-form-item>
-
-          <el-form-item label="联系电话">
-            <el-input v-model="shippingAddress.telephone" />
-          </el-form-item>
-
-          <el-form-item label="所在地区">
-            <el-input v-model="shippingAddress.location" placeholder="省 市 区 详细地址（用空格分隔）" />
-          </el-form-item>
-
-          <el-form-item label="邮政编码">
-            <el-input v-model="shippingAddress.zipCode" />
-          </el-form-item>
-        </el-form>
-      </el-card>
-
-      <el-card class="coupon-section" v-if="selectedItems.length > 0">
-        <div class="coupon-header">
-          <h2 class="form-title">优惠券</h2>
-          <el-button 
-            type="primary" 
-            link 
-            @click="showCouponDialog = true"
-          >
-            {{ selectedCoupon ? '更换优惠券' : '选择优惠券' }}
-          </el-button>
-        </div>
-        
-        <div v-if="selectedCoupon" class="selected-coupon">
-          <div class="coupon-info">
-            <span class="coupon-title">{{ selectedCoupon.title }}</span>
-            <span class="coupon-desc">满{{ selectedCoupon.threshold }}减{{ selectedCoupon.reduce }}</span>
-          </div>
-          <el-button type="danger" link @click="handleRemoveCoupon">
-            移除
-          </el-button>
-        </div>
-      </el-card>
-
-      <div class="checkout-bar">
-        <div class="total-amount">
-          <div>商品总额：¥{{ totalAmount.toFixed(2) }}</div>
-          <div v-if="selectedCoupon" class="discount-amount">
-            优惠金额：-¥{{ (totalAmount - finalAmount).toFixed(2) }}
-          </div>
-          <div class="final-amount">
-            应付金额：<span class="amount">¥{{ finalAmount.toFixed(2) }}</span>
-          </div>
-        </div>
-        <el-button
-          type="primary"
-          :disabled="!selectedItems.length"
-          @click="handleCheckout"
-        >
-          去支付（{{ selectedItems.length }}件）
-        </el-button>
-      </div>
-    </el-card>
+    </div>
 
     <el-dialog
       v-model="showCouponDialog"
@@ -420,8 +438,8 @@ onMounted(() => {
 
 <style scoped>
 .cart-container {
-  padding: 24px;
-  background: linear-gradient(120deg, #f0f9ff 0%, #e6f7ff 100%);
+  padding: 80px 24px 24px 24px;
+  background: linear-gradient(120deg, #fff5f5 0%, #ffe8e8 100%);
   min-height: 100vh;
 }
 
@@ -432,26 +450,29 @@ onMounted(() => {
   font-size: 24px;
 }
 
+.cart-layout {
+  display: flex;
+  gap: 24px;
+}
+
+.cart-left {
+  flex: 2;
+}
+
+.cart-right {
+  flex: 1;
+  min-width: 320px;
+}
+
 .cart-list {
-  margin: 0 20px;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.shipping-form {
-  margin-top: 30px;
-}
-
-.form-title {
-  color: #2c3e50;
-  margin-bottom: 24px;
-  padding-left: 20px;
-  font-size: 20px;
+  border: none;
 }
 
 .select-all {
   padding: 16px 24px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .select-group {
@@ -460,30 +481,14 @@ onMounted(() => {
   justify-content: space-between;
 }
 
-.checkout-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  background: #f8fafc;
-  border-top: 1px solid #ebeef5;
+.select-group .el-button {
+  background: linear-gradient(135deg, #ff6347 0%, #ff4d29 100%);
+  border: none;
+  color: white;
 }
 
-.checkout-bar .total-amount {
-  font-size: 18px;
-  color: #303133;
-}
-
-.checkout-bar .total-amount .amount {
-  color: #f56c6c;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.checkout-bar .el-button {
-  padding: 12px 36px;
-  font-size: 16px;
-  border-radius: 24px;
+.select-group .el-button:hover {
+  background: linear-gradient(135deg, #ff8266 0%, #ff6347 100%);
 }
 
 .empty-cart {
@@ -498,8 +503,20 @@ onMounted(() => {
   margin-top: 16px;
 }
 
-.coupon-section {
-  margin-top: 20px;
+.info-card {
+  margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.card-title {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  border-left: 4px solid #ff6347;
+  padding-left: 12px;
 }
 
 .coupon-header {
@@ -509,14 +526,23 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.coupon-header .el-button {
+  color: #ff6347;
+  font-weight: 500;
+}
+
+.coupon-header .el-button:hover {
+  color: #ff4d29;
+}
+
 .selected-coupon {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f0f9ff;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
   border-radius: 8px;
-  border: 1px solid #409eff;
+  border: 1px solid #ff6347;
   margin-top: 12px;
 }
 
@@ -534,25 +560,65 @@ onMounted(() => {
 
 .coupon-desc {
   font-size: 14px;
-  color: #409eff;
+  color: #ff6347;
 }
 
-.discount-amount {
+.order-summary {
+  margin-bottom: 24px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.summary-item .amount {
+  color: #ff6347;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summary-item.discount .amount {
   color: #67c23a;
-  font-size: 14px;
-  margin: 4px 0;
 }
 
-.final-amount {
-  font-size: 16px;
-  color: #303133;
-  margin-top: 4px;
+.summary-item.final {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+  margin-top: 16px;
 }
 
-.final-amount .amount {
-  color: #f56c6c;
+.summary-item.final .final-amount {
+  color: #ff6347;
   font-size: 24px;
   font-weight: 700;
+}
+
+.checkout-btn {
+  width: 100%;
+  padding: 14px 36px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff6347 0%, #ff4d29 100%);
+  border: none;
+  color: white;
+  transition: all 0.3s;
+}
+
+.checkout-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff8266 0%, #ff6347 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 99, 71, 0.25);
+}
+
+.checkout-btn:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
 }
 
 .coupon-list {
@@ -562,7 +628,7 @@ onMounted(() => {
 
 .coupon-item {
   padding: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid #f0f0f0;
   border-radius: 8px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -573,7 +639,7 @@ onMounted(() => {
 .coupon-item:hover:not(.disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #409eff;
+  border-color: #ff6347;
 }
 
 .coupon-item.disabled {
@@ -591,12 +657,12 @@ onMounted(() => {
 }
 
 .coupon-details .threshold {
-  color: #409eff;
+  color: #ff6347;
   font-weight: 500;
 }
 
 .coupon-details .reduce {
-  color: #f56c6c;
+  color: #ff6347;
   font-weight: 500;
 }
 
