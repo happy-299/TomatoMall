@@ -57,6 +57,7 @@ public class AccountServiceImpl implements AccountService
         accountVO.setPassword(encodedPassword);
 
         Account newAccount = accountVO.toPO();
+        newAccount.setFirstLogin(0);
         newAccount.setCreateTime(new Date());
         newAccount.setTomato(100);//新用户送100个番茄
         accountRepository.save(newAccount);
