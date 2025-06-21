@@ -945,17 +945,19 @@ const fetchProducts = async () => {
                   充值
                 </el-button>
               </div>
-              <!-- 编辑按钮 -->
-              <div class="form-actions" style="margin-top: 2rem;">
-                <el-button
-                    v-if="!editMode"
-                    type="primary"
-                    @click="editMode = true"
-                >
-                  编辑信息
-                </el-button>
-              </div>
             </div>
+          </div>
+          
+          <!-- 编辑按钮移到banner右下方 -->
+          <div class="edit-button-container">
+            <el-button
+                v-if="!editMode"
+                type="primary"
+                @click="editMode = true"
+                class="edit-profile-btn"
+            >
+              编辑信息
+            </el-button>
           </div>
         </div>
       </div>
@@ -2693,5 +2695,29 @@ const fetchProducts = async () => {
 
 .fans-btn:hover {
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.edit-button-container {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  z-index: 10;
+}
+
+.edit-profile-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  padding: 10px 20px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.edit-profile-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 </style>
