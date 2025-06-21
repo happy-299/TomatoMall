@@ -11,7 +11,7 @@ export interface Review {
     rating: number
     content: string
     createTime: string | null
-    images: string[]
+    reviewImgs: string[]
 }
 
 export interface CreateReviewInfo {

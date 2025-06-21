@@ -768,4 +768,23 @@ onMounted(async () => {
   border: none;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
+
+.user-actions .el-button {
+  border-radius: 25px;
+  padding: 15px 35px;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: none;
+}
+
+.user-actions .el-button--primary {
+  background: linear-gradient(135deg, #ff6347 0%, #ff4d29 100%);
+}
+
+.user-actions .el-button--primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(255, 99, 71, 0.4);
+}
 </style>

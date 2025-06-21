@@ -29,6 +29,18 @@ type UpdateInfo = {
     tomato?: number
 }
 
+// 用户部分信息VO（对应后端PartAccountVO）
+export interface PartAccountVO {
+    id: number
+    username: string
+    avatar: string
+    followerCount: number
+    followingCount: number
+    isVerified: boolean
+    verifiedName: string
+    firstLogin: number
+}
+
 // 用户登录
 export const userLogin = (loginInfo: LoginInfo) => {
     return axios.post(`${USER_MODULE}/login`, loginInfo, {
@@ -50,6 +62,17 @@ export const userRegister = (registerInfo: RegisterInfo) => {
 export const getUserInfo = (username: string) => {
     const token = sessionStorage.getItem('token');
     return axios.get(`${USER_MODULE}/${username}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'token': token
+        }
+    })
+}
+
+// 根据用户ID获取用户信息
+export const getUserInfoById = (userId: number) => {
+    const token = sessionStorage.getItem('token');
+    return axios.get(`${USER_MODULE}/userid/${userId}`, {
         headers: {
             'Content-Type': 'application/json',
             'token': token

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { ElRate, ElPagination, ElMessage, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElUpload, ElLoading, ElImageViewer, ElImage } from 'element-plus'
 import { getReviews, getAverageRating, addReview, type Review, type PageResponse } from '../api/review'
+import { getUserInfoById, type PartAccountVO } from '../api/user'
 import { Plus, Picture } from '@element-plus/icons-vue'
 import { uploadUserImage } from '../api/util.ts'
 import {PRODUCT_MODULE} from "../api/_prefix.ts";
@@ -10,7 +11,12 @@ const props = defineProps<{
   productId: number
 }>()
 
-const reviews = ref<Review[]>([])
+// 扩展Review类型以包含用户信息
+interface ReviewWithUser extends Review {
+  userInfo?: PartAccountVO
+}
+
+const reviews = ref<ReviewWithUser[]>([])
 const currentPage = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
@@ -51,8 +57,11 @@ const handleUploadSuccess = async (params: any) => {
   }
 }
 
-const handleRemoveImage = (index: number) => {
-  images.value.splice(index, 1)
+const handleRemoveImage = (uploadFile: any, uploadFiles: any) => {
+  const index = uploadFiles.indexOf(uploadFile)
+  if (index > -1) {
+    images.value.splice(index, 1)
+  }
 }
 
 const showReviewDialog = () => {
@@ -109,6 +118,20 @@ const submitReview = async () => {
   }
 }
 
+// 获取用户信息
+const fetchUserInfo = async (userId: number): Promise<PartAccountVO | null> => {
+  try {
+    const response = await getUserInfoById(userId)
+    if (response.data?.code === '200') {
+      return response.data.data
+    }
+    return null
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+    return null
+  }
+}
+
 const fetchReviews = async () => {
   try {
     console.log('开始获取评论列表，页码:', currentPage.value - 1)
@@ -117,8 +140,21 @@ const fetchReviews = async () => {
     
     if (response.data?.code === '200') {
       const data = response.data.data
-      reviews.value = data.content || []
-      total.value = data.totalElements || 0
+      const reviewsData = data.content || []
+      
+      // 为每个评论获取用户信息
+      const reviewsWithUserInfo = await Promise.all(
+        reviewsData.map(async (review: Review) => {
+          const userInfo = review.userId ? await fetchUserInfo(review.userId) : null
+          return {
+            ...review,
+            userInfo
+          } as ReviewWithUser
+        })
+      )
+      
+      reviews.value = reviewsWithUserInfo
+      total.value = data.total || 0
       console.log('评论列表数据:', {
         reviews: reviews.value,
         total: total.value
@@ -163,17 +199,8 @@ const handleDialogConfirm = () => {
 }
 
 const previewImage = (url: string) => {
-  const img = new Image()
-  img.src = url
-  img.onload = () => {
-    const viewer = ElImageViewer({
-      urlList: [url],
-      initialIndex: 0,
-      onClose: () => {
-        viewer.close()
-      }
-    })
-  }
+  previewImageUrl.value = url
+  showViewer.value = true
 }
 
 const handleImageError = (e: Event) => {
@@ -210,7 +237,7 @@ onMounted(() => {
       <div v-if="reviews.length === 0" class="no-reviews">
         暂无评论
       </div>
-      <div v-else v-for="review in reviews" :key="review.id" class="review-item">
+      <div v-else v-for="review in reviews" :key="review.id || Math.random()" class="review-item">
         <div class="review-header">
           <el-rate
             :model-value="review.rating"
@@ -218,9 +245,36 @@ onMounted(() => {
             disabled
             :colors="['#272643', '#272643', '#272643']"
           />
-          <span class="review-time">{{ new Date(review.createTime).toLocaleString() }}</span>
+          <span class="review-time">{{ review.createTime ? new Date(review.createTime).toLocaleString() : '' }}</span>
         </div>
-        <div class="review-content">{{ review.content }}</div>
+        
+        <div class="review-content-wrapper">
+          <div class="review-content">{{ review.content }}</div>
+          
+          <!-- 用户信息显示在右侧 -->
+          <div v-if="review.userInfo" class="user-info">
+            <div class="user-avatar">
+              <el-image
+                :src="review.userInfo.avatar"
+                class="avatar-img"
+                fit="cover"
+              >
+                <template #error>
+                  <div class="avatar-error">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+            </div>
+            <div class="user-details">
+              <span class="username">{{ review.userInfo.username }}</span>
+              <span v-if="review.userInfo.isVerified" class="verified-badge">
+                {{ review.userInfo.verifiedName }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
         <div v-if="review.reviewImgs && review.reviewImgs.length > 0" class="review-images">
           <div v-for="(image, index) in review.reviewImgs" :key="index" class="image-container">
             <img
@@ -361,10 +415,20 @@ onMounted(() => {
   font-size: 12px;
 }
 
+.review-content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
 .review-content {
   color: #272643;
-  line-height: 1.5;
-  margin-bottom: 8px;
+  line-height: 1.6;
+  font-size: 14px;
+  flex: 1;
+  margin: 0;
 }
 
 .review-images {
@@ -431,5 +495,136 @@ onMounted(() => {
   background: white;
   border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f7fa;
+  color: #909399;
+  font-size: 16px;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.username {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 12px;
+  line-height: 1.2;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.verified-badge {
+  background: linear-gradient(135deg, #ffd666 0%, #ffc53d 100%);
+  color: #272643;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .review-content-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .user-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-width: auto;
+  }
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .user-details {
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .username {
+    font-size: 13px;
+    max-width: 120px;
+  }
+  
+  .verified-badge {
+    font-size: 10px;
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .review-item {
+    padding: 10px;
+  }
+  
+  .review-content {
+    font-size: 13px;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .username {
+    font-size: 12px;
+    max-width: 100px;
+  }
+  
+  .verified-badge {
+    font-size: 9px;
+    max-width: 100px;
+  }
 }
 </style> 
