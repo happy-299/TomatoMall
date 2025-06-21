@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 conn = pymysql.connect(
     host='localhost',
     user='root',
-    password='19721030mm',
+    password='123456',
     db='TomatoMall',
     charset='utf8mb4'
 )
@@ -21,12 +21,11 @@ headers = {
     )
 }
 
-def scrape_winxuan_to_db(category=1, page_type='default'):
+def scrape_winxuan_to_db(url):
     """
     抓取文轩网 榜单分类 category 下 type=page_type 的第一页，
     并插入 product 表。
     """
-    url = f'https://www.winxuan.com/front/ranklist/category/{category}?type={page_type}'
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
     resp.encoding = resp.apparent_encoding
@@ -85,8 +84,14 @@ def scrape_winxuan_to_db(category=1, page_type='default'):
         print(f'插入：{title} | {detail} | {price} | {cover}')
 
 if __name__ == '__main__':
+    url = 'https://www.winxuan.com/front/ranklist/category/'
+    url_main = url + '1?type=default'
+    url_true = url + '1?type=true'
+    url_literature = url + '20000'
     try:
-        scrape_winxuan_to_db()
+        scrape_winxuan_to_db(url_main)
+        scrape_winxuan_to_db(url_true)
+        scrape_winxuan_to_db(url_literature)
     finally:
         cursor.close()
         conn.close()
