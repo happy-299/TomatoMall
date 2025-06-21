@@ -29,7 +29,7 @@ public class AccountController {
         return Response.buildSuccess(accountService.getInformation());
     }
 
-    @GetMapping("/{userid}")
+    @GetMapping("/userid/{userid}")
     public Response<PartAccountVO> getAccountById(
             @PathVariable Integer userid
     ) {
