@@ -1454,11 +1454,19 @@ onUnmounted(() => {
     </div>
 
     <!-- 悬浮加号按钮 -->
-    <div class="fab-glass" @click="
-      activeTab === 'products' ? dialogVisible = true :
-      activeTab === 'booklists' ? createDialogVisible = true :
-      activeTab === 'notes' ? createNoteDialogVisible = true : null
-    ">
+    <div 
+      v-if="
+        (activeTab === 'products' && isAdmin) ||
+        activeTab === 'booklists' ||
+        activeTab === 'notes'
+      "
+      class="fab-glass" 
+      @click="
+        activeTab === 'products' ? dialogVisible = true :
+        activeTab === 'booklists' ? createDialogVisible = true :
+        activeTab === 'notes' ? createNoteDialogVisible = true : null
+      "
+    >
       <el-icon><Plus /></el-icon>
     </div>
 
@@ -2657,5 +2665,28 @@ onUnmounted(() => {
     display: flex;
     justify-content: center;
   }
+}
+
+/* 管理员提示样式 */
+.admin-notice {
+  grid-column: 1 / -1;
+  margin-bottom: 24px;
+}
+
+.admin-alert {
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.1);
+}
+
+.admin-alert :deep(.el-alert__content) {
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.admin-alert :deep(.el-alert__icon) {
+  color: #1976d2;
+  font-size: 18px;
 }
 </style>
