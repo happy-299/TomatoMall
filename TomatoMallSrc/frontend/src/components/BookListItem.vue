@@ -29,8 +29,14 @@ const handleView = () => {
 
 <template>
   <div class="booklist-card">
-    <div class="booklist-cover" v-if="bookList.products.length > 0">
+    <div class="booklist-cover" v-if="bookList.products && bookList.products.length > 0 && bookList.products[0].cover">
       <img :src="bookList.products[0].cover" :alt="bookList.title" class="cover-image" />
+    </div>
+    <div class="booklist-cover" v-else>
+      <!-- 默认封面 -->
+      <div class="default-cover">
+        <span>{{ bookList.title }}</span>
+      </div>
     </div>
     <div class="booklist-content">
       <div class="booklist-header">
@@ -63,7 +69,7 @@ const handleView = () => {
           <span>{{ bookList.creatorName }}</span>
         </div>
         <div class="stats">
-          <span>{{ bookList.products.length }} 本书</span>
+          <span>{{ bookList.products ? bookList.products.length : 0 }} 本书</span>
           <span>{{ bookList.favouriteCount }} 收藏</span>
         </div>
       </div>
@@ -104,6 +110,19 @@ const handleView = () => {
   object-fit: cover;
   transition: transform 0.3s;
   border-radius: 0;
+}
+.default-cover {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ff6347 0%, #d9534f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  padding: 20px;
 }
 .booklist-card:hover .cover-image {
   transform: scale(1.05);
@@ -155,5 +174,10 @@ const handleView = () => {
 }
 .clickable:hover {
   color: #409EFF;
+}
+.creator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style> 

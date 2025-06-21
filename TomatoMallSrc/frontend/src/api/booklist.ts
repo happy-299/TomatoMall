@@ -93,4 +93,11 @@ export const getUserBookLists = (userId: number, page: number = 0, size: number 
     return axios.get<PageResponseVO<BookListVO>>(`${API_MODULE}/booklist/user/${userId}`, {
         params: { page, size }
     })
+}
+
+// 获取热门书单
+export const getTopBookLists = (n: number = 4) => {
+    return axios.get<BookListVO[]>(`${API_MODULE}/booklist/top`, {
+        params: { n }
+    })
 } 
