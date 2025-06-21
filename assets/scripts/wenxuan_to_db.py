@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 conn = pymysql.connect(
     host='localhost',
     user='root',
-    password='helloworld',
+    password='123456',
     db='TomatoMall',
     charset='utf8mb4'
 )

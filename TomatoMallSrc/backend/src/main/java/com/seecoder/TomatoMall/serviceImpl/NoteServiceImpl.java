@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -245,5 +246,22 @@ public class NoteServiceImpl implements NoteService
     {
         return noteRepository.findNotesByLikerId(securityUtil.getCurrentAccount().getId())
                 .stream().map(Note::toVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NoteVO> getNoteTopLiked(Integer top)
+    {
+        List<NoteVO> all = getAll();
+        all.sort((a, b) -> b.getLikeCnt() - a.getLikeCnt());
+        if (top >= all.size())
+        {
+            return all;
+        }
+        List<NoteVO> topList = new ArrayList<>();
+        for (int i = 0; i < top; i++)
+        {
+            topList.add(all.get(i));
+        }
+        return topList;
     }
 }
