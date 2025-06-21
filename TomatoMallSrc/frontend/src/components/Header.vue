@@ -88,7 +88,7 @@ onMounted(() => {
 <template>
   <header class="header1">
     <div class="header1-content">
-      <div class="header1-logo" @click="goToWelcome">
+      <div id="nav-logo" class="header1-logo" @click="goToWelcome">
         <div class="logo-container">
           <span class="tomato-icon">🍅</span>
           <span class="logo-text">番茄书城</span>
@@ -97,35 +97,35 @@ onMounted(() => {
       </div>
       <nav class="header1-nav">
         <el-tooltip content="官方认证大师榜" placement="bottom">
-          <el-icon :size="24" class="header1-icon" @click="router.push('/verification-list')">
+          <el-icon id="nav-verification" :size="24" class="header1-icon" @click="router.push('/verification-list')">
             <Medal />
           </el-icon>
         </el-tooltip>
         <el-tooltip content="优惠券" placement="bottom">
-          <el-icon :size="24" class="header1-icon" @click="router.push('/coupons')">
+          <el-icon id="nav-coupons" :size="24" class="header1-icon" @click="router.push('/coupons')">
             <Tickets />
           </el-icon>
         </el-tooltip>
         <el-tooltip content="购物车" placement="bottom">
-          <el-icon :size="24" class="header1-icon" @click="router.push('/cart')">
+          <el-icon id="nav-cart" :size="24" class="header1-icon" @click="router.push('/cart')">
             <ShoppingCart />
           </el-icon>
         </el-tooltip>
         <el-tooltip content="书城" placement="bottom">
-          <el-icon :size="24" class="header1-icon" @click="router.push('/productlist')">
+          <el-icon id="nav-productlist" :size="24" class="header1-icon" @click="router.push('/productlist')">
             <Menu />
           </el-icon>
         </el-tooltip>
         <el-tooltip content="个人中心" placement="bottom">
-          <el-icon :size="24" class="header1-icon" @click="router.push('/dashboard')">
+          <el-icon id="nav-dashboard" :size="24" class="header1-icon" @click="router.push('/dashboard')">
             <User />
           </el-icon>
         </el-tooltip>
-        <el-icon :size="24" class="header1-icon" @click="logout">
+        <el-icon id="nav-logout" :size="24" class="header1-icon" @click="logout">
           <SwitchButton />
         </el-icon>
       </nav>
-      <div class="header1-search">
+      <div id="nav-search" class="header1-search">
         <div class="search-container">
           <el-input
             v-model="searchKeyword"

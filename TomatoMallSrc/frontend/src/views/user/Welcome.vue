@@ -28,6 +28,11 @@ import {
   viewNote 
 } from '../../api/note';
 
+// 引入新手指导插件
+import introJs from 'intro.js';
+import 'intro.js/introjs.css';
+import 'intro.js/themes/introjs-modern.css';
+
 const router = useRouter();
 const products = ref<Product[]>([]);
 const stockpiles = ref<Record<string, { amount: number, frozen: number }>>({});
@@ -47,6 +52,24 @@ const showPurchaseDialog = ref(false);
 const selectedNote = ref<NoteVO | null>(null);
 const confirmLoading = ref(false);
 
+// 新手指导相关配置
+const introOption = reactive({
+  nextLabel: '下一步',
+  prevLabel: '上一步',
+  skipLabel: '跳过',
+  doneLabel: '完成',
+  hidePrev: true,
+  hideNext: false,
+  tooltipPosition: 'bottom',
+  tooltipClass: 'intro-tooltip',
+  highlightClass: 'intro-highlight',
+  exitOnOverlayClick: false,
+  showStepNumbers: false,
+  disableInteraction: false,
+  showBullets: true,
+  steps: [] as any[]
+});
+
 // Navigate to product list page
 const goToProductList = () => {
   router.push({ path: "/productList" });
@@ -55,6 +78,78 @@ const goToProductList = () => {
 // Navigate to booklist page
 const goToBookList = () => {
   router.push({ path: "/booklist" });
+};
+
+// 初始化新手指导
+const initGuide = () => {
+  introOption.steps = [
+    { 
+      title: '欢迎使用番茄书城', 
+      element: '#nav-logo', 
+      intro: '欢迎来到番茄书城！点击这个logo可以随时返回首页。'
+    },
+    { 
+      title: '官方认证大师榜', 
+      element: '#nav-verification', 
+      intro: '这里可以查看官方认证的阅读大师榜单，了解阅读达人的推荐。'
+    },
+    { 
+      title: '优惠券', 
+      element: '#nav-coupons', 
+      intro: '点击这里查看您的优惠券，购物时可享受折扣。'
+    },
+    { 
+      title: '购物车', 
+      element: '#nav-cart', 
+      intro: '您的购物车，查看已选商品并结算。'
+    },
+    { 
+      title: '书城', 
+      element: '#nav-productlist', 
+      intro: '浏览我们海量书籍商品，您可以在这找到您喜爱的读物、书单和读书笔记，总有适合您的！'
+    },
+    { 
+      title: '个人中心', 
+      element: '#nav-dashboard', 
+      intro: '管理您的个人信息、订单、收藏和笔记。'
+    },
+    { 
+      title: '搜索', 
+      element: '#nav-search', 
+      intro: '快速搜索商品、用户或书单，找到您想要的内容。'
+    },
+    { 
+      title: '退出登录', 
+      element: '#nav-logout', 
+      intro: '退出当前账号。'
+    },
+    { 
+      title: '重新查看指南', 
+      element: '#guide-button', 
+      intro: '点击此处可以随时重新查看新手指导。'
+    }
+  ];
+
+  const intro = introJs();
+  intro.setOptions(introOption);
+  
+  // 点击结束按钮后执行的事件
+  intro.oncomplete(() => {
+    console.log('新手指导完成');
+    localStorage.setItem('guideCompleted', 'true');
+  });
+  
+  // 点击跳过按钮后执行的事件
+  intro.onexit(() => {
+    console.log('退出新手指导');
+  });
+  
+  intro.start();
+};
+
+// 重新查看指导
+const viewIntro = () => {
+  initGuide();
 };
 
 // Fetch products for the featured section
@@ -977,6 +1072,13 @@ onMounted(() => {
 
   // 获取用户信息
   getUserCurrentInfo();
+  
+  // 检查是否是首次访问，是则显示新手指导
+  nextTick(() => {
+    if (localStorage.getItem('guideCompleted') !== 'true') {
+      initGuide();
+    }
+  });
 });
 
 // Clean up before component is unmounted
@@ -1021,8 +1123,14 @@ const getUserCurrentInfo = async () => {
     <!-- Canvas for confetti animation -->
     <canvas id="confetti-canvas"></canvas>
 
+    <!-- 新手指导按钮 -->
+    <div id="guide-button" class="guide-button" @click="viewIntro">
+      <i class="el-icon-question"></i>
+      新手指南
+    </div>
+
     <!-- First section - Welcome screen -->
-    <div class="welcome-container">
+    <div id="welcome-container" class="welcome-container">
       <!-- Background image -->
       <div class="background-image"></div>
 
@@ -1041,7 +1149,7 @@ const getUserCurrentInfo = async () => {
     </div>
 
     <!-- Featured Products Section -->
-    <div class="featured-section">
+    <div id="featured-section" class="featured-section">
       <div class="featured-products">
         <h2 class="featured-title">热门推荐</h2>
         <div class="products-container" v-loading="loading">
@@ -1060,7 +1168,7 @@ const getUserCurrentInfo = async () => {
     </div>
 
     <!-- Second section - Book recommendation -->
-    <div class="booklist-section">
+    <div id="booklist-section" class="booklist-section">
       <div class="booklist-container">
         <!-- Left side - Image -->
         <div class="booklist-image-container">
@@ -1122,7 +1230,7 @@ const getUserCurrentInfo = async () => {
     </div>
 
     <!-- Top Reading Notes Section -->
-    <div class="top-notes-section">
+    <div id="top-notes-section" class="top-notes-section">
       <div class="section-container">
         <h2 class="section-title">热门笔记</h2>
         <div class="notes-container" v-loading="loadingNotes">
@@ -1494,7 +1602,7 @@ const getUserCurrentInfo = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('https://images.unsplash.com/photo-1614548428893-5fa2cb74a442?q=80&w=996&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+  background-image: url('https://plus.unsplash.com/premium_photo-1734712006861-03ff20f693b9?q=80&w=2065&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
   background-size: cover;
   background-position: center;
   transition: transform 0.5s ease;
@@ -2106,5 +2214,145 @@ const getUserCurrentInfo = async () => {
   font-size: 16px;
   color: #e6a23c;
   font-weight: 500;
+}
+
+/* 新手指导按钮样式 */
+.guide-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #d9534f;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  font-size: 14px;
+  padding: 10px;
+  width: auto;
+  height: auto;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.guide-button:hover {
+  background-color: #c9302c;
+  transform: scale(1.05);
+}
+</style>
+
+<style>
+/* 新手指导样式 */
+.introjs-helperLayer {
+  box-shadow: rgba(33, 33, 33, 0.8) 0px 0px 1px 0px, rgba(33, 33, 33, 0.5) 0px 0px 0px 5000px !important;
+  border: 3px dashed #d9534f;
+}
+
+.introjs-tooltip-title {
+  font-size: 16px;
+  width: 80%;
+  padding-top: 10px;
+}
+
+/* 重置引导组件样式 */
+.intro-tooltip {
+  color: #ffffff;
+  background: #2c3e50;
+}
+
+/* 引导提示框的位置 */
+.introjs-bottom-left-aligned {
+  left: 45% !important;
+}
+
+.introjs-right,
+.introjs-left {
+  top: 30%;
+}
+
+.intro-highlight {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.introjs-arrow.left {
+  border-right-color: #2c3e50;
+}
+
+.introjs-arrow.top {
+  border-bottom-color: #2c3e50;
+}
+
+.introjs-arrow.right {
+  border-left-color: #2c3e50;
+}
+
+.introjs-arrow.bottom {
+  border-top-color: #2c3e50;
+}
+
+/* 提示框头部区域 */
+.introjs-tooltip-header {
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+}
+
+.introjs-skipbutton {
+  color: #d9534f !important;
+  font-size: 14px !important;
+  font-weight: normal !important;
+}
+
+.introjs-tooltipbuttons {
+  border: none !important;
+}
+
+.introjs-tooltiptext {
+  font-size: 14px !important;
+  padding: 15px !important;
+}
+
+/* 提示框按钮 */
+.introjs-tooltipbuttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.introjs-button {
+  width: 50px !important;
+  text-align: center;
+  padding: 4px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 3px !important;
+  border: none !important;
+}
+
+.introjs-button:last-child {
+  margin-left: 10px;
+}
+
+.introjs-prevbutton {
+  color: #606266 !important;
+  background: #fff !important;
+  border: 1px solid #dcdfe6 !important;
+}
+
+.introjs-nextbutton {
+  color: #fff !important;
+  background-color: #d9534f !important;
+  border-color: #d9534f !important;
+}
+
+.introjs-disabled {
+  color: #9e9e9e !important;
+  border-color: #bdbdbd !important;
+  background-color: #f4f4f4 !important;
 }
 </style>
