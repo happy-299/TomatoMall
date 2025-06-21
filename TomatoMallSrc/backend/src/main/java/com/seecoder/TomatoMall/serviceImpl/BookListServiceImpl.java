@@ -187,6 +187,17 @@ public class BookListServiceImpl implements BookListService {
                 .map(this::toVO);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookListVO> listTopBookLists(int top) {
+        // 请求第一页，大小为 top，按 favouriteCount 降序
+        PageRequest pr = PageRequest.of(0, top, Sort.by(Sort.Direction.DESC, "favoriteCount"));
+        Page<BookList> page = bookListRepository.findAllByOrderByFavoriteCountDesc(pr);
+        return page.getContent()
+                .stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+    }
 
 
 

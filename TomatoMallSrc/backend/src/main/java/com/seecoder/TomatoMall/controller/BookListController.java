@@ -7,6 +7,7 @@ import com.seecoder.TomatoMall.vo.PageResponseVO;
 import com.seecoder.TomatoMall.vo.Response;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -122,6 +123,14 @@ public class BookListController {
         return Response.buildSuccess(
                 new PageResponseVO<>(bookListService.listAll(page, size)));
     }
+
+    @GetMapping("/top")
+    public Response<List<BookListVO>> top(
+            @RequestParam(name = "n", defaultValue = "4") int n) {
+        List<BookListVO> tops = bookListService.listTopBookLists(n);
+        return Response.buildSuccess(tops);
+    }
+
 
     /** 某用户的书单 */
     @GetMapping("/user/{uid}")
