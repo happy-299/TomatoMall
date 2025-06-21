@@ -45,7 +45,8 @@ const handleLogin = async () => {
           let userData = userInfoResponse.data.data;
           sessionStorage.setItem('userId', userData.id);
           sessionStorage.setItem('role', userData.role);
-          
+          sessionStorage.setItem('firstLogin', userData.firstLogin);
+          console.log('firstLogin => ', userData.firstLogin);
           // 检查是否需要赠送圣女果
           const lastLoginDate = localStorage.getItem(`lastLogin_${username.value}`);
           const today = new Date().toDateString();
@@ -106,7 +107,7 @@ const handleLogin = async () => {
       });
 
       // 跳转到仪表盘
-      router.push({ path: "/productList" });
+      router.push({ path: "/welcome" });
     } else {
       ElMessage({
         message: response.data.msg || '登录失败',

@@ -1073,10 +1073,13 @@ onMounted(() => {
   // 获取用户信息
   getUserCurrentInfo();
   
-  // 检查是否是首次访问，是则显示新手指导
+  // 检查是否是首次登录，是则显示新手指导
   nextTick(() => {
-    if (localStorage.getItem('guideCompleted') !== 'true') {
+    const firstLogin = sessionStorage.getItem('firstLogin');
+    if (firstLogin === '1') {
       initGuide();
+      // 清除firstLogin标记，避免重复显示
+      sessionStorage.removeItem('firstLogin');
     }
   });
 });

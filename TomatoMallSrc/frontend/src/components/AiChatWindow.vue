@@ -313,7 +313,7 @@ onBeforeUnmount(() => {
   flex-direction: column; /* 弹性布局 */
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(124, 92, 252, 0.2);
+  box-shadow: 0 8px 24px rgba(255, 71, 87, 0.2);
   backdrop-filter: blur(10px);
   z-index: 9998;
   padding: 16px;
@@ -337,7 +337,7 @@ onBeforeUnmount(() => {
 }
 
 .chat-history::-webkit-scrollbar-thumb {
-  background: rgba(124, 92, 252, 0.3);
+  background: rgba(255, 71, 87, 0.3);
   border-radius: 3px;
 }
 
@@ -378,7 +378,7 @@ onBeforeUnmount(() => {
 }
 
 .user .bubble {
-  background: #7c5cfc;
+  background: #ff4757;
   color: white;
   border-radius: 18px 18px 4px 18px;
 }
@@ -422,9 +422,9 @@ onBeforeUnmount(() => {
 }
 
 .product-card {
-  background: linear-gradient(135deg, #7c5cfc 0%, #5b4bec 100%);
+  background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(124, 92, 252, 0.3);
+  box-shadow: 0 4px 20px rgba(255, 71, 87, 0.3);
   padding: 16px;
   max-width: 280px;
   margin: 16px 0;
