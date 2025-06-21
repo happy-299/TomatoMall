@@ -70,6 +70,11 @@ public class AccountServiceImpl implements AccountService
         if (account != null
                 && passwordEncoder.matches(rawPassword, account.getPassword()))
         {
+            account.setFirstLogin(account.getFirstLogin() + 1);
+            if (account.getFirstLogin() > 2) {
+                account.setFirstLogin(2);
+            }
+            accountRepository.save(account);
             return tokenUtil.getToken(account);
         }
         throw TomatoMallException.loginFail();

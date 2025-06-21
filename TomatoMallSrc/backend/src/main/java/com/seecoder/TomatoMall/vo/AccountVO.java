@@ -43,6 +43,8 @@ public class AccountVO
 
     private Integer tomato;
 
+    private Integer firstLogin;
+
 //    private RoleEnum role;
 
 
@@ -59,6 +61,7 @@ public class AccountVO
         account.setLocation(this.location);
         account.setCreateTime(this.createTime);
         account.setRole(this.role);
+        account.setFirstLogin(this.firstLogin);
         // don't set following, follower, isverified here!!!
         account.setTomato(this.tomato);
         return account;
@@ -73,6 +76,7 @@ public class AccountVO
                 .followingCount(this.followingCount)
                 .verifiedName(this.verifiedName)
                 .isVerified(this.isVerified)
+                .firstLogin(this.firstLogin)
                 .build();
     }
 }

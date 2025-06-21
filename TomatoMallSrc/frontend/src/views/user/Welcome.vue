@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, nextTick, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { getProducts, type Product, getStockpile } from '../../api/product';
 import ProductCard from '../../components/ProductCard.vue';
@@ -50,31 +50,252 @@ const fetchProducts = async () => {
   }
 };
 
-// Confetti animation setup
-onMounted(() => {
-  createConfetti();
-  fetchProducts();
-});
+// Confetti animation variables
+let canvas: HTMLCanvasElement | null = null;
+let ctx: CanvasRenderingContext2D | null = null;
+let confetti: any[] = [];
+let sequins: any[] = [];
+let animationFrameId: number | null = null;
 
-const createConfetti = () => {
-  const confettiCount = 150;
-  const colors = ['#FF6347', '#FF8C69', '#FFA07A', '#FF7F50', '#FA8072', '#28a745', '#20c997', '#ffc107'];
+// Colors for confetti
+const colors = [
+  { front: '#FF6347', back: '#D9534F' }, // Tomato red
+  { front: '#FF8C69', back: '#E57373' }, // Salmon
+  { front: '#FFA07A', back: '#EF9A9A' }, // Light salmon
+  { front: '#FFD700', back: '#FFC107' }, // Gold/Amber
+  { front: '#28a745', back: '#20c997' }, // Green/Teal
+  { front: '#f8f9fa', back: '#e9ecef' }  // Light gray/white
+];
+
+// Physics constants
+const gravity = 0.2;
+const drag = 0.05;
+const terminalVelocity = 5;
+
+// Helper functions
+const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+// Confetto Class
+function Confetto(this: any) {
+  this.randomModifier = randomRange(0, 99);
+  this.color = colors[Math.floor(randomRange(0, colors.length))];
+  this.dimensions = {
+    x: randomRange(5, 10),
+    y: randomRange(8, 16),
+  };
   
-  const container = document.querySelector('.confetti-container');
-  if (!container) return;
+  // Start from bottom center of screen
+  const centerX = window.innerWidth / 2;
+  const spreadX = randomRange(-15, 15);
+  
+  this.position = {
+    x: centerX + spreadX,
+    y: window.innerHeight - 100, // A bit above the bottom
+  };
+  
+  this.rotation = randomRange(0, 2 * Math.PI);
+  this.scale = {
+    x: 1,
+    y: 1,
+  };
+  
+  // Initial velocity - shoot upward with random angle
+  const angle = randomRange(-Math.PI / 3, Math.PI / 3); // -60° to 60°
+  const speed = randomRange(15, 30);
+  
+  this.velocity = {
+    x: Math.sin(angle) * speed,
+    y: Math.cos(angle) * -speed, // Negative for upward movement
+  };
+}
 
-  for (let i = 0; i < confettiCount; i++) {
-    const confetti = document.createElement('div');
-    confetti.className = 'confetti';
-    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    confetti.style.left = `${Math.random() * 100}%`;
-    confetti.style.top = `${Math.random() * 100}%`;
-    confetti.style.transform = `scale(${Math.random() * 0.7 + 0.3})`;
-    confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
-    confetti.style.animationDelay = `${Math.random() * 2}s`;
-    container.appendChild(confetti);
+Confetto.prototype.update = function() {
+  // Apply forces to velocity
+  this.velocity.x *= (1 - drag);
+  this.velocity.y += gravity;
+  this.velocity.y = Math.min(this.velocity.y, terminalVelocity);
+  
+  // Add some wiggle
+  this.velocity.x += randomRange(-0.3, 0.3);
+  
+  // Set position
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+  
+  // Spin confetto by scaling y and rotation
+  this.rotation += randomRange(0.01, 0.05);
+  this.scale.y = Math.cos((this.position.y + this.randomModifier) * 0.09);
+};
+
+// Sequin Class
+function Sequin(this: any) {
+  this.color = colors[Math.floor(randomRange(0, colors.length))].back;
+  this.radius = randomRange(1, 3);
+  
+  // Start from bottom center of screen
+  const centerX = window.innerWidth / 2;
+  const spreadX = randomRange(-15, 15);
+  
+  this.position = {
+    x: centerX + spreadX,
+    y: window.innerHeight - 100, // A bit above the bottom
+  };
+  
+  // Initial velocity - shoot upward with random angle
+  const angle = randomRange(-Math.PI / 3, Math.PI / 3); // -60° to 60°
+  const speed = randomRange(15, 25);
+  
+  this.velocity = {
+    x: Math.sin(angle) * speed,
+    y: Math.cos(angle) * -speed, // Negative for upward movement
+  };
+}
+
+Sequin.prototype.update = function() {
+  // Apply forces to velocity
+  this.velocity.x *= (1 - drag * 0.5);
+  this.velocity.y += gravity * 0.8; // Sequins are lighter
+  
+  // Add some wiggle
+  this.velocity.x += randomRange(-0.2, 0.2);
+  
+  // Set position
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+};
+
+// Add elements to arrays to be drawn - create a larger initial burst
+const initBurst = () => {
+  // Add new confetti - more for the initial burst
+  for (let i = 0; i < 100; i++) {
+    confetti.push(new (Confetto as any)());
+  }
+  
+  // Add new sequins - more for the initial burst
+  for (let i = 0; i < 50; i++) {
+    sequins.push(new (Sequin as any)());
   }
 };
+
+// Draw the elements on the canvas
+const render = () => {
+  if (!ctx || !canvas) return;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  confetti.forEach((confetto) => {
+    let width = (confetto.dimensions.x * confetto.scale.x);
+    let height = (confetto.dimensions.y * confetto.scale.y);
+    
+    // Move canvas to position and rotate
+    ctx!.translate(confetto.position.x, confetto.position.y);
+    ctx!.rotate(confetto.rotation);
+    
+    // Update confetto "physics" values
+    confetto.update();
+    
+    // Get front or back fill color
+    ctx!.fillStyle = confetto.scale.y > 0 ? confetto.color.front : confetto.color.back;
+    
+    // Draw confetto
+    ctx!.fillRect(-width / 2, -height / 2, width, height);
+    
+    // Reset transform matrix
+    ctx!.setTransform(1, 0, 0, 1, 0, 0);
+  });
+  
+  sequins.forEach((sequin) => {
+    // Move canvas to position
+    ctx!.translate(sequin.position.x, sequin.position.y);
+    
+    // Update sequin "physics" values
+    sequin.update();
+    
+    // Set the color
+    ctx!.fillStyle = sequin.color;
+    
+    // Draw sequin
+    ctx!.beginPath();
+    ctx!.arc(0, 0, sequin.radius, 0, 2 * Math.PI);
+    ctx!.fill();
+    
+    // Reset transform matrix
+    ctx!.setTransform(1, 0, 0, 1, 0, 0);
+  });
+  
+  // Remove confetti and sequins that fall off the screen
+  confetti = confetti.filter(confetto => {
+    return confetto.position.y < canvas!.height + 100 && 
+           confetto.position.y > -100 &&
+           confetto.position.x > -100 &&
+           confetto.position.x < canvas!.width + 100;
+  });
+  
+  sequins = sequins.filter(sequin => {
+    return sequin.position.y < canvas!.height + 100 && 
+           sequin.position.y > -100 &&
+           sequin.position.x > -100 &&
+           sequin.position.x < canvas!.width + 100;
+  });
+  
+  // Continue animation if there are still elements to animate
+  if (confetti.length > 0 || sequins.length > 0) {
+    animationFrameId = window.requestAnimationFrame(render);
+  } else {
+    // Clean up when all confetti are gone
+    if (canvas && canvas.parentNode) {
+      canvas.style.display = 'none';
+    }
+  }
+};
+
+// Resize canvas if the window size changes
+const resizeCanvas = () => {
+  if (canvas) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+};
+
+// Initialize confetti animation
+const initConfetti = () => {
+  nextTick(() => {
+    canvas = document.getElementById('confetti-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      ctx = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Add window resize listener
+      window.addEventListener('resize', resizeCanvas);
+      
+      // Initialize and start animation - just one burst
+      initBurst();
+      animationFrameId = window.requestAnimationFrame(render);
+    }
+  });
+};
+
+// Clean up event listeners and animation frame
+const cleanupConfetti = () => {
+  window.removeEventListener('resize', resizeCanvas);
+  if (animationFrameId !== null) {
+    window.cancelAnimationFrame(animationFrameId);
+  }
+};
+
+// Initialize data and animations
+onMounted(() => {
+  fetchProducts();
+  initConfetti();
+});
+
+// Clean up before component is unmounted
+onBeforeUnmount(() => {
+  cleanupConfetti();
+});
 
 // Handle cart operations
 const handleCartAdd = (productId: string) => {
@@ -95,24 +316,13 @@ const handleCartUpdated = () => {
 
 <template>
   <div class="page-container">
+    <!-- Canvas for confetti animation -->
+    <canvas id="confetti-canvas"></canvas>
+    
     <!-- First section - Welcome screen -->
     <div class="welcome-container">
       <!-- Background image -->
       <div class="background-image"></div>
-      
-      <!-- Confetti animation container -->
-      <div class="confetti-container"></div>
-      
-      <!-- Decorative elements -->
-      <div class="decorations">
-        <div class="floating-book book-1">📖</div>
-        <div class="floating-book book-2">📗</div>
-        <div class="floating-book book-3">📘</div>
-        <div class="floating-tomato tomato-1">🍅</div>
-        <div class="floating-tomato tomato-2">🍅</div>
-        <div class="floating-leaf leaf-1">🌿</div>
-        <div class="floating-leaf leaf-2">🌱</div>
-      </div>
       
       <!-- Welcome message -->
       <div class="welcome-message">
@@ -169,6 +379,17 @@ const handleCartUpdated = () => {
 </template>
 
 <style scoped>
+/* Confetti Canvas */
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
 /* Page container */
 .page-container {
   display: flex;
@@ -212,140 +433,6 @@ const handleCartUpdated = () => {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.3);
   z-index: 2;
-}
-
-/* Confetti animation */
-.confetti-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 3;
-  pointer-events: none;
-}
-
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  background-color: #ff6347;
-  border-radius: 2px;
-  animation: confettiDrop 3s ease-in-out forwards;
-  opacity: 0;
-  transform-origin: center;
-}
-
-@keyframes confettiDrop {
-  0% {
-    opacity: 1;
-    transform: translateY(-100vh) rotate(0deg);
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(100vh) rotate(720deg);
-  }
-}
-
-/* Decorative elements */
-.decorations {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.floating-book, .floating-tomato, .floating-leaf {
-  position: absolute;
-  font-size: 24px;
-  animation: float-around 6s ease-in-out infinite;
-  z-index: 3;
-}
-
-.floating-book {
-  animation-duration: 8s;
-}
-
-.floating-tomato {
-  animation-duration: 7s;
-}
-
-.floating-leaf {
-  animation-duration: 9s;
-}
-
-@keyframes float-around {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(20px, -20px) rotate(90deg);
-  }
-  50% {
-    transform: translate(-10px, -30px) rotate(180deg);
-  }
-  75% {
-    transform: translate(-20px, -10px) rotate(270deg);
-  }
-}
-
-.book-1 { top: 20%; left: 15%; animation-delay: 0s; }
-.book-2 { top: 60%; left: 25%; animation-delay: -2s; }
-.book-3 { top: 80%; left: 10%; animation-delay: -4s; }
-.tomato-1 { top: 30%; right: 20%; animation-delay: -1s; }
-.tomato-2 { top: 70%; right: 15%; animation-delay: -3s; }
-.leaf-1 { top: 40%; left: 5%; animation-delay: -1.5s; }
-.leaf-2 { top: 90%; right: 25%; animation-delay: -2.5s; }
-
-/* Featured Products Section */
-.featured-section {
-  padding: 60px 0;
-  background-color: #f8f9fa;
-  position: relative;
-}
-
-.featured-products {
-  position: relative;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.featured-title {
-  text-align: center;
-  color: #333;
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 40px;
-  position: relative;
-  display: inline-block;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.featured-title::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #ff6347, transparent);
-}
-
-.products-container {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  width: 100%;
 }
 
 /* Welcome message */
@@ -408,31 +495,77 @@ const handleCartUpdated = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Featured Products Section */
+.featured-section {
+  padding: 60px 0;
+  background-color: #f8f9fa;
+  position: relative;
+}
+
+.featured-products {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.featured-title {
+  text-align: center;
+  color: #333;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 40px;
+  position: relative;
+  display: inline-block;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.featured-title::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ff6347, transparent);
+}
+
+.products-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
 /* Second section - Book recommendation */
 .booklist-section {
-  min-height: 80vh;
+  min-height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
-  padding: 40px 20px;
+  padding: 80px 20px;
+  margin: 0;
 }
 
 .booklist-container {
   display: flex;
-  max-width: 1200px;
+  max-width: 1400px;
   width: 100%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
+  box-shadow: none;
+  border-radius: 0;
   overflow: hidden;
-  background-color: white;
+  background-color: transparent;
+  border: none;
 }
 
 /* Left side - Image */
 .booklist-image-container {
-  flex: 1;
+  flex: 1.2;
   position: relative;
-  min-height: 500px;
+  min-height: 600px;
 }
 
 .booklist-image {
@@ -578,4 +711,4 @@ const handleCartUpdated = () => {
 :deep(.product-card:hover) {
   transform: translateY(-8px);
 }
-</style> 
+</style>
