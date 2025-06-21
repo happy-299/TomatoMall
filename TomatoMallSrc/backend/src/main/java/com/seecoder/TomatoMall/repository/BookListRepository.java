@@ -24,4 +24,6 @@ public interface BookListRepository extends JpaRepository<BookList, Integer>
 
     @Query("SELECT b FROM BookList b WHERE LOWER(b.title) LIKE %:keyword% OR LOWER(b.description) LIKE %:keyword%")
     List<BookList> searchBookLists(@Param("keyword") String keyword);
+
+    Page<BookList> findAllByOrderByFavoriteCountDesc(Pageable pageable);
 }

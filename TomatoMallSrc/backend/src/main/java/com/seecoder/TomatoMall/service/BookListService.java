@@ -31,4 +31,6 @@ public interface BookListService {
     /** 分页查询某用户创建的书单 */
     Page<BookListVO> listByUser(Integer userId, int p, int sz);
 
+    List<BookListVO> listTopBookLists(int top);
+
 }
