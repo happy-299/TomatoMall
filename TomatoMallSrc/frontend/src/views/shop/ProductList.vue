@@ -25,7 +25,7 @@ import {
   getAdvertisements
 } from '../../api/advertisement'
 import {getCart, addToCart, updateCartItemQuantity,  deleteCartItem} from '../../api/cart'
-import {Plus, Delete, User, ShoppingCart, SwitchButton, Menu, Search, Tickets, Medal} from '@element-plus/icons-vue'
+import {Plus, Delete, User, ShoppingCart, SwitchButton, Menu, Search, Tickets, Medal, Edit} from '@element-plus/icons-vue'
 import {
   BookListVO,
   getAllBookLists,
@@ -1167,32 +1167,36 @@ onUnmounted(() => {
     <el-dialog
         v-model="detailNoteDialogVisible"
         title="笔记详情"
-        width="600px"
+        width="800px"
+        class="note-detail-dialog"
     >
       <div v-if="currentNote" class="note-detail">
         <div class="detail-header">
-          <h2>{{ currentNote.title }}</h2>
-          <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
-            <template v-if="currentNote.price > 0">
-              {{ currentNote.price }} 元
-              <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
-            </template>
-            <span v-else class="free">免费</span>
+          <div class="header-left">
+            <div class="note-image-container" v-if="currentNote.img">
+              <el-image
+                  :src="currentNote.img"
+                  class="note-image"
+                  fit="cover"
+              />
+            </div>
+          </div>
+          <div class="header-right">
+            <h2 class="note-title">{{ currentNote.title }}</h2>
+            <div class="detail-price" :class="{ 'paid': paidNoteIds.has(currentNote.id) }">
+              <template v-if="currentNote.price > 0">
+                <span class="price-amount">{{ currentNote.price }} 🍅</span>
+                <span v-if="paidNoteIds.has(currentNote.id)" class="paid-badge">已购买</span>
+              </template>
+              <span v-else class="free">免费</span>
+            </div>
           </div>
         </div>
-
-        <el-image
-            v-if="currentNote.img"
-            :src="currentNote.img"
-            class="note-image"
-            style="max-width: 100%; margin: 10px 0;"
-        />
 
         <div class="note-content-container">
           <div
               class="note-content"
               :class="{ 'limited-content': currentNote.price > 0 && !paidNoteIds.has(currentNote.id) }"
-              style="white-space: pre-wrap;"
           >
             {{ getDisplayContent(currentNote.content, paidNoteIds.has(currentNote.id)) }}
           </div>
@@ -1206,6 +1210,7 @@ onUnmounted(() => {
                 type="warning"
                 :closable="false"
                 show-icon
+                class="purchase-alert"
             />
             <el-button
                 type="primary"
@@ -1217,8 +1222,11 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="actions" v-if="currentUserId === currentNote.creatorId" style="margin-top: 20px;">
-          <el-button type="primary" @click="openEditNote(currentNote)">编辑笔记</el-button>
+        <div class="floating-edit-btn" v-if="currentUserId === currentNote.creatorId">
+          <el-button type="primary" @click="openEditNote(currentNote)" class="edit-btn">
+            <el-icon><Edit /></el-icon>
+            编辑笔记
+          </el-button>
         </div>
       </div>
     </el-dialog>
@@ -2290,5 +2298,364 @@ onUnmounted(() => {
   font-size: 38px;
   color: #ff6b6b;
   filter: drop-shadow(0 2px 8px rgba(255,107,107,0.18));
+}
+
+.note-detail-dialog .note-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0;
+  position: relative;
+  min-height: 500px;
+}
+
+.note-detail-dialog .note-detail .detail-header {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.note-detail-dialog .note-detail .header-left {
+  flex-shrink: 0;
+}
+
+.note-detail-dialog .note-detail .note-image-container {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+.note-detail-dialog .note-detail .note-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: cover;
+}
+
+.note-detail-dialog .note-detail .note-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.note-detail-dialog .note-detail .header-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.note-detail-dialog .note-detail .note-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  line-height: 1.3;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+.note-detail-dialog .note-detail .detail-price {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.note-detail-dialog .note-detail .price-amount {
+  color: #e74c3c;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.note-detail-dialog .note-detail .paid-badge {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.note-detail-dialog .note-detail .free {
+  background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.note-detail-dialog .note-detail .note-content-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  min-height: 300px;
+}
+
+.note-detail-dialog .note-detail .note-content {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #34495e;
+  background: #fafbfc;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: none;
+}
+
+.note-detail-dialog .note-detail .note-content.limited-content {
+  position: relative;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.note-detail-dialog .note-detail .note-content.limited-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, #fafbfc);
+  pointer-events: none;
+}
+
+.note-detail-dialog .note-detail .purchase-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fef2f2 100%);
+  border-radius: 12px;
+  border: 1px solid #fed7d7;
+}
+
+.note-detail-dialog .note-detail .purchase-alert {
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.note-detail-dialog .note-detail .purchase-alert :deep(.el-alert__content) {
+  color: #c53030;
+  font-weight: 600;
+}
+
+.note-detail-dialog .note-detail .purchase-button {
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.3);
+  align-self: flex-start;
+}
+
+.note-detail-dialog .note-detail .purchase-button:hover {
+  background: linear-gradient(135deg, #c9302c 0%, #b32d2a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(217, 83, 79, 0.4);
+}
+
+.note-detail-dialog .note-detail .actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 2px solid #f5f5f5;
+}
+
+.note-detail-dialog .note-detail .edit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-detail-dialog .note-detail .edit-btn:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.note-detail-dialog .note-detail .edit-btn .el-icon {
+  font-size: 16px;
+}
+
+/* 弹窗整体样式优化 */
+.note-detail-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+  color: white;
+  padding: 20px 24px;
+  border-radius: 12px 12px 0 0;
+}
+
+.note-detail-dialog :deep(.el-dialog__title) {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.note-detail-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: white;
+  font-size: 20px;
+}
+
+.note-detail-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+  background: white;
+}
+
+.note-detail-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .note-detail-dialog .note-detail .note-content-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .note-detail-dialog .note-detail .note-image-container {
+    width: 100%;
+  }
+  
+  .note-detail-dialog .note-detail .note-image {
+    height: 200px;
+  }
+  
+  .note-detail-dialog .note-detail .note-title {
+    font-size: 24px;
+  }
+  
+  .note-detail-dialog .note-detail .purchase-tip {
+    flex-direction: column;
+  }
+}
+
+.note-detail-dialog .note-detail .floating-edit-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.note-detail-dialog .note-detail .edit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-detail-dialog .note-detail .edit-btn:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.note-detail-dialog .note-detail .edit-btn .el-icon {
+  font-size: 16px;
+}
+
+/* 弹窗整体样式优化 */
+.note-detail-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #d9534f 0%, #c9302c 100%);
+  color: white;
+  padding: 20px 24px;
+  border-radius: 12px 12px 0 0;
+}
+
+.note-detail-dialog :deep(.el-dialog__title) {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.note-detail-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: white;
+  font-size: 20px;
+}
+
+.note-detail-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+  background: white;
+}
+
+.note-detail-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .note-detail-dialog .note-detail .detail-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .note-detail-dialog .note-detail .note-image-container {
+    width: 100px;
+    height: 100px;
+    align-self: center;
+  }
+  
+  .note-detail-dialog .note-detail .note-title {
+    font-size: 20px;
+    text-align: center;
+  }
+  
+  .note-detail-dialog .note-detail .detail-price {
+    justify-content: center;
+  }
+  
+  .note-detail-dialog .note-detail .floating-edit-btn {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+  }
 }
 </style>

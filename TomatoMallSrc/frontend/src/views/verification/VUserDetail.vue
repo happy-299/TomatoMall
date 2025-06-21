@@ -5,76 +5,90 @@
     <template v-else>
       <!-- 用户信息 -->
       <div class="profile">
-        <el-image
-            :src="user.avatar"
-            class="avatar"
-            fit="cover"
-        >
-          <template #error>
-            <div class="avatar-error">
-              <el-icon :size="40">
-                <User/>
-              </el-icon>
-            </div>
-          </template>
-        </el-image>
-        <h1>{{ user.username }}</h1>
-        <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
-        <div class="profile-actions">
-          <el-button
-              v-if="currentId != user.id"
-              :type="isFollowing ? 'info' : 'primary'"
-              @click="handleFollow"
-              size="medium"
+        <div class="profile-header">
+          <el-image
+              :src="user.avatar"
+              class="avatar"
+              fit="cover"
           >
-            {{ isFollowing ? '已关注' : '+ 关注' }}
-          </el-button>
+            <template #error>
+              <div class="avatar-error">
+                <el-icon :size="40">
+                  <User/>
+                </el-icon>
+              </div>
+            </template>
+          </el-image>
+          <h1>{{ user.username }}</h1>
+          <UserBadge :is-verified="user.isVerified" :verified-name="user.verifiedName"/>
+          <div class="profile-actions">
+            <el-button
+                v-if="currentId != user.id"
+                :type="isFollowing ? 'info' : 'primary'"
+                @click="handleFollow"
+                size="medium"
+            >
+              {{ isFollowing ? '已关注' : '+ 关注' }}
+            </el-button>
+          </div>
         </div>
       </div>
 
       <!-- 内容切换 -->
-      <el-tabs v-model="activeTab">
-        <!-- 书单列表 -->
-        <el-tab-pane label="创建的书单" name="booklists">
-          <div v-if="booklists.length === 0" class="empty-tip">
-            <el-empty description="该用户暂未创建书单"/>
-          </div>
-          <div class="horizontal-list">
-            <BookListItem
-                v-for="list in booklists"
-                :key="list.id"
-                :book-list="list"
-                :is-favourite="list.isFavourite"
-                :is-creator="false"
-                @collect="handleCollectBookList"
-                @view="handleViewBookList"
-                class="list-item"
-            />
-          </div>
-        </el-tab-pane>
+      <div class="tabs-container">
+        <el-tabs v-model="activeTab" class="custom-tabs">
+          <!-- 书单列表 -->
+          <el-tab-pane label="创建的书单" name="booklists">
+            <template #label>
+              <div class="tab-label">
+                <el-icon><Collection /></el-icon>
+                <span>创建的书单</span>
+              </div>
+            </template>
+            <div v-if="booklists.length === 0" class="empty-tip">
+              <el-empty description="该用户暂未创建书单"/>
+            </div>
+            <div v-else class="horizontal-list">
+              <div v-for="list in booklists" :key="list.id" class="card-wrapper booklist-wrapper">
+                <BookListItem
+                    :book-list="list"
+                    :is-favourite="list.isFavourite"
+                    :is-creator="false"
+                    @collect="handleCollectBookList"
+                    @view="handleViewBookList"
+                />
+              </div>
+            </div>
+          </el-tab-pane>
 
-        <!-- 笔记列表 -->
-        <el-tab-pane label="读书笔记" name="notes">
-          <div v-if="notes.length === 0" class="empty-tip">
-            <el-empty description="该用户暂未发布笔记"/>
-          </div>
-          <div class="horizontal-list">
-            <ReadingNote
-                v-for="note in notes"
-                :key="note.id"
-                :note="note"
-                :is-liked="likedNoteIds.has(note.id)"
-                :is-creator="false"
-                :is-paid="paidNoteIds.has(note.id)"
-                @like="handleLikeNote"
-                @unlike="handleUnlikeNote"
-                @purchase="handlePurchaseNote"
-                @view="handleViewNote"
-                class="list-item"
-            />
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+          <!-- 笔记列表 -->
+          <el-tab-pane label="读书笔记" name="notes">
+            <template #label>
+              <div class="tab-label">
+                <el-icon><Notebook /></el-icon>
+                <span>读书笔记</span>
+              </div>
+            </template>
+            <div v-if="notes.length === 0" class="empty-tip">
+              <el-empty description="该用户暂未发布笔记"/>
+            </div>
+            <div v-else class="horizontal-list">
+              <div v-for="note in notes" :key="note.id" class="card-wrapper note-wrapper">
+                <ReadingNote
+                    :note="note"
+                    :is-liked="likedNoteIds.has(note.id)"
+                    :is-creator="false"
+                    :is-paid="paidNoteIds.has(note.id)"
+                    @like="handleLikeNote"
+                    @unlike="handleUnlikeNote"
+                    @purchase="handlePurchaseNote"
+                    @view="handleViewNote"
+                />
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
 
       <!-- 书单详情弹窗 -->
       <el-dialog
@@ -82,7 +96,7 @@
           title="书单详情"
           width="800px"
       >
-        <div v-loading="detailLoading" class="booklist-detail">
+        <div :loading="detailLoading" class="booklist-detail">
           <template v-if="currentBookList">
             <div class="booklist-header">
               <h2>{{ currentBookList.title }}</h2>
@@ -202,7 +216,7 @@
 import {ref, computed, onMounted, reactive} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElMessage, ElLoading} from 'element-plus'
-import {User, Star} from '@element-plus/icons-vue'
+import {User, Star, Collection, Notebook} from '@element-plus/icons-vue'
 import {
   getUserBookLists,
   collectBookList,
@@ -227,11 +241,13 @@ const userId = computed(() => Number(route.params.userId) || 0)
 const router = useRouter()
 const isFollowing = ref(false)
 const currentId = Number(sessionStorage.getItem('userId'))
+const activeTab = ref('booklists')
+const loading = ref(true)
 
 const getFollowStatus = async () => {
   try {
     const res = await checkIsFollowed(user.id)
-    isFollowing.value = res.data.data
+    isFollowing.value = (res as any).data?.data || false
   } catch (error) {
     console.error('获取关注状态失败:', error)
   }
@@ -275,14 +291,15 @@ const selectedNote = ref<any>(null)
 
 // 初始化加载
 onMounted(async () => {
+  loading.value = true
   try {
     // 加载书单
     const listRes = await getUserBookLists(userId.value)
-    booklists.value = listRes.data.data?.content || []
+    booklists.value = (listRes as any).data?.data?.content || []
 
     // 加载笔记
     const noteRes = await getUserNotes(userId.value)
-    notes.value = noteRes.data.data || []
+    notes.value = (noteRes as any).data?.data || []
 
     // 初始化笔记状态
     for (const note of notes.value) {
@@ -290,12 +307,14 @@ onMounted(async () => {
         getNoteLikeStatus(note.id),
         getNotePayStatus(note.id)
       ])
-      if (likeRes.data.data) likedNoteIds.value.add(note.id)
-      if (payRes.data.data) paidNoteIds.value.add(note.id)
+      if ((likeRes as any).data?.data) likedNoteIds.value.add(note.id)
+      if ((payRes as any).data?.data) paidNoteIds.value.add(note.id)
     }
     await getFollowStatus()
   } catch (error) {
     ElMessage.error('数据加载失败')
+  } finally {
+    loading.value = false
   }
 })
 
@@ -319,7 +338,7 @@ const handleViewBookList = async (bookList: any) => {
   detailLoading.value = true
   try {
     const res = await getAllBookLists(0, 1000)
-    const fullBookList = res.data.data.content.find((list: any) => list.id === bookList.id)
+    const fullBookList = (res as any).data?.data?.content?.find((list: any) => list.id === bookList.id)
 
     if (fullBookList) {
       currentBookList.value = {
@@ -392,100 +411,247 @@ const getDisplayContent = (content: string, isPaid: boolean) => {
 </script>
 
 <style scoped>
-/* 保持原有样式，新增弹窗相关样式 */
-.booklist-detail {
+.user-detail {
+  min-height: 100vh;
+  background: #ffffff;
   padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 用户信息区域 */
+.profile {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+}
+
+.avatar-error {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: 4px solid #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.profile-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-actions {
+  margin-top: 10px;
+}
+
+.profile-actions .el-button {
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.profile-actions .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 标签页容器 */
+.tabs-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+.custom-tabs {
+  --el-tabs-header-height: 60px;
+}
+
+.custom-tabs :deep(.el-tabs__header) {
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.custom-tabs :deep(.el-tabs__nav-wrap) {
+  padding: 0 20px;
+}
+
+.custom-tabs :deep(.el-tabs__item) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.3s ease;
+  border-radius: 10px 10px 0 0;
+  margin-right: 10px;
+}
+
+.custom-tabs :deep(.el-tabs__item:hover) {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.custom-tabs :deep(.el-tabs__item.is-active) {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+  border-bottom: 3px solid #409eff;
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-label .el-icon {
+  font-size: 18px;
+}
+
+/* 空状态提示 */
+.empty-tip {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-tip :deep(.el-empty__description) {
+  color: #999;
+  font-size: 16px;
+}
+
+/* 水平列表布局 */
+.horizontal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+  padding: 20px 0;
+}
+
+.card-wrapper {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-wrapper:hover {
+  transform: translateY(-8px);
+}
+
+.booklist-wrapper :deep(.booklist-card),
+.note-wrapper :deep(.reading-note) {
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.booklist-wrapper :deep(.booklist-card:hover),
+.note-wrapper :deep(.reading-note:hover) {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+}
+
+/* 弹窗样式优化 */
+:deep(.el-dialog) {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.el-dialog__header) {
+  background: #409eff;
+  color: white;
+  padding: 25px 30px;
+  margin: 0;
+}
+
+:deep(.el-dialog__title) {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+:deep(.el-dialog__headerbtn) {
+  top: 25px;
+  right: 30px;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: #ff4757;
+  font-size: 20px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close:hover) {
+  color: #ff3742;
+  transform: scale(1.1);
+}
+
+:deep(.el-dialog__body) {
+  padding: 30px;
+}
+
+/* 书单详情弹窗 */
+.booklist-detail {
   max-height: 70vh;
   overflow-y: auto;
 }
 
-.products-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+.booklist-header {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
 }
 
-.product-item {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-}
-
-.product-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.product-cover {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.product-info {
-  flex: 1;
-}
-
-.product-info h4 {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.note-content-container {
-  position: relative;
-}
-
-.limited-content {
-  position: relative;
-  max-height: 200px;
-  overflow: hidden;
-}
-
-.limited-content::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background: linear-gradient(transparent, white);
-}
-
-.purchase-tip {
-  margin-top: 20px;
-  text-align: center;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-}
-
-.purchase-button {
-  margin-top: 15px;
-  width: 100%;
-}
-
-.price {
-  color: #f56c6c;
-  font-weight: bold;
-  margin-top: 8px;
-  font-size: 16px;
+.booklist-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 15px 0;
 }
 
 .creator-info {
   display: flex;
   align-items: center;
-  margin: 12px 0;
+  gap: 12px;
+  color: #666;
   font-size: 14px;
 }
 
@@ -493,239 +659,325 @@ const getDisplayContent = (content: string, isPaid: boolean) => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  margin-right: 8px;
+  object-fit: cover;
 }
 
 .creation-date {
-  color: #909399;
-  margin-left: 12px;
+  color: #999;
   font-size: 12px;
-}
-
-.booklist-footer {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
-  display: flex;
-  justify-content: space-between;
-  color: #606266;
-  font-size: 14px;
-}
-
-.preview-image {
-  max-width: 200px;
-  margin-top: 10px;
-}
-
-.note-detail .note-content {
-  white-space: pre-wrap;
-  margin: 16px 0;
-}
-
-.confirm-purchase {
-  text-align: center;
-}
-
-.profile {
-  text-align: center;
-  padding: 20px 0;
-
-  .avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    margin-bottom: 15px;
-  }
-
-  h1 {
-    margin: 10px 0;
-    font-size: 24px;
-  }
-}
-
-/* 横向排列容器 */
-.horizontal-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  width: 100%;
-  padding: 12px 0;
-}
-
-/* 列表项通用样式 */
-.horizontal-list > .list-item {
-  flex: 0 0 calc(33.333% - 16px); /* 三列布局，计算方式：(24px间隙 * 2)/3 = 16px */
-  min-width: 280px;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-}
-
-/* 响应式布局调整 */
-@media (max-width: 1200px) {
-  .horizontal-list > .list-item {
-    flex: 0 0 calc(50% - 12px); /* 两列布局，计算方式：24px间隙 / 2 = 12px */
-  }
-}
-
-@media (max-width: 768px) {
-  .horizontal-list {
-    gap: 16px;
-  }
-
-  .horizontal-list > .list-item {
-    flex: 0 0 100%; /* 单列布局 */
-  }
-}
-
-/* 保持原有其他样式 */
-.empty-tip {
-  padding: 40px 0;
-}
-
-.el-tabs__content {
-  overflow: visible !important;
-  position: static !important;
-}
-
-.booklist-item {
-  margin: 12px 0;
-  padding: 16px;
-  border-radius: 8px;
-  background: #f8f9fa;
-  transition: all 0.3s;
-
-  .title {
-    font-weight: 500;
-    margin-bottom: 8px;
-  }
-
-  .meta {
-    margin-top: 8px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* 调整卡片内部样式 */
-.booklist-card,
-.note-card {
-  width: 100%;
-  height: 100%;
-  padding: 12px;
-}
-
-.booklist-header h3 {
-  font-size: 15px;
 }
 
 .description {
-  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 25px;
+  font-size: 15px;
 }
 
-.el-tag {
-  height: 24px;
-  padding: 0 8px;
+.products-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border-radius: 12px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+}
+
+.product-item:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-cover {
+  width: 50px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.product-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.price {
+  color: #e74c3c;
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0;
+}
+
+.booklist-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 2px solid #f0f0f0;
+  color: #666;
+  font-size: 14px;
+}
+
+.favourite-count,
+.product-count {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* 笔记详情弹窗 */
+.note-detail {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.detail-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  flex: 1;
+}
+
+.detail-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e74c3c;
+}
+
+.detail-price.free {
+  color: #27ae60;
+}
+
+.paid-badge {
+  background: #27ae60;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
+}
+
+.note-image {
+  width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .note-content-container {
   position: relative;
-  margin: 16px 0;
 }
 
-/* 内容限制样式 */
-.limited-content {
+.note-content {
+  line-height: 1.8;
+  color: #2c3e50;
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+
+.note-content.limited-content {
   position: relative;
   max-height: 200px;
   overflow: hidden;
 }
 
-.limited-content::after {
-  content: "";
+.note-content.limited-content::after {
+  content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   height: 60px;
   background: linear-gradient(transparent, white);
+  pointer-events: none;
 }
 
-/* 调整购买提示样式 */
 .purchase-tip {
-  margin-top: 20px;
+  margin-top: 25px;
   text-align: center;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
 }
 
 .purchase-button {
   margin-top: 15px;
-  width: 100%;
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-weight: 600;
+  background: #409eff;
+  border: none;
+  transition: all 0.3s ease;
 }
 
-/* 保持原有其他样式 */
-.note-content {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  font-size: 14px;
-  color: #606266;
+.purchase-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
 }
 
+/* 购买确认弹窗 */
 .confirm-purchase {
   text-align: center;
+  padding: 20px 0;
+}
 
-  .cover-container {
-    width: 100%;
-    height: 200px;
-    border-radius: 8px;
-    overflow: hidden;
-    margin: 0 auto 20px;
-    background: #f5f7fa;
+.cover-container {
+  margin-bottom: 20px;
+}
+
+.note-cover {
+  width: 200px;
+  height: 280px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-purchase h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 15px 0;
+}
+
+.confirm-purchase .price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e74c3c;
+  margin-bottom: 25px;
+}
+
+.confirm-purchase .el-button {
+  border-radius: 25px;
+  padding: 12px 30px;
+  font-weight: 600;
+  background: #409eff;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.confirm-purchase .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .user-detail {
+    padding: 15px;
   }
-
-  .note-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s;
+  
+  .profile {
+    padding: 30px 20px;
   }
-
-  h3 {
-    margin: 0 0 12px;
-    font-size: 18px;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  
+  .profile-header h1 {
+    font-size: 2rem;
   }
-
-  .price {
-    color: #e6a23c;
-    font-size: 20px;
-    margin: 0 0 20px;
-    font-weight: bold;
+  
+  .avatar,
+  .avatar-error {
+    width: 100px;
+    height: 100px;
   }
-
-  .el-button {
-    width: 80%;
-    margin-top: 10px;
+  
+  .tabs-container {
+    padding: 20px;
+  }
+  
+  .horizontal-list {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .products-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .booklist-footer {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
   }
 }
 
-.profile-actions {
-  margin-top: 15px;
+@media (max-width: 480px) {
+  .profile {
+    padding: 25px 15px;
+  }
+  
+  .profile-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .tabs-container {
+    padding: 15px;
+  }
+  
+  .custom-tabs :deep(.el-tabs__item) {
+    font-size: 14px;
+    padding: 0 15px;
+  }
 }
 
-.profile-actions .el-button {
-  padding: 8px 25px;
+/* 加载动画优化 */
+:deep(.el-skeleton) {
+  background: #ffffff;
   border-radius: 20px;
-  font-size: 14px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+/* 滚动条美化 */
+.note-detail::-webkit-scrollbar,
+.booklist-detail::-webkit-scrollbar {
+  width: 6px;
+}
+
+.note-detail::-webkit-scrollbar-track,
+.booklist-detail::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.note-detail::-webkit-scrollbar-thumb,
+.booklist-detail::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.note-detail::-webkit-scrollbar-thumb:hover,
+.booklist-detail::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 </style>

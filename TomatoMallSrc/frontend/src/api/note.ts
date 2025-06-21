@@ -169,3 +169,13 @@ export const getLikedNotes = () => {
         }
     })
 }
+
+// 获取点赞数最高的笔记
+export const getTopLikedNotes = (topNum: number = 4) => {
+    const token = sessionStorage.getItem('token')
+    return axios.get<NoteVO[]>(`${NOTE_MODULE}/like/top/${topNum}`, {
+        headers: {
+            'token': token || ''
+        }
+    })
+}

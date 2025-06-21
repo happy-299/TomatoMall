@@ -34,4 +34,6 @@ public interface NoteService
     List<NoteVO> getNotesPaid();
 
     List<NoteVO> getNotesLiked();
+
+    List<NoteVO> getNoteTopLiked(Integer top);
 }

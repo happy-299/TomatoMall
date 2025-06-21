@@ -202,12 +202,12 @@ onMounted(() => {
 .ball {
   width: 60px;
   height: 60px;
-  background: #7c5cfc;
+  background: #ff4757;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(124, 92, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
   animation: float 3s ease-in-out infinite;
   position: relative;
 }
@@ -220,7 +220,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 2px solid #7c5cfc;
+  border: 2px solid #ff4757;
   animation: ripple 2s infinite;
 }
 

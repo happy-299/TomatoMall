@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getBookList, type BookListVO } from '../../api/booklist'
+import {  type BookListVO } from '../../api/booklist'
 import Header from '../../components/Header.vue'
 
 const route = useRoute()
